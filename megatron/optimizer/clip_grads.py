@@ -2,19 +2,19 @@
 
 """Gradient clipping."""
 
+import amp_C
 import torch
+from apex.multi_tensor_apply import multi_tensor_applier
+from deepspeed.accelerator import get_accelerator
 from torch._six import inf
 
-from apex.multi_tensor_apply import multi_tensor_applier
-import amp_C
-
-from megatron.model.module import param_is_not_shared
 from megatron.core.tensor_parallel import param_is_not_tensor_parallel_duplicate
+from megatron.model.module import param_is_not_shared
 
 
-def clip_grad_norm_fp32(parameters, grads_for_norm,
-                        max_norm, norm_type=2,
-                        model_parallel_group=None):
+def clip_grad_norm_fp32(
+    parameters, grads_for_norm, max_norm, norm_type=2, model_parallel_group=None
+):
     """Clips gradient norm of an iterable of parameters whose gradients
        are in fp32.
 
@@ -46,7 +46,7 @@ def clip_grad_norm_fp32(parameters, grads_for_norm,
     grads = []
     for param in parameters:
         if param.grad is not None:
-            assert param.grad.type() == 'torch.cuda.FloatTensor'
+            assert param.grad.type() == "get_accelerator().FloatTensor"
             grads.append(param.grad.detach())
 
     # Norm parameters.
@@ -57,16 +57,18 @@ def clip_grad_norm_fp32(parameters, grads_for_norm,
     # Calculate norm.
     if norm_type == inf:
         total_norm = max(grad.abs().max() for grad in grads_for_norm)
-        total_norm_cuda = torch.cuda.FloatTensor([float(total_norm)])
+        total_norm_cuda = get_accelerator().FloatTensor([float(total_norm)])
         # Take max across all model-parallel GPUs.
-        torch.distributed.all_reduce(total_norm_cuda,
-                                     op=torch.distributed.ReduceOp.MAX,
-                                     group=model_parallel_group)
+        torch.distributed.all_reduce(
+            total_norm_cuda,
+            op=torch.distributed.ReduceOp.MAX,
+            group=model_parallel_group,
+        )
         total_norm = total_norm_cuda[0].item()
 
     else:
         if norm_type == 2.0:
-            dummy_overflow_buf = torch.cuda.IntTensor([0])
+            dummy_overflow_buf = get_accelerator().IntTensor([0])
             # Use apex's multi-tensor applier for efficiency reasons.
             # Multi-tensor applier takes a function and a list of list
             # and performs the operation on that list all in one kernel.
@@ -75,33 +77,32 @@ def clip_grad_norm_fp32(parameters, grads_for_norm,
                     amp_C.multi_tensor_l2norm,
                     dummy_overflow_buf,
                     [grads_for_norm],
-                    False # no per-parameter norm
+                    False,  # no per-parameter norm
                 )
             else:
-                grad_norm = torch.cuda.FloatTensor([0])
+                grad_norm = get_accelerator().FloatTensor([0])
             # Since we will be summing across data parallel groups,
             # we need the pow(norm-type).
-            total_norm = grad_norm ** norm_type
+            total_norm = grad_norm**norm_type
 
         else:
             for grad in grads_for_norm:
                 grad_norm = torch.norm(grad, norm_type)
-                total_norm += grad_norm ** norm_type
+                total_norm += grad_norm**norm_type
 
         # Sum across all model-parallel GPUs.
-        torch.distributed.all_reduce(total_norm,
-                                     op=torch.distributed.ReduceOp.SUM,
-                                     group=model_parallel_group)
+        torch.distributed.all_reduce(
+            total_norm, op=torch.distributed.ReduceOp.SUM, group=model_parallel_group
+        )
         total_norm = total_norm.item() ** (1.0 / norm_type)
 
     # Scale.
     clip_coeff = max_norm / (total_norm + 1.0e-6)
     if clip_coeff < 1.0:
-        dummy_overflow_buf = torch.cuda.IntTensor([0])
-        multi_tensor_applier(amp_C.multi_tensor_scale,
-                             dummy_overflow_buf,
-                             [grads, grads],
-                             clip_coeff)
+        dummy_overflow_buf = get_accelerator().IntTensor([0])
+        multi_tensor_applier(
+            amp_C.multi_tensor_scale, dummy_overflow_buf, [grads, grads], clip_coeff
+        )
 
     return total_norm
 
@@ -115,7 +116,7 @@ def count_zeros_fp32(parameters, model_parallel_group):
     #   - grad should not be none
     #   - parameter should not be shared
     #   - should not be a replica due to tensor model parallelism
-    total_num_zeros = torch.cuda.FloatTensor([0.0])
+    total_num_zeros = get_accelerator().FloatTensor([0.0])
     for param in parameters:
         grad_not_none = param.grad is not None
         is_not_shared = param_is_not_shared(param)
@@ -126,9 +127,9 @@ def count_zeros_fp32(parameters, model_parallel_group):
             total_num_zeros = num_zeros + total_num_zeros
 
     # Sum across all model-parallel GPUs.
-    torch.distributed.all_reduce(total_num_zeros,
-                                 op=torch.distributed.ReduceOp.SUM,
-                                 group=model_parallel_group)
+    torch.distributed.all_reduce(
+        total_num_zeros, op=torch.distributed.ReduceOp.SUM, group=model_parallel_group
+    )
 
     total_num_zeros = total_num_zeros.item()
 

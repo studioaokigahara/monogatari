@@ -7,13 +7,11 @@ from megatron import get_args
 
 from .distrib_optimizer import DistributedOptimizer
 from .grad_scaler import ConstantGradScaler, DynamicGradScaler
+from .izanagi import Oni, Izanagi, IzanagiZero
 from .optimizer import Float16OptimizerWithFloat16Params, FP32Optimizer
 
 
-def get_param_groups(modules,
-                     no_weight_decay_cond,
-                     scale_lr_cond,
-                     lr_mult):
+def get_param_groups(modules, no_weight_decay_cond, scale_lr_cond, lr_mult):
     """creates param groups based on weight decay condition (regularized vs non regularized)
        and learning rate scale condition (args.lr vs lr_mult * args.lr)
        scale_lr_cond is used during finetuning where head of the network requires a scaled
@@ -50,46 +48,73 @@ def get_param_groups(modules,
 
     param_groups = []
     if len(wd_no_scale_lr):
-        param_groups.append({'params': wd_no_scale_lr, 'wd_mult': 1.0, 'lr_mult': 1.0})
+        param_groups.append({"params": wd_no_scale_lr, "wd_mult": 1.0, "lr_mult": 1.0})
     if len(wd_scale_lr):
-        param_groups.append({'params': wd_scale_lr, 'wd_mult': 1.0, 'lr_mult': lr_mult})
+        param_groups.append({"params": wd_scale_lr, "wd_mult": 1.0, "lr_mult": lr_mult})
     if len(no_wd_no_scale_lr):
-        param_groups.append({'params': no_wd_no_scale_lr, 'wd_mult': 0.0, 'lr_mult': 1.0})
+        param_groups.append(
+            {"params": no_wd_no_scale_lr, "wd_mult": 0.0, "lr_mult": 1.0}
+        )
     if len(no_wd_scale_lr):
-        param_groups.append({'params': no_wd_scale_lr, 'wd_mult': 0.0, 'lr_mult': lr_mult})
+        param_groups.append(
+            {"params": no_wd_scale_lr, "wd_mult": 0.0, "lr_mult": lr_mult}
+        )
 
     return param_groups
 
-def get_megatron_optimizer(model,
-                           no_weight_decay_cond=None,
-                           scale_lr_cond=None,
-                           lr_mult=1.0):
+
+def get_megatron_optimizer(
+    model, no_weight_decay_cond=None, scale_lr_cond=None, lr_mult=1.0
+):
     args = get_args()
 
     # Base optimizer.
-    param_groups = get_param_groups(model,
-                                    no_weight_decay_cond,
-                                    scale_lr_cond,
-                                    lr_mult)
+    param_groups = get_param_groups(model, no_weight_decay_cond, scale_lr_cond, lr_mult)
 
-    if args.optimizer == 'adam':
-        optimizer = Adam(param_groups,
-                         lr=args.lr,
-                         weight_decay=args.weight_decay,
-                         betas=(args.adam_beta1, args.adam_beta2),
-                         eps=args.adam_eps)
-    elif args.optimizer == 'sgd':
-        optimizer = SGD(param_groups,
-                        lr=args.lr,
-                        weight_decay=args.weight_decay,
-                        momentum=args.sgd_momentum)
+    if args.optimizer == "adam":
+        optimizer = Adam(
+            param_groups,
+            lr=args.lr,
+            weight_decay=args.weight_decay,
+            betas=(args.adam_beta1, args.adam_beta2),
+            eps=args.adam_eps,
+        )
+    elif args.optimizer == "sgd":
+        optimizer = SGD(
+            param_groups,
+            lr=args.lr,
+            weight_decay=args.weight_decay,
+            momentum=args.sgd_momentum,
+        )
+    elif args.optimizer == "izanagi":
+        optimizer = Izanagi(
+            param_groups,
+            lr=args.lr,
+            weight_decay=args.weight_decay,
+            beta=args.izanagi_beta,
+            momentum=args.izanagi_momentum,
+            eps=args.izanagi_eps,
+        )
+        optimizer = Oni(optimizer)
+    elif args.optimizer == "izanagizero":
+        optimizer = IzanagiZero(
+            param_groups,
+            lr=args.lr,
+            weight_decay=args.weight_decay,
+            beta=args.izanagi_beta,
+            momentum=args.izanagi_momentum,
+            eps=args.izanagi_eps,
+        )
+        optimizer = Oni(optimizer)
     else:
-        raise Exception('{} optimizer is not supported.'.format(
-            args.optimizer))
+        raise Exception(f'Optimizer "{args.optimizer}" is not supported.')
+
+    if args.deepseed:
+        return
 
     # Determine whether the params have main-grad field.
     params_have_main_grad = False
-    if args.DDP_impl == 'local':
+    if args.DDP_impl == "local":
         params_have_main_grad = True
 
     # Mixed precision optimizer.
@@ -119,26 +144,34 @@ def get_megatron_optimizer(model,
                     growth_factor=2.0,
                     backoff_factor=0.5,
                     growth_interval=args.loss_scale_window,
-                    hysteresis=args.hysteresis)
+                    hysteresis=args.hysteresis,
+                )
 
         # Megatron optimizer.
-        opt_ty = DistributedOptimizer \
-            if args.use_distributed_optimizer else \
-            Float16OptimizerWithFloat16Params
-        return opt_ty(optimizer,
-                      args.clip_grad,
-                      args.log_num_zeros_in_grad,
-                      params_have_main_grad,
-                      args.use_contiguous_buffers_in_local_ddp,
-                      args.fp16,
-                      args.bf16,
-                      args.params_dtype,
-                      grad_scaler,
-                      model)
+        opt_ty = (
+            DistributedOptimizer
+            if args.use_distributed_optimizer
+            else Float16OptimizerWithFloat16Params
+        )
+        return opt_ty(
+            optimizer,
+            args.clip_grad,
+            args.log_num_zeros_in_grad,
+            params_have_main_grad,
+            args.use_contiguous_buffers_in_local_ddp,
+            args.fp16,
+            args.bf16,
+            args.params_dtype,
+            grad_scaler,
+            model,
+        )
 
     # FP32.
-    return FP32Optimizer(optimizer, args.clip_grad,
-                         args.log_num_zeros_in_grad,
-                         params_have_main_grad,
-                         args.use_contiguous_buffers_in_local_ddp,
-                         model)
+    return FP32Optimizer(
+        optimizer,
+        args.clip_grad,
+        args.log_num_zeros_in_grad,
+        params_have_main_grad,
+        args.use_contiguous_buffers_in_local_ddp,
+        model,
+    )

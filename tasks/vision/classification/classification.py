@@ -19,8 +19,7 @@ def classification():
         args = get_args()
 
         train_ds, valid_ds = build_train_valid_datasets(
-            data_path=args.data_path,
-            image_size=(args.img_h, args.img_w),
+            data_path=args.data_path, image_size=(args.img_h, args.img_w),
         )
         return train_ds, valid_ds
 
@@ -30,8 +29,12 @@ def classification():
 
         print_rank_0("building classification model for ImageNet ...")
 
-        return VitClassificationModel(num_classes=args.num_classes, finetune=True,
-                                      pre_process=pre_process, post_process=post_process)
+        return VitClassificationModel(
+            num_classes=args.num_classes,
+            finetune=True,
+            pre_process=pre_process,
+            post_process=post_process,
+        )
 
     def process_batch(batch):
         """Process batch and produce inputs for the model."""
@@ -48,7 +51,7 @@ def classification():
         # Reduce loss for logging.
         averaged_loss = average_losses_across_data_parallel_group([loss])
 
-        return loss, {'lm loss': averaged_loss[0]}
+        return loss, {"lm loss": averaged_loss[0]}
 
     def _cross_entropy_forward_step(batch, model):
         """Simple forward step with cross-entropy loss."""
@@ -65,7 +68,7 @@ def classification():
 
         # Forward model.
         output_tensor = model(images)
-      
+
         return output_tensor, partial(cross_entropy_loss_func, labels)
 
     """Finetune/evaluate."""
@@ -76,6 +79,6 @@ def classification():
         end_of_epoch_callback_provider=accuracy_func_provider,
     )
 
+
 def main():
     classification()
-

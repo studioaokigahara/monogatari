@@ -9,6 +9,7 @@ from megatron.model.fused_softmax import FusedScaleMaskSoftmax
 from megatron.model.utils import attention_mask_func
 from megatron.fused_kernels import load
 
+
 def test_load_fused_kernels():
     try:
         import fused_mix_prec_layer_norm_cuda
@@ -30,10 +31,7 @@ def test_fused_softmax():
         "hi hi hi hi hi hi hi hi hi hi hi hi hi"  # 32
     )
 
-    tokens = tokenizer(
-        [test_text] * 4,
-        return_tensors="pt",
-    )
+    tokens = tokenizer([test_text] * 4, return_tensors="pt",)
 
     embedding_output = bert.embeddings(
         input_ids=tokens["input_ids"].cuda(),
@@ -73,10 +71,7 @@ def test_fused_softmax():
         .half()
     )
 
-    fused_softmax_output = fused_softmax(
-        attention_scores,
-        (mask != 0),
-    )
+    fused_softmax_output = fused_softmax(attention_scores, (mask != 0),)
 
     torch_softmax = (
         FusedScaleMaskSoftmax(
@@ -92,10 +87,7 @@ def test_fused_softmax():
         .half()
     )
 
-    torch_softmax_output = torch_softmax(
-        attention_scores,
-        (mask != 0),
-    )
+    torch_softmax_output = torch_softmax(attention_scores, (mask != 0),)
 
     test_result = (fused_softmax_output - torch_softmax_output).abs()
 
@@ -128,10 +120,7 @@ def test_fused_upper_triangle_mask_softmax():
         "hi hi hi hi hi hi hi"  # 24
     )
 
-    tokens = tokenizer(
-        [test_text] * 4,
-        return_tensors="pt",
-    )
+    tokens = tokenizer([test_text] * 4, return_tensors="pt",)
 
     attention_mask = tokens["attention_mask"].cuda()
     attention_mask = attention_mask.view(attention_mask.size(0), -1)
@@ -173,10 +162,7 @@ def test_fused_upper_triangle_mask_softmax():
         .half()
     )
 
-    fused_softmax_output = fused_softmax(
-        attn_weights,
-        total_mask,
-    )
+    fused_softmax_output = fused_softmax(attn_weights, total_mask,)
 
     torch_softmax = (
         FusedScaleMaskSoftmax(
@@ -192,10 +178,7 @@ def test_fused_upper_triangle_mask_softmax():
         .half()
     )
 
-    torch_softmax_output = torch_softmax(
-        attn_weights,
-        total_mask,
-    )
+    torch_softmax_output = torch_softmax(attn_weights, total_mask,)
 
     test_result = (fused_softmax_output - torch_softmax_output).abs()
 
@@ -228,10 +211,7 @@ def test_layer_norm():
         "hi hi hi hi hi hi hi hi hi hi hi hi hi"  # 32
     )
 
-    tokens = tokenizer(
-        [test_text] * 4,
-        return_tensors="pt",
-    )
+    tokens = tokenizer([test_text] * 4, return_tensors="pt",)
 
     # [bsz, seq_len, d_model]
     embedding_output = (
@@ -299,12 +279,21 @@ def test_masked_softmax_forward():
     scale_t = torch.tensor([1.0])
     for qlen in [128, 256, 1024, 2048, 4096]:
         for klen in [128, 256, 1024, 2048]:
-            inputs = torch.normal(0, 2, (batch, attn, qlen, klen), dtype=torch.float16, device='cuda:0')
-            masks = torch.randint(0, 2, (batch, 1, qlen, klen), dtype=torch.bool, device='cuda:0')
-            softmax_results = scaled_masked_softmax_cuda.forward(inputs, masks, scale_t[0].item())
-            softmax_results_torch = forward_torch_softmax(inputs, masks, scale_t[0].item())
+            inputs = torch.normal(
+                0, 2, (batch, attn, qlen, klen), dtype=torch.float16, device="cuda:0"
+            )
+            masks = torch.randint(
+                0, 2, (batch, 1, qlen, klen), dtype=torch.bool, device="cuda:0"
+            )
+            softmax_results = scaled_masked_softmax_cuda.forward(
+                inputs, masks, scale_t[0].item()
+            )
+            softmax_results_torch = forward_torch_softmax(
+                inputs, masks, scale_t[0].item()
+            )
             error = (softmax_results_torch - softmax_results).abs().max()
             assert error < 1e-3
+
 
 def test_masked_softmax_backward():
     import scaled_masked_softmax_cuda
@@ -314,30 +303,46 @@ def test_masked_softmax_backward():
     scale_t = torch.tensor([1.0])
     for qlen in [128, 256, 1024, 2048, 4096]:
         for klen in [128, 256, 1024, 2048]:
-            inputs = torch.normal(0, 2, (batch, attn, qlen, klen), dtype=torch.float16, device='cuda:0')
-            backward = torch.rand_like(inputs, dtype=torch.float16, device='cuda:0')
-            masks = torch.randint(0, 2, (batch, 1, qlen, klen), dtype=torch.bool, device='cuda:0')
-            softmax_results = scaled_masked_softmax_cuda.forward(inputs, masks, scale_t[0].item())
-            back_grad = scaled_masked_softmax_cuda.backward(backward, softmax_results, scale_t[0].item())
+            inputs = torch.normal(
+                0, 2, (batch, attn, qlen, klen), dtype=torch.float16, device="cuda:0"
+            )
+            backward = torch.rand_like(inputs, dtype=torch.float16, device="cuda:0")
+            masks = torch.randint(
+                0, 2, (batch, 1, qlen, klen), dtype=torch.bool, device="cuda:0"
+            )
+            softmax_results = scaled_masked_softmax_cuda.forward(
+                inputs, masks, scale_t[0].item()
+            )
+            back_grad = scaled_masked_softmax_cuda.backward(
+                backward, softmax_results, scale_t[0].item()
+            )
 
             inputs.requires_grad = True
-            softmax_results_torch = forward_torch_softmax(inputs, masks, scale_t[0].item())
+            softmax_results_torch = forward_torch_softmax(
+                inputs, masks, scale_t[0].item()
+            )
             softmax_results_torch.backward(backward)
             error = (back_grad - inputs.grad).abs().max()
             assert error < 1e-3
 
 
 def test_allmasked_softmax_forward():
-    import scaled_masked_softmax_cuda 
+    import scaled_masked_softmax_cuda
 
     batch = 2
     attn = 16
     scale_t = torch.tensor([1.0])
     for qlen in [128, 256, 1024, 2048, 4096]:
         for klen in [128, 256, 1024, 2048]:
-            inputs = torch.normal(0, 2, (batch, attn, qlen, klen), dtype=torch.float16, device='cuda:0')
-            masks = torch.ones((batch, 1, qlen, klen), dtype=torch.bool, device='cuda:0')
-            softmax_results = scaled_masked_softmax_cuda.forward(inputs, masks, scale_t[0].item())
+            inputs = torch.normal(
+                0, 2, (batch, attn, qlen, klen), dtype=torch.float16, device="cuda:0"
+            )
+            masks = torch.ones(
+                (batch, 1, qlen, klen), dtype=torch.bool, device="cuda:0"
+            )
+            softmax_results = scaled_masked_softmax_cuda.forward(
+                inputs, masks, scale_t[0].item()
+            )
             softmax_results_torch = torch.zeros_like(inputs)
             error = (softmax_results_torch - softmax_results).abs().max()
             assert error == 0.0
@@ -345,19 +350,29 @@ def test_allmasked_softmax_forward():
 
 def test_allmasked_softmax_backward():
     import scaled_masked_softmax_cuda
-    
+
     batch = 2
     attn = 16
     scale_t = torch.tensor([1.0])
     for qlen in [128, 256, 1024, 2048, 4096]:
         for klen in [128, 256, 1024, 2048]:
-            inputs = torch.normal(0, 2, (batch, attn, qlen, klen), dtype=torch.float16, device='cuda:0')
-            backward = torch.rand_like(inputs, dtype=torch.float16, device='cuda:0')
-            masks = torch.ones((batch, 1, qlen, klen), dtype=torch.bool, device='cuda:0')
-            softmax_results = scaled_masked_softmax_cuda.forward(inputs, masks, scale_t[0].item())
-            back_grad = scaled_masked_softmax_cuda.backward(backward, softmax_results, scale_t[0].item())
+            inputs = torch.normal(
+                0, 2, (batch, attn, qlen, klen), dtype=torch.float16, device="cuda:0"
+            )
+            backward = torch.rand_like(inputs, dtype=torch.float16, device="cuda:0")
+            masks = torch.ones(
+                (batch, 1, qlen, klen), dtype=torch.bool, device="cuda:0"
+            )
+            softmax_results = scaled_masked_softmax_cuda.forward(
+                inputs, masks, scale_t[0].item()
+            )
+            back_grad = scaled_masked_softmax_cuda.backward(
+                backward, softmax_results, scale_t[0].item()
+            )
             inputs.requires_grad = True
-            softmax_results_torch = forward_torch_softmax(inputs, masks, scale_t[0].item())
+            softmax_results_torch = forward_torch_softmax(
+                inputs, masks, scale_t[0].item()
+            )
             softmax_results_torch.backward(backward)
             error = (back_grad - inputs.grad).abs().max()
             assert error < 1e-3
@@ -370,9 +385,7 @@ if __name__ == "__main__":
         from transformers.models.gpt2.modeling_gpt2 import GPT2Model
         import transformers
 
-        transformers.logging.set_verbosity(
-            transformers.logging.FATAL,
-        )
+        transformers.logging.set_verbosity(transformers.logging.FATAL,)
 
     except:
         print("\n[Fail] Please install `transformers` package to test fused kernels\n")
