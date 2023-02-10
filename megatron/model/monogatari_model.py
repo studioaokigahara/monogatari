@@ -62,25 +62,19 @@ def get_language_model(
 
 
 def post_auxiliary_model_processing(
+    args,
     lm_output,
-    pooled_output,
     lm_head,
-    binary_head,
     lm_labels,
     logit_weights,
     fp16_lm_cross_entropy,
 ):
-    args = get_args()
 
     # Output.
     lm_logits = lm_head(lm_output, logit_weights)
 
-    binary_logits = None
-    if binary_head is not None:
-        binary_logits = binary_head(pooled_output)
-
     if lm_labels is None:
-        return rearrange(lm_logits, "s b h -> b s h"), binary_logits
+        return rearrange(lm_logits, "s b h -> b s h")
     else:
         lm_labels = rearrange(lm_labels, "b s -> s b")
 
@@ -124,15 +118,31 @@ def post_auxiliary_model_processing(
         taco_loss = rearrange(taco_loss, "s b -> b s")
         lm_loss += taco_loss * args.taco_loss_weight
 
-        return lm_loss, binary_logits
+        return lm_loss, taco_loss
 
 
 def post_language_model_processing(
-    lm_output, labels, logit_weights, lm_head, parallel_output, fp16_lm_cross_entropy
+    lm_output,
+    pooled_output,
+    aux_output,
+    lm_head,
+    binary_head,
+    aux_head,
+    lm_labels,
+    aux_labels,
+    logit_weights,
+    aux_logit_weights,
+    parallel_output,
+    fp16_lm_cross_entropy,
 ):
+    args = get_args()
     tokenizer = get_tokenizer()
 
-    logits = parallel_lm_logits(lm_output, logit_weights, parallel_output)
+    logits = lm_head(lm_output, logit_weights, parallel_output)
+
+    binary_logits = None
+    if binary_head is not None:
+        binary_logits = binary_head(pooled_output)
 
     if labels is None:
         return rearrange(logits, "s b h -> b s h")
@@ -151,7 +161,17 @@ def post_language_model_processing(
         ct_loss = ct(output, labels)
         loss += ct_loss * args.ct_loss_weight
 
-        return loss
+        aux_loss, taco_loss = post_auxiliary_model_processing(
+            args,
+            aux_output,
+            aux_head,
+            aux_labels,
+            aux_logit_weights,
+            fp16_lm_cross_entropy,
+        )
+        loss += aux_loss
+
+        return loss, aux_loss, ct_loss, taco_loss
 
 
 class GradReversal(Function):
@@ -200,15 +220,33 @@ class MaskedLMHead(MegatronModule):
         self.layernorm = LayerNorm(
             hidden_size, eps=layernorm_epsilon, sequence_parallel=args.sequence_parallel
         )
-        self.gelu = F.gelu
-        if args.openai_gelu:
-            self.gelu = openai_gelu
-        elif args.onnx_safe:
-            self.gelu = erf_gelu
+
+        if args.activation_func == erf_gelu:
+            self.activation_func = erf_gelu
+        elif args.activation_func == openai_gelu:
+            self.activation_func = openai_gelu
+        elif args.activation_func == squared_relu:
+            self.activation_func = F.relu
+            self.squared_relu = True
+        elif args.activation_func == squish or squish2:
+            self.activation_func = F.silu
+            if args.activation_func == squish:
+                self.squish = True
+            else:
+                self.squish2 = True
 
     def forward(self, hidden_states, word_embeddings_weight):
         hidden_states = self.dense(hidden_states)
-        hidden_states = self.gelu(hidden_states)
+
+        if self.squared_relu:
+            hidden_states = torch.square(self.activation_func(hidden_states))
+        elif self.squish:
+            hidden_states = torch.pow(self.activation_func(hidden_states), 1.4)
+        elif self.squish2:
+            hidden_states = torch.pow(self.activation_func(hidden_states), 1.8)
+        else:
+            hidden_states = self.activation_func(hidden_states)
+
         hidden_states = self.layernorm(hidden_states)
         output = parallel_lm_logits(
             hidden_states, word_embeddings_weight, self.parallel_output, self.bias
@@ -254,6 +292,7 @@ class MixtapeHead(MegatronModule):
         context_embed = einsum("v h, s b h -> s b h", self.delta, hidden_states)
         context_embed = F.dropout(torch.tanh(context_embed), p=self.dropout)
         shared_prior = einsum("h, s b h -> s b h", self.mu, hidden_states)
+
         gate_prior = einsum("g h, s b h -> s b h", self.tau, hidden_states)
         gate_prior = F.dropout(torch.tanh(gate_prior), p=self.dropout)
         gate_prior = einsum("g, s b h -> s b h", self.gamma, gate_prior)
@@ -272,7 +311,7 @@ class MixtapeHead(MegatronModule):
             self.parallel_output,
             self.bias,
         )
-        output = F.softmax(output * sigmoid_tree, dim=-1)
+        output *= sigmoid_tree
 
         return output
 
@@ -333,10 +372,12 @@ class MonogatariAuxiliaryModel(MegatronModule):
         )
         self._lm_head_key = "lm_head"
 
-        self.binary_head = None
-        if add_binary_head:
-            self.binary_head = get_linear_layer(args.hidden_size, 2, init_method)
-            self._binary_head_key = "binary_head"
+        self.binary_head = get_linear_layer(args.hidden_size, 2, init_method)
+        self._binary_head_key = "binary_head"
+
+    def set_input_tensor(self, input_tensor):
+        """See megatron.model.transformer.set_input_tensor()"""
+        self.encoder.set_input_tensor(input_tensor)
 
     def forward(
         self,
@@ -349,8 +390,8 @@ class MonogatariAuxiliaryModel(MegatronModule):
 
         output = self.encoder(input_ids, attention_mask, inference_params)
 
-        if self.post_process and self.add_binary_head:
-            output, pooled_output = output
+        if self.post_process:
+            pooled_output = self.binary_head(output)
         else:
             pooled_output = None
 
@@ -454,7 +495,12 @@ class MonogatariLanguageModel(MegatronModule):
 
         output = self.decoder(input, attention_mask, inference_params)
 
-        return output
+        if self.post_process:
+            output, pooled_output = output
+        else:
+            pooled_output = None
+
+        return output, pooled_output
 
     def state_dict_for_save_checkpoint(self, prefix="", keep_vars=False):
         """For easy load."""
@@ -507,10 +553,13 @@ class MonogatariModel(MegatronModule):
         # Gradient-Disentangled Embedding Sharing from DeBERTaV3.
         # Stops auxiliary gradients from propogating through the main embeddings
         # while still retaining the training benefits of embedding sharing
+        if not self.training:
+            self.language_model.embedding.weight += (
+                self.auxiliary_model.embedding.weight.detach()
+            )
 
-        self.language_model.embedding.weight += (
-            self.auxiliary_model.embedding.weight.detach()
-        )
+        self.binary_head = get_linear_layer(args.hidden_size, 2, init_method)
+        self._binary_head_key = "binary_head"
 
         self.initialize_word_embeddings(init_method_normal)
 
@@ -518,6 +567,7 @@ class MonogatariModel(MegatronModule):
         self,
         input_ids,
         position_ids,
+        masked_ids,
         attention_mask,
         padding_mask,
         labels=None,
@@ -526,7 +576,7 @@ class MonogatariModel(MegatronModule):
         inference_params=None,
         boundaries=None,
     ):
-        mask_dict, mixture_logits = self.auxiliary_model(
+        aux_output, pooled_output = self.auxiliary_model(
             input_ids,
             position_ids,
             padding_mask,
@@ -535,41 +585,46 @@ class MonogatariModel(MegatronModule):
             boundaries,
         )
 
-        gen_masks = []
-        layer_mix_logits = []
-        layer_idx = []
-        for layer in mask_dict:
-            gen_masks.append(rearrange(mask_dict[layer], "... -> ... 1"))
-            layer_mix_logits.append(mixture_logits[layer])
-            layer_idx.append(layer)
+        aux_dict = []
+        pooled_logits = []
+        for layer in aux_output:
+            aux_dict.append(rearrange(aux_output[layer], "... -> ... 1"))
+            pooled_logits.append(pooled_output[layer])
 
-        gen_masks = torch.cat(gen_masks, dim=-1)
-        layer_mix_logits = torch.cat(layer_mix_logits, dim=-1)
-        layer_mix_probs = F.softmax(layer_mix_logits.float(), dim=-1).to(
-            layer_mix_logits
-        )
-        layer_mix_probs = rearrange(layer_mix_probs, "... -> ... 1")
-        sample_logits = einsum(gen_masks.detach(), layer_mix_probs, "b s, b s s -> b s")
-        sample_logits = rearrange(sample_logits, "... 1 -> ...")
-        sample_probs = F.gumbel_softmax(
-            sample_logits.float(), tau=args.amos_temperature, hard=True, dim=-1
-        ).to(sample_logits)
-        sampled_input = sample_probs.argmax(dim=-1)
-        sample_probs = GradReversal.apply(sample_probs)
-        embedding = self.embedding.weight
-        token_embeddings = self.embedding(src_tokens)
-        sampled_embeddings = einsum(sample_probs, embedding, "b s, b s -> b s")
-        token_embeddings[masked_tokens] = sampled_embeddings
+        aux_dict = torch.cat(aux_dict, dim=-1)
+        pooled_logits = torch.cat(pooled_logits, dim=-1)
+        pooled_probs = F.softmax(pooled_logits.float(), dim=-1).to(pooled_logits)
+        pooled_probs = rearrange(pooled_probs, "... -> ... 1")
+        sampled_logits = einsum(aux_dict.detach(), pooled_probs, "b s, b s s -> b s")
+        sampled_logits = rearrange(sampled_logits, "... 1 -> ...")
+        sampled_probs = F.gumbel_softmax(
+            sampled_logits.float(), tau=args.amos_temperature, hard=True, dim=-1
+        ).to(sampled_logits)
+        sampled_input = sampled_probs.argmax(dim=-1)
+        sampled_probs = GradReversal.apply(sampled_probs)
+        input_ids = input_ids.clone()
+        input_ids[masked_ids] = sampled_input
+        embedding = self.language_model.embedding.weight
+        token_embeddings = self.language_model.embedding(src_tokens)
+        sampled_embeddings = einsum(sampled_probs, embedding, "b s, b s -> b s")
+        token_embeddings[masked_ids] = sampled_embeddings
 
-        lm_output = self.language_model(
+        lm_output, pooled_lm_output = self.language_model(
             token_embeddings, position_ids, attention_mask, inference_params, boundaries
         )
 
         if self.post_process:
             return post_language_model_processing(
                 lm_output,
+                pooled_lm_output,
+                aux_output,
+                self.lm_head,
+                self.binary_head,
+                self.aux_head,
                 labels,
-                self.embedding.weight,
+                aux_labels,
+                self.language_model.embedding.weight,
+                self.auxiliary_model.embedding.weight,
                 self.parallel_output,
                 self.fp16_lm_cross_entropy,
             )

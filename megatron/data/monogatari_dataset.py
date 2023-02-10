@@ -1,6 +1,6 @@
 # Copyright (c) 2022, NVIDIA CORPORATION. All rights reserved.
 
-"""GPT style dataset."""
+"""Monogatari dataset."""
 
 import os
 import time
@@ -224,6 +224,7 @@ def build_training_sample(
         "aux_padding_mask": padding_mask_np,
         "is_random": int(is_next_random),
         "truncated": int(truncated),
+        "masked_positions": masked_positions,
     }
 
     return train_sample
@@ -484,7 +485,7 @@ def _build_train_valid_test_datasets(
             documents = np.arange(
                 start=splits[index], stop=splits[index + 1], step=1, dtype=np.int32
             )
-            dataset = GPTDataset(
+            dataset = MonogatariDataset(
                 name,
                 data_prefix,
                 documents,

@@ -17,6 +17,7 @@ class AttnType(enum.Enum):
     self_attn = 1
     cross_attn = 2
     mega = 3
+    memory = 4
 
 
 class AttnMaskType(enum.Enum):

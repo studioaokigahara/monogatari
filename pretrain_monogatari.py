@@ -65,6 +65,7 @@ def get_batch(data):
         "aux_loss_mask",
         "aux_padding_mask",
         "is_random",
+        "masked_ids",
     ]
     datatype = torch.int64
 
@@ -84,6 +85,7 @@ def get_batch(data):
     aux_loss_mask = data_b["aux_loss_mask"].long()
     padding_mask = data_b["padding_mask"].long()
     sentence_order = data_b["is_random"].long()
+    masked_ids = data_b["masked_positions"].long()
 
     tokens, ps = pack([tokens, aux_tokens], "b *")
 
@@ -104,6 +106,7 @@ def get_batch(data):
     return (
         tokens,
         labels,
+        masked_ids,
         loss_mask,
         attention_mask,
         position_ids,
@@ -115,15 +118,22 @@ def get_batch(data):
     )
 
 
-def loss_func(loss_mask, output_tensor):
-    losses = output_tensor.float()
+def loss_func(loss_mask, *output_tensor):
+    lm_loss, aux_loss, ct_loss, taco_loss = *output_tensor
     loss_mask = loss_mask.view(-1).float()
-    loss = torch.sum(losses.view(-1) * loss_mask) / loss_mask.sum()
+    lm_loss = torch.sum(lm_loss.view(-1).float() * loss_mask) / loss_mask.sum()
 
     # Reduce loss for logging.
-    averaged_loss = average_losses_across_data_parallel_group([loss, ct_loss])
+    averaged_loss = average_losses_across_data_parallel_group(
+        [lm_loss, aux_loss, ct_loss, taco_loss]
+    )
 
-    return loss, {"lm loss": averaged_loss[0]}
+    return loss, {
+        "lm loss": averaged_loss[0],
+        "aux loss": averaged_loss[1],
+        "contrastive token loss": averaged_loss[2],
+        "token alignment loss": averaged_loss[3],
+    }
 
 
 def forward_step(data_iterator, model):
@@ -133,7 +143,7 @@ def forward_step(data_iterator, model):
 
     # Get the batch.
     timers("batch-generator", log_level=2).start()
-    tokens, labels, loss_mask, attention_mask, position_ids,
+    tokens, labels, masked_ids, loss_mask, attention_mask, position_ids,
     aux_labels, aux_loss_mask, padding_mask, sentence_order, boundaries = get_batch(
         data_iterator
     )
@@ -150,6 +160,7 @@ def forward_step(data_iterator, model):
     output_tensor = model(
         tokens,
         position_ids,
+        masked_ids,
         attention_mask,
         padding_mask,
         labels,

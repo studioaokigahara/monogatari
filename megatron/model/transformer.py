@@ -3,19 +3,21 @@
 """Transformer."""
 import math
 from contextlib import nullcontext
-from typing import Optional
+from enum import Enum
+from typing import Callable, Optional
 
 import deepseed
+import faiss
 import torch
 import torch.nn.functional as F
 from deepspeed.accelerator import get_accelerator
 from einops import einsum, pack, rearrange, reduce, repeat, unpack
-from flash_attn.flash_attn_interface import flash_attn_unpadded_func
 
 from megatron import core, get_args, get_num_microbatches, get_timers
 from megatron.core import mpu, tensor_parallel
 from megatron.model import LayerNorm
 from megatron.model.enums import AttnMaskType, AttnType, LayerType, ModelType
+from megatron.model.flash_attention import FlashAttention
 from megatron.model.fused_bias_gelu import bias_gelu_impl
 from megatron.model.fused_softmax import FusedScaleMaskSoftmax
 from megatron.model.utils import attention_mask_func, erf_gelu, openai_gelu
@@ -197,7 +199,7 @@ class SwitchMLP(MegatronModule):
             self.wg = torch.nn.Parameter(
                 torch.empty(args.num_experts, args.num_experts / 2)
             )
-            torch.nn.init.orthogonal_(wg, gain=0.32)
+            torch.nn.init.orthogonal_(self.wg, gain=0.32)
         else:
             self.wg_reduction = torch.nn.Linear(args.hidden_size, args.num_experts)
 
@@ -207,7 +209,7 @@ class SwitchMLP(MegatronModule):
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
         seq_len, batch_size, hidden_size = hidden_states.shape
-        capacity = ((seq_len * batch_size) * 2) / self.num_experts
+        capacity = ((seq_len * batch_size) * 2) / len(self.experts)
 
         if self.xmoe:
             # Reduce hidden states to same size as expert embeddings
@@ -215,27 +217,28 @@ class SwitchMLP(MegatronModule):
 
             # Perform L2 normalization
             with torch.no_grad():
-                wg_norm = self.wg.norm(p=2.0, dim=1, keepdim=True)
-                self.wg.mul_(1.5 / wg_norm)
+                self.wg *= 1.5 / self.wg.norm(p=2.0, dim=1, keepdim=True)
                 self.wg = F.normalize(self.wg, p=2.0, dim=1, eps=1e-4)
                 self.wg = rearrange(self.wg, "s b -> b s")
-                scores = einsum(scores, self.wg, "s b, b s -> s b")
+                scores = einsum(scores, self.wg, "s b h, b s -> s b h")
                 if not scores.isfinite().all():
                     scores[~scores.isfinite()] = scores[scores.isfinite()].min()
-
-            scores = F.softmax(scores, dim=2)
-
         else:
             scores = self.wg_reduction(hidden_states)
-            scores = F.softmax(scores, dim=2)
+
+        scores = F.softmax(scores, dim=2)
 
         if self.expert_choice:
             # Expert choice routing
             gating_matrix, index_matrix = torch.topk(scores, capacity)
             permute_matrix = F.one_hot(index_matrix)
 
-            expert_input = scores * permute_matrix
-            expert_output, expert_bias = self.experts(expert_input)
+            expert_input = hidden_states * permute_matrix
+
+            for idx, expert in enumerate(self.experts):
+                expert_output, expert_bias = expert(expert_input)
+                expert_bias = expert_bias.expand_as(expert_output)
+
             output, bias = [
                 einsum(permute_matrix, gating_matrix, x, "i j l, i j, i j h -> l h")
                 for x in [expert_output, expert_bias]
@@ -245,6 +248,7 @@ class SwitchMLP(MegatronModule):
                 for x in [output, bias]
             ]
         else:
+            # Switch Transformer top-1 routing
             max_prob, max_idx = torch.max(scores, dim=2)
             max_prob = rearrange(max_prob, "s b -> (s b) 1")
             max_idx = rearrange(max_idx, "s b -> (s b)")
@@ -254,12 +258,10 @@ class SwitchMLP(MegatronModule):
                 local_idx = (max_idx == idx).nonzero()
                 expert_output, expert_bias = expert(hidden_states[local_idx, :])
                 expert_bias = expert_bias.expand_as(expert_output)
-                [output[local_idx, :], bias[local_idx, :]] = [
-                    expert_output,
-                    expert_bias,
-                ]
+                output[local_idx, :] = expert_output
+                bias[local_idx, :] = expert_bias
 
-            [output, bias] = [output, bias] * max_prob
+            output, bias = [x * max_prob for x in [output, bias]]
             output, bias = [
                 rearrange(x, "(s b) h -> s b h", s=seq_len, b=batch_size, h=hidden_size)
                 for x in [output, bias]
@@ -269,18 +271,13 @@ class SwitchMLP(MegatronModule):
 
 
 class CoreAttention(MegatronModule):
-    def __init__(self, layer_number: int, attn_mask_type: Enum = AttnMaskType.padding):
+    def __init__(self, attn_mask_type: Enum = AttnMaskType.padding):
         super(CoreAttention, self).__init__()
         args = get_args()
-        self.fp16 = args.fp16
-        self.bf16 = args.bf16
 
-        self.apply_query_key_layer_scaling = args.apply_query_key_layer_scaling
-        self.attention_softmax_in_fp32 = args.attention_softmax_in_fp32
-        if self.apply_query_key_layer_scaling:
-            self.attention_softmax_in_fp32 = True
-        self.layer_number = max(1, layer_number)
-        self.attn_mask_type = attn_mask_type
+        attention_softmax_in_fp32 = args.attention_softmax_in_fp32
+        if args.apply_query_key_layer_scaling:
+            attention_softmax_in_fp32 = True
         self.sequence_parallel = args.sequence_parallel
 
         projection_size = args.kv_channels * args.num_attention_heads
@@ -288,7 +285,7 @@ class CoreAttention(MegatronModule):
         # Per attention head and per partition values
         world_size = mpu.get_tensor_model_parallel_world_size()
         self.hidden_size_per_partition = core.utils.divide(projection_size, world_size)
-        self.hidden_size_per_attention_head = core.utils.divide(
+        hidden_size_per_attention_head = core.utils.divide(
             projection_size, args.num_attention_heads
         )
         self.num_attention_heads_per_partition = core.utils.divide(
@@ -296,22 +293,20 @@ class CoreAttention(MegatronModule):
         )
 
         coeff = None
-        self.norm_factor = math.sqrt(self.hidden_size_per_attention_head)
-        if self.apply_query_key_layer_scaling:
-            coeff = self.layer_number
+        self.norm_factor = math.sqrt(hidden_size_per_attention_head)
+        if args.apply_query_key_layer_scaling:
+            coeff = layer_number
             self.norm_factor *= coeff
 
         self.scale_mask_softmax = FusedScaleMaskSoftmax(
-            self.fp16,
-            self.bf16,
-            self.attn_mask_type,
+            args.fp16,
+            args.bf16,
+            attn_mask_type,
             args.masked_softmax_fusion,
             attention_mask_func,
-            self.attention_softmax_in_fp32,
+            attention_softmax_in_fp32,
             coeff,
         )
-
-        self.residual_attention = None
 
         # Dropout. Note that for a single iteration, this layer will generate
         # different outputs on different number of parallel partitions but
@@ -326,12 +321,12 @@ class CoreAttention(MegatronModule):
         attention_mask: torch.Tensor,
     ) -> torch.Tensor:
 
-        # Raw attention scores [b, np, s, s]
         seq_len, batch_size, _, _ = query.size()
 
         query = rearrange(query, "sq b np hn -> (b np) sq hn")
         key = rearrange(key, "sk b np hn -> (b np) hn sk")
 
+        # Raw attention scores [b, np, s, s]
         attention_scores = einsum(
             query,
             key,
@@ -341,16 +336,8 @@ class CoreAttention(MegatronModule):
         )
         attention_scores *= 1.0 / self.norm_factor
 
-        # Attention probs and dropout
-
+        ### Attention probs and dropout
         # Attention scores and attention mask [b, np, sq, sk]
-        # Add attention scores from previous layer as a residual connection
-        self.residual_attention = attention_scores
-
-        if self.residual_attention != attention_scores:
-            attention_scores += self.residual_attention
-            attention_scores /= self.layer_number
-
         attention_probs = self.scale_mask_softmax(attention_scores, attention_mask)
 
         # This is actually dropping out entire tokens to attend to, which might
@@ -380,65 +367,6 @@ class CoreAttention(MegatronModule):
         return context
 
 
-class FlashAttention(MegatronModule):
-    """Implement the scaled dot product attention with softmax.
-    Arguments
-    ---------
-        softmax_scale: The temperature to use for the softmax attention.
-            (default: 1/sqrt(d_keys) where d_keys is computed at
-            runtime)
-        attention_dropout: The dropout rate to apply to the attention
-            (default: 0.0)
-    """
-
-    def __init__(
-        self,
-        softmax_scale: Optional[float] = None,
-        attention_dropout: float = 0.0,
-        device: Optional = None,
-        dtype: Optional = None,
-    ):
-        super().__init__()
-        assert flash_attn_unpadded_func is not None, "Please install FlashAttention"
-        self.softmax_scale = softmax_scale
-        self.dropout = attention_dropout
-
-    def forward(
-        self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor
-    ) -> torch.Tensor:
-        """Implements the multihead softmax attention.
-        Arguments
-        ---------
-            q, k, v: The tensor containing the query, key, and value. (B, S, H, D)
-        """
-        assert q.dtype in [torch.float16, torch.bfloat16]
-        assert q.is_cuda
-        batch_size, seq_len = q.shape[0], q.shape[1]
-        q, k, v = [rearrange(x, "b s ... -> (b s) ...") for x in [q, k, v]]
-        cu_seqlens = torch.arange(
-            0,
-            (batch_size + 1) * seq_len,
-            step=seq_len,
-            dtype=torch.int32,
-            device=q.device,
-        )
-        output = flash_attn_unpadded_func(
-            q,
-            k,
-            v,
-            cu_seqlens,
-            cu_seqlens,
-            seq_len,
-            seq_len,
-            self.dropout if self.training else 0.0,
-            softmax_scale=self.softmax_scale,
-            casual=True,
-        )
-        output = rearrange(output, "(b s) ... -> b s ...", b=batch_size)
-
-        return output
-
-
 class ParallelAttention(MegatronModule):
     """Parallel self-attention layer abstract class.
 
@@ -456,11 +384,13 @@ class ParallelAttention(MegatronModule):
     ):
         super(ParallelAttention, self).__init__()
         args = get_args()
+
         self.layer_number = max(1, layer_number)
         self.attention_type = attention_type
         self.attn_mask_type = attn_mask_type
         self.params_dtype = args.params_dtype
         self.sequence_parallel = args.sequence_parallel
+        self.attention_dropout = args.attention_dropout
 
         self.use_flash_attn = args.use_flash_attn
 
@@ -505,10 +435,11 @@ class ParallelAttention(MegatronModule):
                 **_args_to_kwargs()
             )
 
-        if args.use_flash_attn and attn_mask_type == AttnMaskType.causal:
-            self.core_attention = FlashAttention(args.attention_dropout)
+        if args.use_flash_attn:
+            assert self.hidden_size_per_attention_head <= 128
+            self.core_attention = FlashAttention.apply
         else:
-            self.core_attention = CoreAttention(self.layer_number, attn_mask_type)
+            self.core_attention = CoreAttention(attn_mask_type)
         self.checkpoint_core_attention = args.recompute_granularity == "selective"
 
         # Output.
@@ -555,7 +486,7 @@ class ParallelAttention(MegatronModule):
         hidden_states: torch.Tensor,
         attention_mask: torch.Tensor,
         encoder_output: Optional[torch.Tensor] = None,
-        inference_params: Optional = None,
+        inference_params: Optional[Callable] = None,
     ) -> torch.Tensor:
         # hidden_states: [sq, b, h]
 
@@ -647,13 +578,27 @@ class ParallelAttention(MegatronModule):
                 context = self.core_attention(query, key, value, attention_mask)
         else:
             query, key, value = [
-                rearrange(x, "s b ... -> b s ...") for x in (query, key, value)
+                rearrange(x, "s b ... -> b s ...") for x in [query, key, value]
             ]
             if not self.sequence_parallel:
                 with mpu.get_cuda_rng_tracker().fork():
-                    context = self.core_attention_flash(query, key, value)
+                    context = self.core_attention(
+                        query,
+                        key,
+                        value,
+                        dropout=self.attention_dropout,
+                        casual=self.attn_mask_type == AttnMaskType.causal,
+                        sequence_parallel=self.sequence_parallel,
+                    )
             else:
-                context = self.core_attention_flash(query, key, value)
+                context = self.core_attention(
+                    query,
+                    key,
+                    value,
+                    dropout=self.attention_dropout,
+                    casual=self.attn_mask_type == AttnMaskType.causal,
+                    sequence_parallel=self.sequence_parallel,
+                )
             context = rearrange(context, "b s h d -> s b (h d)")
 
         # Output. [sq, b, h]
@@ -663,10 +608,25 @@ class ParallelAttention(MegatronModule):
 
 
 class MEGA(MegatronModule):
-    """Moving Average Equipped Gated Attention.
-    https://arxiv.org/abs/2209.10655
+    """Moving Average Equipped Gated Attention (MEGA):
+    https://arxiv.org/abs/2209.10655 (Ma et al., 2022)
 
-    Takes input of size [s, b, h] and returns an output of the same size.
+    Takes input of size [s, b, h] and efficiently computes attention using
+    a single-head gated attention mechanism that incorporates stronger
+    inductive bias (relative to vanilla attention) using an EMA submodule.
+    Note that we don't support MEGA-chunk; we don't find the additional quality
+    loss worth it when MEGA is already ~3x faster and ~70% more memory efficient
+    than vanilla attention even without a fused core attention kernel.
+
+    Also incorporates a memory mechanism inspired by Memorizing Transformers:
+    https://arxiv.org/abs/2203.08913 (Wu et al., 2022)
+
+    We initialize, add to, and efficiently search an index of past key-values
+    using faiss-GPU and concatenate the results of memory attention with local
+    attention using a learned sigmoid gate as in the paper. While theoretically
+    this could be implemented on top of vanilla attention, we implement it on top
+    of MEGA to help mitigate the step time increase incurred by having to run the
+    core attention computation twice.
     """
 
     def __init__(
@@ -674,18 +634,41 @@ class MEGA(MegatronModule):
         init_method: torch.nn.init,
         output_layer_init_method: torch.nn.init,
         layer_number: int,
-        attn_type: Enum = AttnType.self_attn,
+        attention_type: Enum = AttnType.mega,
         attn_mask_type: Enum = AttnMaskType.padding,
     ):
         super().__init()
         args = get_args()
 
-        self.hidden_size = args.hidden_size
         self.layer_number = max(1, layer_number)
+        self.attn_mask_type = attn_mask_type
+        self.params_dtype = args.params_dtype
+        self.sequence_parallel = args.sequence_parallel
+        self.attention_dropout = args.attention_dropout
+
         self.ema_scale = math.sqrt(1.0 / args.mega_ema_size)
         self.z_size = args.mega_z_size
-        z_proj_size = args.mega_z_size + args.mega_h_size + (2 * args.hidden_size)
         self.h_size = args.mega_h_size
+        proj_size = self.z_size + self.h_size + (2 * args.hidden_size)
+
+        if self.attention_type == AttnType.memory:
+            # based on faiss docs, flat IVF + HSNW has the best performance curves
+            # while still supporting potentially very large (>1M) indexes
+            quantizer = faiss.IndexHNSWFlat(
+                args.mega_memory_size, args.mega_memory_num_neighbors
+            )
+            index = faiss.IndexIVFFlat(
+                quantizer,
+                args.memory_attn_size,
+                args.memory_attn_num_clusters,
+                faiss.METRIC_INNER_PRODUCT,
+            )
+            self.index = faiss.index_cpu_to_all_gpus(index)
+            self.index_reranker = faiss.IndexRefineFlat(self.index)
+            self.topk = args.mega_memory_topk
+            self.num_probes = args.mega_memory_topk or args.mega_memory_num_probes
+            self.max_memories = args.mega_memory_max_size
+            self.memory_bias = torch.nn.Parameter(torch.ones(1, 1, self.h_size))
 
         self.sub_ln = args.sub_ln
         self.prenorm = args.mega_prenorm
@@ -705,26 +688,24 @@ class MEGA(MegatronModule):
         self.dconv = args.mega_dconv
         self.z_proj = mpu.ColumnParallelLinear(
             args.hidden_size,
-            z_proj_size,
+            proj_size,
             gather_output=False,
             init_method=init_method,
             async_tensor_model_parallel_allreduce=args.async_tensor_model_parallel_allreduce,
             **_args_to_kwargs()
         )
-        self.z_conv = torch.nn.Conv1d(z_proj_size, z_proj_size, 3, groups=z_proj_size)
+        self.z_conv = torch.nn.Conv1d(proj_size, proj_size, 3, groups=proj_size)
         self.v_proj = mpu.ColumnParallelLinear(
             args.hidden_size,
-            args.mega_h_size,
+            self.h_size,
             gather_output=False,
             init_method=init_method,
             async_tensor_model_parallel_allreduce=args.async_tensor_model_parallel_allreduce,
             **_args_to_kwargs()
         )
-        self.v_conv = torch.nn.Conv1d(
-            args.mega_h_size, args.mega_h_size, 3, groups=args.mega_h_size
-        )
+        self.v_conv = torch.nn.Conv1d(self.h_size, self.h_size, 3, groups=self.h_size)
         self.h_proj = mpu.RowParallelLinear(
-            args.mega_h_size,
+            self.h_size,
             args.hidden_size,
             input_is_parallel=True,
             init_method=output_layer_init_method,
@@ -732,15 +713,19 @@ class MEGA(MegatronModule):
             **_args_to_kwargs()
         )
 
+        self.key = torch.nn.Parameter(torch.zeros(args.hidden_size, 1, self.z_size))
+        self.value = torch.nn.Parameter(torch.zeros(args.hidden_size, 1, self.h_size))
+        torch.nn.init.normal_(self.key, std=1.0 / math.sqrt(self.z_size))
+        torch.nn.init.normal_(self.value, std=1.0 / math.sqrt(self.h_size))
+
         self.xpos = xPos()
 
         self.use_flash_attn = args.use_flash_attn
         if args.use_flash_attn:
-            assert attn_mask_type == AttnMaskType.causal
-            assert self.z_size <= 128
-            self.core_attention = FlashAttention(args.attention_dropout)
+            assert self.z_size and self.h_size <= 128
+            self.core_attention = FlashAttention.apply
         else:
-            self.core_attention = CoreAttention(self.layer_number, attn_mask_type)
+            self.core_attention = CoreAttention(attn_mask_type)
         self.checkpoint_core_attention = args.recompute_granularity == "selective"
 
         self.alpha = torch.nn.Parameter(
@@ -809,8 +794,7 @@ class MEGA(MegatronModule):
         p = torch.sigmoid(self.delta)
         q = (1.0 - p) * torch.sigmoid(self.alpha)
         vander = rearrange(torch.arange(seq_len).to(p), "s -> 1 1 s")
-        vander = torch.exp(vander * torch.log(q))
-        vander *= p * self.beta
+        vander = torch.exp(vander * torch.log(q)) * p * self.beta
         kernel = einsum(vander, self.gamma * self.ema_scale, "d n l, d n -> d l")
 
         k_f, x_f = [
@@ -828,7 +812,7 @@ class MEGA(MegatronModule):
         hidden_states: torch.Tensor,
         attention_mask: torch.Tensor,
         padding_mask: Optional[torch.Tensor] = None,
-        inference_params: Optional = None,
+        inference_params: Optional[Callable] = None,
     ):
         residual = hidden_states
 
@@ -867,18 +851,34 @@ class MEGA(MegatronModule):
         [mu, zr, hx] = unpack(
             z_prior,
             [[self.hidden_size], [self.z_size + self.h_size], [self.hidden_size]],
-            "*",
+            "s b *",
         )
         mu = torch.sigmoid(mu)
-        [z, r] = unpack(F.silu(zr), [[self.z_size], [self.h_size]], "*")
-        z = rearrange(z, "s b h -> s b 1 h") * self.kappa + self.sigma
+        [z, r] = unpack(F.silu(zr), [[self.z_size], [self.h_size]], "s b *")
         query, key = rearrange(z, "s b 1 h -> s b h")
+
+        if self.attention_type == AttnType.memory:
+            query, key, value = [faiss.normalize_L2(x) for x in [query, key, value]]
+            # add kv to memory before persistent memory concat and relpos
+            self.index.add(key, value)
+            mem_key, mem_value = self.index_reranker.search(query, self.topk)
+            if self.index.ntotal > self.max_memories:
+                removed = torch.arange(self.index.ntotal - self.max_memories)
+                self.index.remove_ids(removed)
+
+        key, value = [pack(x, "*") for x in [[key, self.key], [value, self.value]]]
         query, key = self.xpos(query, key, value)
 
         query, key, value = [
             rearrange(x, "s b h -> s b 1 h") for x in [query, key, value]
         ]
         query *= self.z_size**-0.5
+
+        if self.attention_type == AttnType.memory:
+            _, mem_key = self.xpos(query, mem_key, mem_value)
+            mem_key, mem_value = [
+                rerrange(x, "s b h -> s b 1 h") for x in [mem_key, mem_value]
+            ]
 
         # Adjust key and value for inference
         if inference_params:
@@ -903,24 +903,207 @@ class MEGA(MegatronModule):
                 h = self._checkpointed_attention_forward(
                     query, key, value, attention_mask
                 )
+                if self.attention_type == AttnType.memory:
+                    h_mem = self._checkpointed_attention_forward(
+                        query, mem_key, mem_value, attention_mask
+                    )
             else:
                 h = self.core_attention(query, key, value, attention_mask)
+                if self.attention_type == AttnType.memory:
+                    h_mem = self.core_attention(
+                        query, mem_key, mem_value, attention_mask
+                    )
         else:
             query, key, value = [
-                rearrange(x, "s b ... -> b s ...") for x in (query, key, value)
+                rearrange(x, "s b 1 h -> b s 1 h") for x in [query, key, value]
             ]
             if not self.sequence_parallel:
                 with mpu.get_cuda_rng_tracker().fork():
-                    h = self.core_attention(query, key, value)
+                    h = self.core_attention(
+                        query,
+                        key,
+                        value,
+                        dropout=self.attention_dropout,
+                        casual=self.attn_mask_type == AttnMaskType.causal,
+                        sequence_parallel=self.sequence_parallel,
+                    )
+                    if self.attention_type == AttnType.memory:
+                        h_mem = self.core_attention(
+                            query,
+                            mem_key,
+                            mem_value,
+                            dropout=self.attention_dropout,
+                            casual=self.attn_mask_type == AttnMaskType.causal,
+                            sequence_parallel=self.sequence_parallel,
+                        )
             else:
-                h = self.core_attention(query, key, value)
-            h = rearrange(context, "b s h d -> s b (h d)")
+                h = self.core_attention(
+                    query,
+                    key,
+                    value,
+                    dropout=self.attention_dropout,
+                    casual=self.attn_mask_type == AttnMaskType.causal,
+                    sequence_parallel=self.sequence_parallel,
+                )
+                if self.attention_type == AttnType.memory:
+                    h_mem = self.core_attention(
+                        query,
+                        mem_key,
+                        mem_value,
+                        dropout=self.attention_dropout,
+                        casual=self.attn_mask_type == AttnMaskType.causal,
+                        sequence_parallel=self.sequence_parallel,
+                    )
+            h, h_mem = [rearrange(x, "b s 1 h -> s b h") for x in [h, h_mem]]
 
+        if self.attention_type == AttnType.memory:
+            memory_gate = torch.sigmoid(self.memory_bias)
+            h = h * memory_gate + h_mem * (1 - memory_gate)
         h = F.silu(hx + self.h_proj(h * r))
-        output, bias = mu * (h - residual) + residual
 
+        output, bias = mu * (h - residual) + residual
         if self.sub_ln or not self.prenorm:
             output, bias = self.post_layernorm(output)
+
+        return output, bias
+
+
+class SwitchAttention(MegatronModule):
+    """Routes input to one of N Attention 'experts'
+    Inspired by Mixture-of-Attention-Heads:
+    https://arxiv.org/abs/2210.05144v1 (Zhang et al., 2022)
+
+    Since MEGA uses single-head attention, instead of parameterizing
+    MoA as a mixture of attention heads as in the paper we instead
+    extend SwitchMLP and parameterize each 'expert' as an entire
+    attention module. Doesn't currently support cross-attention.
+    """
+
+    def __init__(
+        self,
+        init_method: torch.nn.init,
+        output_layer_init_method: torch.nn.init,
+        layer_number: int,
+        attention_type: Enum = AttnType.self_attn,
+        attn_mask_type: Enum = AttnMaskType.padding,
+    ):
+        super(SwitchAttention, self).__init__()
+        args = get_args()
+
+        self.layer_number = max(1, layer_number)
+        self.attention_type = attention_type
+        self.attn_mask_type = attn_mask_type
+        self.params_dtype = args.params_dtype
+        self.sequence_parallel = args.sequence_parallel
+
+        self.xmoe = args.xmoe
+        self.expert_choice = args.expert_choice
+
+        if self.xmoe:
+            self.wg_reduction = torch.nn.Linear(
+                args.hidden_size, args.num_attn_experts / 2
+            )
+            self.wg = torch.nn.Parameter(
+                torch.empty(args.num_attn_experts, args.num_attn_experts / 2)
+            )
+            torch.nn.init.orthogonal_(self.wg, gain=0.32)
+        else:
+            self.wg_reduction = torch.nn.Linear(args.hidden_size, args.num_attn_experts)
+
+        assert self.attention_type != AttnType.cross_attn
+        if self.attention_type == AttnType.self_attn:
+            attn_expert = ParallelAttention(
+                init_method,
+                output_layer_init_method,
+                self.layer_number,
+                self.attention_type,
+                self.attn_mask_type,
+            )
+        elif self.attention_type == AttnType.mega or AttnType.memory:
+            attn_expert = MEGA(
+                init_method,
+                output_layer_init_method,
+                self.layer_number,
+                self.attention_type,
+                self.attn_mask_type,
+            )
+
+        self.experts = torch.nn.ModuleList()
+        for i in range(args.num_attn_experts):
+            self.experts.append(attn_expert)
+
+    def forward(
+        self,
+        hidden_states: torch.Tensor,
+        attention_mask: torch.tensor,
+        inference_params: Optional[Callable] = None,
+    ) -> torch.Tensor:
+        seq_len, batch_size, hidden_size = hidden_states.shape
+        capacity = seq_len * batch_size * 2 / len(self.experts)
+
+        if self.xmoe:
+            # Reduce hidden states to same size as expert embeddings
+            scores = self.wg_reduction(hidden_states)
+
+            # Perform L2 normalization
+            with torch.no_grad():
+                self.wg *= 1.5 / self.wg.norm(p=2.0, dim=1, keepdim=True)
+                self.wg = F.normalize(self.wg, p=2.0, dim=1, eps=1e-4)
+                self.wg = rearrange(self.wg, "s b -> b s")
+                scores = einsum(scores, self.wg, "s b h, b s -> s b h")
+                if not scores.isfinite().all():
+                    scores[~scores.isfinite()] = scores[scores.isfinite()].min()
+        else:
+            scores = self.wg_reduction(hidden_states)
+
+        scores = F.softmax(scores, dim=2)
+
+        if self.expert_choice:
+            # Expert choice routing
+            gating_matrix, index_matrix = torch.topk(scores, capacity)
+            permute_matrix = F.one_hot(index_matrix)
+
+            expert_input = hidden_states * permute_matrix
+
+            for idx, expert in enumerate(self.experts):
+                expert_output, expert_bias = expert(
+                    expert_input,
+                    attention_mask,
+                    inference_params=inference_params,
+                )
+                expert_bias = expert_bias.expand_as(expert_output)
+
+            output, bias = [
+                einsum(permute_matrix, gating_matrix, x, "i j l, i j, i j h -> l h")
+                for x in [expert_output, expert_bias]
+            ]
+            output, bias = [
+                rearrange(x, "(s b) h -> s b h", s=seq_len, b=batch_size, h=hidden_size)
+                for x in [output, bias]
+            ]
+        else:
+            # Switch Transformer top-1 routing
+            max_prob, max_idx = torch.max(scores, dim=2)
+            max_prob = rearrange(max_prob, "s b -> (s b) 1")
+            max_idx = rearrange(max_idx, "s b -> (s b)")
+            hidden_states = rearrange(hidden_states, "s b h -> (s b) h")
+
+            for idx, expert in enumerate(self.experts):
+                local_idx = (max_idx == idx).nonzero()
+                expert_output, expert_bias = expert(
+                    hidden_states[local_idx, :],
+                    attention_mask,
+                    inference_params=inference_params,
+                )
+                expert_bias = expert_bias.expand_as(expert_output)
+                output[local_idx, :] = expert_output
+                bias[local_idx, :] = expert_bias
+
+            output, bias = [x * max_prob for x in [output, bias]]
+            output, bias = [
+                rearrange(x, "(s b) h -> s b h", s=seq_len, b=batch_size, h=hidden_size)
+                for x in [output, bias]
+            ]
 
         return output, bias
 
@@ -931,7 +1114,7 @@ class xPos(MegatronModule):
 
     Takes query, key, and value layers from the attention layer
     of size [s, b, h], and returns a query and key
-    of the same size with added rotation position bias.
+    of the same size with added rotational position bias.
     """
 
     def __init__(self):
@@ -1123,17 +1306,16 @@ class ProductKeyMemory(MegatronModule):
         self.num_keys = args.hidden_size
         self.pkm_size = args.hidden_size**2
         self.num_heads = args.pkm_num_heads
-        self.knn_size = args.pkm_knn_size
+        self.topk = args.pkm_topk
 
-        self.dropout, self.query_dropout, self.value_dropout = (
-            (*args.pkm_dropout,)
-            if isinstance(args.pkm_dropout, tuple)
-            else (args.pkm_dropout for i in range(2))
+        self.keys = torch.nn.Parameter(
+            torch.zeros(self.num_heads, self.num_keys, 2, self.key_half)
         )
-
-        self.init_keys()
         self.value_embed = torch.nn.EmbeddingBag(
             self.pkm_size, args.hidden_size, mode="sum", sparse=True
+        )
+        torch.nn.init.uniform_(
+            self.keys, -(1.0 / math.sqrt(self.key_half)), 1.0 / math.sqrt(self.key_half)
         )
         torch.nn.init.normal_(self.value_embed.weight, std=args.hidden_size**-0.5)
 
@@ -1150,78 +1332,37 @@ class ProductKeyMemory(MegatronModule):
             torch.nn.BatchNorm1d(args.pkm_num_heads * args.pkm_key_size),
         )
 
-    def init_keys(self):
-        # TODO: This whole block could look better
-        std = 1 / math.sqrt(self.key_half)
-        keys = np.array(
-            [
-                np.random.RandomState(2 * i + j)
-                .uniform(-std, std, (self.num_keys, self.key_half))
-                .astype(np.float32)
-                for i in range(self.num_heads)
-                for j in range(2)
-            ]
+        self.dropout, self.query_dropout, self.value_dropout = (
+            (*args.pkm_dropout,)
+            if isinstance(args.pkm_dropout, tuple)
+            else (args.pkm_dropout for i in range(2))
         )
-        keys = torch.from_numpy(keys)
-        keys = torch.nn.Parameter(rearrange(keys, "h n k -> h d n k", d=2))
-        self.keys = torch.nn.Parameter(keys)
-
-    def get_scores(self, query: torch.Tensor) -> torch.Tensor:
-        for i in range(self.num_heads):
-            query_half = query[:, i]
-            subkeys = self.keys[i]
-
-            pq = []
-            pq.append(query_half[:, : self.key_half], query_half[:, self.key_half :])
-
-            scores1, scores2 = [
-                F.linear(pq[i], subkeys[i], bias=None) for i in range(1)
-            ]
-            scores1, indices1, scores2, indices2 = [
-                torch.topk(x, self.knn_size, dim=1) for x in [scores1, scores2]
-            ]
-            scores1, indices1, scores2, indices2 = [
-                rearrange(x, "sb k -> sb 1 k")
-                for x in [scores1, indices1, scores2, indices2]
-            ]
-
-            scores_prod = scores1 + scores2
-            indices_prod = indices1 * len(subkeys[0]) + indices2
-            scores_prod, indices_prod = [
-                rearrange(x, "sb 1 k -> sb k") for x in [scores_prod, indices_prod]
-            ]
-
-            scores, indices = torch.topk(scores_prod, self.knn_size, dim=1)
-            indices = indices_prod.gather(1, indices)
-
-        scores, indices = [rearrange(x, "sb k -> sb 1 k") for x in [scores, indices]]
-        scores, _, indices, _ = [pack(x, "sb * k") for x in [scores, indices]]
-        scores, indices = [rearrange(x, "sb 1 k -> sb k") for x in [scores, indices]]
-
-        return scores, indices
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
         seq_len, batch_size, hidden_size = hidden_states.shape
 
         hidden_states = F.dropout(hidden_states, self.dropout, self.training)
-        query = self.query_proj(rearrange(hidden_states, "s b h -> (s b) h"))
-        query = rearrange(
-            query, "sb h -> (sb nh) k", nh=self.num_heads, k=self.key_size
-        )
+        query = self.query_proj(hidden_states)
         query = F.dropout(query, self.query_dropout, self.training)
+        query = rearrange(query, "s b h -> x s b nh kh", x=2, nh=self.num_heads, kh=-1)
 
-        scores, indices = self.get_scores(query)
-        scores = F.softmax(scores.float(), dim=-1).type_as(scores)
+        product = einsum(query, self.keys, "x s b nh kh , nh nk x kh -> s b nh x nk")
+        product = rearrange(product, "s b nh x nk -> (s b nh) k", k=self.topk)
+        scores_prod, indices_prod = torch.topk(product, self.topk, dim=-1)
 
+        scores, indices = torch.topk(scores_prod, self.topk, dim=-1)
+        indices = indices_prod.gather(-1, indices)
+
+        scores = F.softmax(scores.float(), dim=-1)
         scores, indices = [
-            rearrange(x, "(sb nh) k -> sb (nh k)", nh=self.num_heads)
+            rearrange(x, "(s b nh) k -> (s b) (nh k)", nh=self.num_heads)
             for x in [scores, indices]
         ]
 
         output = self.value_embed(indices, per_sample_weights=scores)
         output = F.dropout(output, self.value_dropout, self.training)
         output = rearrange(
-            output, "(s b) k -> s b h", s=seq_len, b=batch_size, h=hidden_size
+            output, "(s b) (nh k) -> s b h", s=seq_len, b=batch_size, h=hidden_size
         )
 
         return output
@@ -1352,7 +1493,11 @@ class ParallelTransformerLayer(MegatronModule):
         )
 
         # Self attention.
-        if attn_type == AttnType.self_attn or AttnType.cross_attn:
+        if args.num_attn_experts is not None and layer_number % 2 == 0:
+            self.attention = SwitchAttention(
+                init_method, output_layer_init_method, layer_number
+            )
+        elif attn_type == AttnType.self_attn or AttnType.cross_attn:
             self.attention = ParallelAttention(
                 init_method,
                 output_layer_init_method,
@@ -1360,7 +1505,7 @@ class ParallelTransformerLayer(MegatronModule):
                 attn_type=attn_type,
                 attn_mask_type=attn_mask_type,
             )
-        elif attn_type == AttnType.mega:
+        elif attn_type == AttnType.mega or AttnType.memory:
             self.attention = MEGA(
                 init_method,
                 output_layer_init_method,
@@ -1434,7 +1579,7 @@ class ParallelTransformerLayer(MegatronModule):
         attention_mask: torch.Tensor,
         encoder_output: Optional[torch.Tensor] = None,
         enc_dec_attn_mask: Optional[torch.Tensor] = None,
-        inference_params: Optional = None,
+        inference_params: Optional[Callable] = None,
     ) -> torch.Tensor:
         # hidden_states: [s, b, h]
 
@@ -1565,7 +1710,7 @@ class NoopTransformerLayer(MegatronModule):
         attention_mask: Optional[torch.Tensor] = None,
         encoder_output: Optional[torch.Tensor] = None,
         enc_dec_attn_mask: Optional[torch.Tensor] = None,
-        inference_params: Optional = None,
+        inference_params: Optional[Callable] = None,
     ) -> torch.Tensor:
         return hidden_states.clone()
 
@@ -1717,6 +1862,9 @@ class ParallelTransformer(MegatronModule):
 
         # Transformer layers.
         def build_layer(layer_number: int):
+            num_attn_layers = round(self.num_layers / 5)
+            attn_dist = round(2 * self.num_layers / 3)
+
             if args.transformer_impl == "local":
                 return ParallelTransformerLayer(
                     init_method,
@@ -1947,7 +2095,7 @@ class ParallelTransformer(MegatronModule):
         attention_mask: torch.Tensor,
         encoder_output: Optional[torch.Tensor] = None,
         enc_dec_attn_mask: Optional[torch.Tensor] = None,
-        inference_params: Optional = None,
+        inference_params: Optional[Callable] = None,
         boundaries: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         # hidden_states: [s, b, h]
