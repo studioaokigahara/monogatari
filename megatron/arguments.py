@@ -1965,7 +1965,42 @@ def _add_monogatari_args(parser):
         default=False,
         help="LayerNorm at the beginning of the MEGA block if true, otherwise LN at the end",
     )
-    assert e
+    group.add_argument(
+        "--mega-memory-size",
+        type=int,
+        default=32,
+        help="Dimension to use for each index key",
+    )
+    group.add_argument(
+        "--mega-memory-num-neighbors",
+        type=int,
+        default=32,
+        help="Number of neighbors to use in the quantizer graph",
+    )
+    group.add_argument(
+        "--mega-memory-num-clusters",
+        type=int,
+        default=32,
+        help="Number of cells to partition the feature space into",
+    )
+    group.add_argument(
+        "--mega-memory-num-probes",
+        type=int,
+        default=32,
+        help="Number of inverted lists to select at query time",
+    )
+    group.add_argument(
+        "--mega-memory-topk",
+        type=int,
+        default=32,
+        help="Number of results to return when searching the index",
+    )
+    group.add_argument(
+        "--mega-memory-max-size",
+        type=int,
+        default=32,
+        help="Maximum number of keys to store in the index",
+    )
 
     group.add_argument(
         "--xpos-size",
@@ -2027,6 +2062,12 @@ def _add_monogatari_args(parser):
         help="Concat ngrams if true",
     )
 
+    group.add_argument(
+        "--use-product-key-memory",
+        type=bool,
+        default=False,
+        help="Enable Product-Key Memory FFN if true",
+    )
     group.add_argument(
         "--pkm-key-size",
         type=int,
@@ -2119,11 +2160,19 @@ def _add_monogatari_args(parser):
     )
 
     group.add_argument(
-        "--deepspeed-residual",
+        "--pay-less-attention",
         type=bool,
         default=False,
-        help="Whether to use DeepSpeed Residual MoE",
+        help="Whether to only use num_layers / 5 attention modules as in PAR",
     )
+    group.add_argument(
+        "--num-attn-experts",
+        type=Optional[Union[int, List[int]]],
+        default=None,
+        choices=[16, 32, 64, 128, [16, 32], [32, 64], [64, 128]],
+        help="Number of attention experts (None means no MoE)",
+    )
+    return parser
 
 
 def _add_zero_args(parser):
