@@ -1918,8 +1918,8 @@ def _add_monogatari_args(parser):
     group.add_argument(
         "--activation-func",
         type=str,
-        default="erf_gelu",
-        choices=["erf_gelu", "openai_gelu", "squared_relu", "squish", "squish2"],
+        default="gelu",
+        choices=["gelu", "squared_relu", "squish", "squish2", "swiglu"],
         help="Activation function to use in the Feed-Forward networks",
     )
     group.add_argument(
@@ -1964,6 +1964,12 @@ def _add_monogatari_args(parser):
         type=bool,
         default=False,
         help="LayerNorm at the beginning of the MEGA block if true, otherwise LN at the end",
+    )
+    group.add_argument(
+        "--mega-num-persistent-memories",
+        type=int,
+        default=32,
+        help="Number of persistent key-value memories",
     )
     group.add_argument(
         "--mega-memory-size",

@@ -87,7 +87,7 @@ def get_batch(data):
     sentence_order = data_b["is_random"].long()
     masked_ids = data_b["masked_positions"].long()
 
-    tokens, ps = pack([tokens, aux_tokens], "b *")
+    tokens, ps = pack([tokens, aux_tokens], "*")
 
     # Get the masks and postition ids.
     attention_mask, loss_mask, position_ids = get_ltor_masks_and_position_ids(
@@ -96,7 +96,6 @@ def get_batch(data):
         args.reset_position_ids,
         args.reset_attention_mask,
         args.eod_mask_loss,
-        training=True,
         bos_token=tokenizer.bos,
     )
 

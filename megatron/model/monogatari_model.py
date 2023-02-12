@@ -107,7 +107,7 @@ def post_auxiliary_model_processing(
 
         positive_logits = einsum(anchor, positives, "s b h, s b h -> s b 1")
         negative_logits = einsum(anchor, negatives, "s b h, s b n h -> s b n")
-        taco_logits, _ = pack([positive_logits, negative_logits], "s b *")
+        taco_logits, _ = pack([positive_logits, negative_logits], "*")
 
         taco_logits /= args.taco_temperature
 
@@ -221,29 +221,32 @@ class MaskedLMHead(MegatronModule):
             hidden_size, eps=layernorm_epsilon, sequence_parallel=args.sequence_parallel
         )
 
-        if args.activation_func == erf_gelu:
-            self.activation_func = erf_gelu
-        elif args.activation_func == openai_gelu:
-            self.activation_func = openai_gelu
+        if args.activation_func == gelu:
+            self.activation_func = F.gelu
         elif args.activation_func == squared_relu:
             self.activation_func = F.relu
             self.squared_relu = True
-        elif args.activation_func == squish or squish2:
+        elif args.activation_func == squish or squish2 or swiglu:
             self.activation_func = F.silu
             if args.activation_func == squish:
                 self.squish = True
-            else:
+                self.squishy = 1.4
+            elif args.activation_func == squish2:
                 self.squish2 = True
+                self.squishy = 1.8
+            elif args.activation_func == swiglu:
+                self.swiglu = True
 
     def forward(self, hidden_states, word_embeddings_weight):
         hidden_states = self.dense(hidden_states)
 
         if self.squared_relu:
             hidden_states = torch.square(self.activation_func(hidden_states))
-        elif self.squish:
-            hidden_states = torch.pow(self.activation_func(hidden_states), 1.4)
-        elif self.squish2:
-            hidden_states = torch.pow(self.activation_func(hidden_states), 1.8)
+        elif self.squish or self.squish2:
+            hidden_states = torch.pow(self.activation_func(hidden_states), self.squishy)
+        elif self.swiglu:
+            hidden_states, gate = hidden_states.chunk(2)
+            hidden_states *= self.activation_func(gate)
         else:
             hidden_states = self.activation_func(hidden_states)
 

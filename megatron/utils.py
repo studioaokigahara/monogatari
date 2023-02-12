@@ -132,7 +132,6 @@ def get_ltor_masks_and_position_ids(
     reset_position_ids,
     reset_attention_mask,
     eod_mask_loss,
-    training=False,
     bos_token=None,
 ):
     """Build masks and position id for left to right model."""
@@ -156,7 +155,7 @@ def get_ltor_masks_and_position_ids(
         attention_mask[data != bos_token][attention_mask != 0],
         p=random.uniform(0, 0.15),
         inplace=True,
-        training=training,
+        training=bos_token is not None,
     )
 
     # Loss mask.
