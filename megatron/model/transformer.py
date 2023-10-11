@@ -1,29 +1,8 @@
 # Copyright (c) 2022, NVIDIA CORPORATION. All rights reserved.
 
-"""Transformer."""
-import math
-from contextlib import nullcontext
-from enum import Enum
-from typing import Callable, List, Optional
+"""Transformer.
 
-import deepseed
-import faiss
-import torch
-import torch.nn.functional as F
-from deepspeed.accelerator import get_accelerator
-from einops import einsum, pack, rearrange, reduce, repeat, unpack
-
-from megatron import core, get_args, get_num_microbatches, get_timers
-from megatron.core import mpu, tensor_parallel
-from megatron.model import LayerNorm
-from megatron.model.enums import AttnMaskType, AttnType, LayerType, ModelType
-from megatron.model.flash_attention import FlashAttention
-from megatron.model.fused_softmax import FusedScaleMaskSoftmax
-from megatron.model.utils import attention_mask_func
-
-from .module import MegatronModule
-
-""" We use the following notation throughout this file:
+We use the following notation throughout this file:
         h: hidden size
         n: number of attention heads
         p: number of model parallel partitions
@@ -35,8 +14,26 @@ from .module import MegatronModule
         l: number of layers
     Transformer takes input of size [s, b, h] and returns a
     tensor of the same size. We use the following arguments:
-        hyperparameters: transformer hyperparameters
-"""
+        hyperparameters: transformer hyperparameters"""
+
+import math
+from contextlib import nullcontext
+from enum import Enum
+from typing import Callable, List, Optional
+
+import faiss
+import sympy
+import torch
+import torch.nn.functional as F
+from deepspeed.accelerator import get_accelerator
+from einops import einsum, pack, rearrange, repeat, unpack
+
+from config import settings
+from megatron import core, get_args, get_num_microbatches
+from megatron.core import mpu
+from megatron.model import LayerNorm
+from megatron.model.enums import AttnMaskType, AttnType, LayerType, ModelType
+from megatron.model.module import MegatronModule
 
 
 class DropPath(MegatronModule):
@@ -45,7 +42,7 @@ class DropPath(MegatronModule):
     """
 
     def __init__(self, drop_prob: float = 0.0):
-        super(DropPath, self).__init__()
+        super().__init__()
         self.drop_prob = drop_prob
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
@@ -72,7 +69,7 @@ def _args_to_kwargs():
         "use_cpu_initialization": args.use_cpu_initialization,
         "perform_initialization": args.perform_initialization,
         "gradient_accumulation_fusion": args.gradient_accumulation_fusion,
-        "sequence_parallel_enabled": args.sequence_parallel,
+        "sequence_parallel_enabled": settings.training.sequence_parallel,
     }
     return common_kwargs
 
@@ -85,22 +82,23 @@ class ParallelMLP(MegatronModule):
     state back into h hidden dimension.
     """
 
-    def __init__(
-        self, init_method: torch.nn.init, output_layer_init_method: torch.nn.init
-    ):
+    def __init__(self, init_method: Callable, output_layer_init_method: Callable):
         super(ParallelMLP, self).__init__()
         args = get_args()
 
+        self.hidden_size = settings.hidden_size
+        self.ffn_hidden_size = self.hidden_size // 4
+
         # Sub-LN adds a scaled LN before each linear
-        self.sub_ln = args.sub_ln
+        self.sub_ln = settings.monogatari.sub_ln
         self.pre_layernorm = LayerNorm(
-            args.hidden_size,
+            self.hidden_size,
             eps=args.layernorm_epsilon,
             no_persist_layer_norm=args.no_persist_layer_norm,
             sequence_parallel=args.sequence_parallel,
         )
         self.post_layernorm = LayerNorm(
-            args.hidden_size,
+            self.hidden_size,
             eps=args.layernorm_epsilon,
             no_persist_layer_norm=args.no_persist_layer_norm,
             sequence_parallel=args.sequence_parallel,
@@ -108,39 +106,42 @@ class ParallelMLP(MegatronModule):
 
         # Project to 4h.
         self.dense_h_to_4h = mpu.ColumnParallelLinear(
-            args.hidden_size,
-            args.ffn_hidden_size,
+            self.hidden_size,
+            self.ffn_hidden_size,
             bias=False,
             gather_output=False,
             init_method=init_method,
             async_tensor_model_parallel_allreduce=args.async_tensor_model_parallel_allreduce,
-            **_args_to_kwargs()
+            **_args_to_kwargs(),
         )
 
-        if args.activation_func == gelu:
+        if settings.activation_func == "gelu":
             self.activation_func = F.gelu
-        elif args.activation_func == squared_relu:
+        elif settings.activation_func == "squared_relu":
             self.activation_func = F.relu
             self.squared_relu = True
-        elif args.activation_func == squish or squish2 or swiglu:
+        elif settings.activation_func == "squish":
             self.activation_func = F.silu
-            if args.activation_func == squish:
-                self.squish = True
-                self.squishy = 1.4
-            elif args.activation_func == squish2:
-                self.squish2 = True
-                self.squishy = 1.8
-            elif args.activation_func == swiglu:
-                self.swiglu = True
+            self.squish = True
+            self.squishy = 1.4
+        elif settings.activation_func == "squish2":
+            self.activation_func = F.silu
+            self.squish = True
+            self.squishy = 1.8
+        elif settings.activation_func == "swiglu":
+            self.activation_func = F.silu
+            self.swiglu = True
+        else:
+            self.activation_func = F.relu
 
         # Project back to h.
         self.dense_4h_to_h = mpu.RowParallelLinear(
-            args.ffn_hidden_size,
-            args.hidden_size,
+            self.ffn_hidden_size,
+            self.hidden_size,
             bias=False,
             input_is_parallel=True,
             init_method=output_layer_init_method,
-            **_args_to_kwargs()
+            **_args_to_kwargs(),
         )
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
@@ -156,12 +157,12 @@ class ParallelMLP(MegatronModule):
             intermediate_parallel = torch.square(
                 self.activation_func(intermediate_parallel)
             )
-        elif self.squish or self.squish2:
+        elif self.squish:
             intermediate_parallel = torch.pow(
                 self.activation_func(intermediate_parallel), self.squishy
             )
         elif self.swiglu:
-            intermediate_parallel, gate = intermediate_parallel.chunk(2)
+            intermediate_parallel, gate = torch.chunk(intermediate_parallel, 2)
             intermediate_parallel *= self.activation_func(gate)
         else:
             intermediate_parallel = self.activation_func(intermediate_parallel)
@@ -175,13 +176,11 @@ class ParallelMLP(MegatronModule):
         return output
 
 
-class SwitchMLP(MegatronModule):
+class MixtureOfExperts(MegatronModule):
     """Routes input to one of N MLP 'experts'"""
 
-    def __init__(
-        self, init_method: torch.nn.init, output_layer_init_method: torch.nn.init
-    ):
-        super(SwitchMLP, self).__init__()
+    def __init__(self, init_method: Callable, output_layer_init_method: Callable):
+        super().__init__()
         args = get_args()
 
         self.xmoe = args.xmoe
@@ -195,7 +194,7 @@ class SwitchMLP(MegatronModule):
                 gather_output=False,
                 init_method=init_method,
                 async_tensor_model_parallel_allreduce=args.async_tensor_model_parallel_allreduce,
-                **_args_to_kwargs()
+                **_args_to_kwargs(),
             )
             self.wg = torch.nn.Parameter(
                 torch.empty(args.num_experts, args.num_experts / 2)
@@ -209,19 +208,19 @@ class SwitchMLP(MegatronModule):
                 gather_output=False,
                 init_method=init_method,
                 async_tensor_model_parallel_allreduce=args.async_tensor_model_parallel_allreduce,
-                **_args_to_kwargs()
+                **_args_to_kwargs(),
             )
 
         self.experts = torch.nn.ModuleList()
-        for i in range(args.num_experts):
+        for _ in range(args.num_experts):
             self.experts.append(ParallelMLP(init_method, output_layer_init_method))
         for p in self.experts.parameters():
             p.expert = True
             p.data *= 1 / math.sqrt(args.num_experts)
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
-        seq_len, batch_size, hidden_size = hidden_states.shape
-        capacity = ((seq_len * batch_size) * 2) / len(self.experts)
+        seq_len, batch_size, _ = hidden_states.shape
+        capacity = (seq_len * batch_size * 2) // len(self.experts)
 
         if self.xmoe:
             # Reduce hidden states to same size as expert embeddings
@@ -231,8 +230,7 @@ class SwitchMLP(MegatronModule):
             with torch.no_grad():
                 self.wg *= 1.5 / self.wg.norm(p=2.0, dim=1, keepdim=True)
                 self.wg = F.normalize(self.wg, p=2.0, dim=1, eps=1e-4)
-                self.wg = rearrange(self.wg, "s b -> b s")
-                scores = einsum(scores, self.wg, "s b h, b s -> s b h")
+                scores = einsum(scores, self.wg, "s b h, s b -> s b h")
                 if not scores.isfinite().all():
                     scores[~scores.isfinite()] = scores[scores.isfinite()].min()
         else:
@@ -247,15 +245,14 @@ class SwitchMLP(MegatronModule):
 
             expert_input = hidden_states * permute_matrix
 
+            expert_output = torch.empty_like(expert_input)
             for idx, expert in enumerate(self.experts):
                 expert_output = expert(expert_input)
 
             output = einsum(
-                permute_matrix, gating_matrix, x, "i j l, i j, i j h -> l h"
+                permute_matrix, gating_matrix, expert_output, "i j l, i j, i j h -> l h"
             )
-            output = rearrange(
-                x, "(s b) h -> s b h", s=seq_len, b=batch_size, h=hidden_size
-            )
+            output = rearrange(output, "(s b) h -> s b h", s=seq_len, b=batch_size)
         else:
             # Switch Transformer top-1 routing
             max_prob, max_idx = torch.max(scores, dim=2)
@@ -263,114 +260,17 @@ class SwitchMLP(MegatronModule):
             max_idx = rearrange(max_idx, "s b -> (s b)")
             hidden_states = rearrange(hidden_states, "s b h -> (s b) h")
 
+            output = torch.empty_like(hidden_states)
             for idx, expert in enumerate(self.experts):
                 local_idx = (max_idx == idx).nonzero()
                 expert_output = expert(hidden_states[local_idx, :])
+                output = torch.empty_like(expert_output)
                 output[local_idx, :] = expert_output
 
             output *= max_prob
-            output = rearrange(
-                x, "(s b) h -> s b h", s=seq_len, b=batch_size, h=hidden_size
-            )
+            output = rearrange(output, "(s b) h -> s b h", s=seq_len, b=batch_size)
 
         return output
-
-
-class CoreAttention(MegatronModule):
-    def __init__(self, attn_mask_type: Enum = AttnMaskType.padding):
-        super(CoreAttention, self).__init__()
-        args = get_args()
-
-        attention_softmax_in_fp32 = args.attention_softmax_in_fp32
-        if args.apply_query_key_layer_scaling:
-            attention_softmax_in_fp32 = True
-        self.sequence_parallel = args.sequence_parallel
-
-        projection_size = args.kv_channels * args.num_attention_heads
-
-        # Per attention head and per partition values
-        world_size = mpu.get_tensor_model_parallel_world_size()
-        self.hidden_size_per_partition = core.utils.divide(projection_size, world_size)
-        hidden_size_per_attention_head = core.utils.divide(
-            projection_size, args.num_attention_heads
-        )
-        self.num_attention_heads_per_partition = core.utils.divide(
-            args.num_attention_heads, world_size
-        )
-
-        coeff = None
-        self.norm_factor = math.sqrt(hidden_size_per_attention_head)
-        if args.apply_query_key_layer_scaling:
-            coeff = layer_number
-            self.norm_factor *= coeff
-
-        self.scale_mask_softmax = FusedScaleMaskSoftmax(
-            args.fp16,
-            args.bf16,
-            attn_mask_type,
-            args.masked_softmax_fusion,
-            attention_mask_func,
-            attention_softmax_in_fp32,
-            coeff,
-        )
-
-        # Dropout. Note that for a single iteration, this layer will generate
-        # different outputs on different number of parallel partitions but
-        # on average it should not be partition dependent.
-        self.attention_dropout = torch.nn.Dropout(args.attention_dropout)
-
-    def forward(
-        self,
-        query: torch.Tensor,
-        key: torch.Tensor,
-        value: torch.Tensor,
-        attention_mask: torch.Tensor,
-    ) -> torch.Tensor:
-
-        seq_len, batch_size, _, _ = query.size()
-
-        query = rearrange(query, "sq b np hn -> (b np) sq hn")
-        key = rearrange(key, "sk b np hn -> (b np) hn sk")
-
-        # Raw attention scores [b, np, s, s]
-        attention_scores = einsum(
-            query,
-            key,
-            "(b np) sq hn, (b np) hn sk -> b np sq sk",
-            b=batch_size,
-            np=self.num_attention_heads_per_partition,
-        )
-        attention_scores *= 1.0 / self.norm_factor
-
-        ### Attention probs and dropout
-        # Attention scores and attention mask [b, np, sq, sk]
-        attention_probs = self.scale_mask_softmax(attention_scores, attention_mask)
-
-        # This is actually dropping out entire tokens to attend to, which might
-        # seem a bit unusual, but is taken from the original Transformer paper.
-        if not self.sequence_parallel:
-            with mpu.get_cuda_rng_tracker().fork():
-                attention_probs = self.attention_dropout(attention_probs)
-        else:
-            attention_probs = self.attention_dropout(attention_probs)
-
-        # Context layer. [sq, b, hp]
-        value = rearrange(value, "sk b np hn -> (b np) sk hn")
-        attention_probs = rearrange(attention_probs, "b np sq sk -> (b np) sq sk")
-
-        context = einsum(
-            attention_probs, value, "(b np) sq sk, (b np) sk hn -> (b np) sq hn"
-        )
-
-        context = rearrange(
-            context,
-            "(b np) sq hn -> s b h",
-            s=seq_len,
-            b=batch_size,
-            h=self.hidden_size_per_partition,
-        )
-
-        return context
 
 
 class ParallelAttention(MegatronModule):
@@ -382,18 +282,19 @@ class ParallelAttention(MegatronModule):
 
     def __init__(
         self,
-        init_method: torch.nn.init,
-        output_layer_init_method: torch.nn.init,
+        init_method: Callable,
+        output_layer_init_method: Callable,
         layer_number: int,
         attn_type: Enum = AttnType.self_attn,
         attn_mask_type: Enum = AttnMaskType.padding,
     ):
-        super(ParallelAttention, self).__init__()
+        super().__init__()
         args = get_args()
 
         self.layer_number = max(1, layer_number)
         self.attn_type = attn_type
         self.attn_mask_type = attn_mask_type
+        self.is_casual = attn_mask_type == AttnMaskType.casual
         self.params_dtype = args.params_dtype
         self.sequence_parallel = args.sequence_parallel
         self.attention_dropout = args.attention_dropout
@@ -418,7 +319,7 @@ class ParallelAttention(MegatronModule):
                 gather_output=False,
                 init_method=init_method,
                 async_tensor_model_parallel_allreduce=args.async_tensor_model_parallel_allreduce,
-                **_args_to_kwargs()
+                **_args_to_kwargs(),
             )
         else:
             assert attn_type == AttnType.cross_attn
@@ -429,39 +330,37 @@ class ParallelAttention(MegatronModule):
                 gather_output=False,
                 init_method=init_method,
                 async_tensor_model_parallel_allreduce=args.async_tensor_model_parallel_allreduce,
-                **_args_to_kwargs()
+                **_args_to_kwargs(),
             )
 
             self.key_value = mpu.ColumnParallelLinear(
-                args.hidden_size,
+                self.hidden_size,
                 2 * projection_size,
                 bias=False,
                 gather_output=False,
                 init_method=init_method,
                 async_tensor_model_parallel_allreduce=args.async_tensor_model_parallel_allreduce,
-                **_args_to_kwargs()
+                **_args_to_kwargs(),
             )
         self.checkpoint_core_attention = args.recompute_granularity == "selective"
-        self.use_flash_attn = args.use_flash_attn
-        if self.checkpoint_core_attention:
-            self.core_attention = self._checkpointed_attention_forward()
-        elif self.use_flash_attn:
-            assert self.hidden_size_per_attention_head <= 128
-            self.core_attention = FlashAttention.apply()
-        else:
-            self.core_attention = CoreAttention(attn_mask_type)
 
         # Output.
         self.dense = mpu.RowParallelLinear(
             projection_size,
-            args.hidden_size,
+            self.hidden_size,
             bias=False,
             input_is_parallel=True,
             init_method=output_layer_init_method,
-            **_args_to_kwargs()
+            **_args_to_kwargs(),
         )
 
-    def _checkpointed_attention_forward(self, query, key, value, attention_mask):
+    def _checkpointed_attention_forward(
+        self,
+        query: torch.Tensor,
+        key: torch.Tensor,
+        value: torch.Tensor,
+        attention_mask: Optional[torch.Tensor],
+    ) -> torch.Tensor:
         """Forward method with activation checkpointing."""
 
         def custom_forward(*inputs):
@@ -469,7 +368,22 @@ class ParallelAttention(MegatronModule):
             key = inputs[1]
             value = inputs[2]
             attention_mask = inputs[3]
-            output_ = self.core_attention(query, key, value, attention_mask)
+
+            if self.sequence_parallel:
+                rng_context = mpu.get_cuda_rng_tracker().fork()
+            else:
+                rng_context = nullcontext()
+
+            with rng_context:
+                output_ = F.scaled_dot_product_attention(
+                    query,
+                    key,
+                    value,
+                    attention_mask,
+                    is_casual=self.casual,
+                    dropout_p=self.dropout,
+                )
+
             return output_
 
         hidden_states = mpu.checkpoint(
@@ -480,7 +394,7 @@ class ParallelAttention(MegatronModule):
 
     def _allocate_memory(
         self, inference_max_sequence_len: int, batch_size: int
-    ) -> torch.tensor:
+    ) -> torch.Tensor:
         return torch.empty(
             inference_max_sequence_len,
             batch_size,
@@ -493,13 +407,15 @@ class ParallelAttention(MegatronModule):
     def forward(
         self,
         hidden_states: torch.Tensor,
-        attention_mask: torch.Tensor = None,
+        attention_mask: Optional[torch.Tensor],
         enc_dec_attn_mask: Optional[torch.Tensor] = None,
         encoder_output: Optional[torch.Tensor] = None,
         inference_params: Optional[Callable] = None,
     ) -> torch.Tensor:
         # hidden_states: [sq, b, h]
         residual = hidden_states
+        if self.attn_type == AttnType.cross_attn:
+            attention_mask = enc_dec_attn_mask
 
         # Pre-allocate memory for key and value for inference
         if inference_params:
@@ -580,32 +496,25 @@ class ParallelAttention(MegatronModule):
             value = inference_value_memory[:sequence_end, batch_start:batch_end, ...]
 
         # Core attention computation
-        if self.use_flash_attn:
-            query, key, value = [
-                rearrange(x, "s b ... -> b s ...") for x in [query, key, value]
-            ]
-            if not self.sequence_parallel:
-                with mpu.get_cuda_rng_tracker().fork():
-                    context = self.core_attention(
-                        query,
-                        key,
-                        value,
-                        dropout=self.attention_dropout,
-                        casual=self.attn_mask_type == AttnMaskType.causal,
-                        sequence_parallel=self.sequence_parallel,
-                    )
+        if self.sequence_parallel:
+            rng_context = mpu.get_cuda_rng_tracker().fork()
+        else:
+            rng_context = nullcontext()
+
+        with rng_context:
+            if self.checkpoint_core_attention:
+                context = self._checkpointed_attention_forward(
+                    query, key, value, attention_mask
+                )
             else:
-                context = self.core_attention(
+                context = F.scaled_dot_product_attention(
                     query,
                     key,
                     value,
-                    dropout=self.attention_dropout,
-                    casual=self.attn_mask_type == AttnMaskType.causal,
-                    sequence_parallel=self.sequence_parallel,
+                    attention_mask,
+                    is_casual=self.is_casual,
+                    dropout_p=self.attention_dropout,
                 )
-            context = rearrange(context, "b s h d -> s b (h d)")
-        else:
-            context = self.core_attention(query, key, value, attention_mask)
 
         # Output. [sq, b, h]
         output = self.dense(context) + residual
@@ -620,129 +529,140 @@ class MEGA(MegatronModule):
     Takes input of size [s, b, h] and efficiently computes attention using
     a single-head gated attention mechanism that incorporates stronger
     inductive bias (relative to vanilla attention) using an EMA submodule.
-    Note that we don't support MEGA-chunk; we don't find the additional quality
+    Note that we don't support MEGA-chunk; we don't find the additional performance
     loss worth it when MEGA is already ~3x faster and ~70% more memory efficient
     than vanilla attention even without a fused core attention kernel.
     """
 
     def __init__(
         self,
-        init_method: torch.nn.init,
-        output_layer_init_method: torch.nn.init,
+        init_method: Callable,
+        output_layer_init_method: Callable,
         layer_number: int,
-        attn_type: Enum = AttnType.mega,
         attn_mask_type: Enum = AttnMaskType.padding,
     ):
-        super(MEGA, self).__init__()
+        super().__init__()
         args = get_args()
 
         self.layer_number = max(1, layer_number)
         self.attn_mask_type = attn_mask_type
+        self.is_casual = attn_mask_type == AttnMaskType.casual
         self.params_dtype = args.params_dtype
-        self.sequence_parallel = args.sequence_parallel
-        self.attention_dropout = args.attention_dropout
+        self.sequence_parallel = settings.training.sequence_parallel
+        self.attention_dropout = settings.training.attention_dropout
 
-        self.ema_scale = math.sqrt(1.0 / args.mega_ema_size)
-        self.z_size = args.mega_z_size
-        self.h_size = args.mega_h_size
-        proj_size = self.z_size + self.h_size + (2 * args.hidden_size)
+        self.hidden_size = settings.hidden_size
+        self.ema_size = settings.mega.ema_size
+        self.ema_scale = math.sqrt(1.0 / self.ema_size)
+        self.z_size = settings.mega.z_size
+        self.h_size = settings.mega.h_size
+        projection_size = self.z_size + self.h_size + (2 * self.hidden_size)
 
         self.sub_ln = args.sub_ln
-        self.prenorm = args.mega_prenorm
+        self.prenorm = settings.mega.prenorm
         self.pre_layernorm = LayerNorm(
-            args.hidden_size,
-            eps=args.layernorm_epsilon,
+            self.hidden_size,
+            eps=settings.megatron.layernorm_epsilon,
             no_persist_layer_norm=args.no_persist_layer_norm,
             sequence_parallel=args.sequence_parallel,
         )
         self.post_layernorm = LayerNorm(
-            args.hidden_size,
+            self.hidden_size,
             eps=args.layernorm_epsilon,
             no_persist_layer_norm=args.no_persist_layer_norm,
             sequence_parallel=args.sequence_parallel,
         )
 
-        self.dconv = args.mega_dconv
+        self.dconv = settings.mega.dconv
         self.z_proj = mpu.ColumnParallelLinear(
-            args.hidden_size,
-            proj_size,
+            self.hidden_size,
+            projection_size,
             bias=False,
             gather_output=False,
             init_method=init_method,
-            async_tensor_model_parallel_allreduce=args.async_tensor_model_parallel_allreduce,
-            **_args_to_kwargs()
+            async_tensor_model_parallel_allreduce=settings.training.async_tensor_model_parallel_allreduce_enabled,
+            **_args_to_kwargs(),
         )
-        self.z_conv = torch.nn.Conv1d(proj_size, proj_size, 3, groups=proj_size)
+        self.z_conv = torch.nn.Conv1d(
+            projection_size, projection_size, 3, groups=projection_size
+        )
         self.v_proj = mpu.ColumnParallelLinear(
-            args.hidden_size,
+            self.hidden_size,
             self.h_size,
             bias=False,
             gather_output=False,
             init_method=init_method,
             async_tensor_model_parallel_allreduce=args.async_tensor_model_parallel_allreduce,
-            **_args_to_kwargs()
+            **_args_to_kwargs(),
         )
         self.v_conv = torch.nn.Conv1d(self.h_size, self.h_size, 3, groups=self.h_size)
         self.h_proj = mpu.RowParallelLinear(
             self.h_size,
-            args.hidden_size,
+            self.hidden_size,
             bias=False,
             input_is_parallel=True,
             init_method=output_layer_init_method,
-            **_args_to_kwargs()
+            **_args_to_kwargs(),
         )
 
         self.key = torch.nn.Parameter(
-            torch.randn(args.mega_num_persistent_memories, 1, self.z_size)
+            torch.randn(settings.mega.memory.num_persistent_memories, 1, self.z_size)
         )
         self.value = torch.nn.Parameter(
-            torch.randn(args.mega_num_persistent_memories, 1, self.h_size)
+            torch.randn(settings.mega.memory.num_persistent_memories, 1, self.h_size)
         )
         torch.nn.init.normal_(self.key, std=1.0 / math.sqrt(self.z_size))
         torch.nn.init.normal_(self.value, std=1.0 / math.sqrt(self.h_size))
 
         self.xpos = xPos
 
-        self.checkpoint_core_attention = args.recompute_granularity == "selective"
-        self.use_flash_attn = args.use_flash_attn
-        if self.checkpoint_core_attention:
-            self.core_attention = self._checkpointed_attention_forward
-        elif args.use_flash_attn:
-            assert self.z_size and self.h_size <= 128
-            self.core_attention = FlashAttention.apply
-        else:
-            self.core_attention = CoreAttention(attn_mask_type)
+        self.checkpoint_core_attention = (
+            settings.training.recompute_granularity == "selective"
+        )
 
         self.alpha = torch.nn.Parameter(
-            torch.Tensor(args.hidden_size, args.mega_ema_size, 1)
+            torch.Tensor(self.hidden_size, self.ema_size, 1)
         )
-        self.beta = torch.nn.Parameter(
-            torch.Tensor(args.hidden_size, args.mega_ema_size, 1)
-        )
+        self.beta = torch.nn.Parameter(torch.Tensor(self.hidden_size, self.ema_size, 1))
         self.delta = torch.nn.Parameter(
-            torch.Tensor(args.hidden_size, args.mega_ema_size, 1)
+            torch.Tensor(self.hidden_size, self.ema_size, 1)
         )
-        self.gamma = torch.nn.Parameter(
-            torch.Tensor(args.hidden_size, args.mega_ema_size)
-        )
-        self.zeta = torch.nn.Parameter(torch.Tensor(args.hidden_size))
+        self.gamma = torch.nn.Parameter(torch.Tensor(self.hidden_size, self.ema_size))
+        self.zeta = torch.nn.Parameter(torch.Tensor(self.hidden_size))
 
-        self.kappa = torch.nn.Parameter(torch.Tensor(2, args.mega_z_size))
-        self.sigma = torch.nn.Parameter(torch.Tensor(2, args.mega_z_size))
+        self.kappa = torch.nn.Parameter(torch.Tensor(2, self.z_size))
+        self.sigma = torch.nn.Parameter(torch.Tensor(2, self.z_size))
 
     def _checkpointed_attention_forward(
         self,
         query: torch.Tensor,
         key: torch.Tensor,
         value: torch.Tensor,
-        attention_mask: torch.Tensor,
-    ) -> torch.tensor:
+        attention_mask: Optional[torch.Tensor],
+    ) -> torch.Tensor:
+        """Forward method with activation checkpointing."""
+
         def custom_forward(*inputs):
             query = inputs[0]
             key = inputs[1]
             value = inputs[2]
             attention_mask = inputs[3]
-            output_ = self.core_attention(query, key, value, attention_mask)
+
+            if self.sequence_parallel:
+                rng_context = mpu.get_cuda_rng_tracker().fork()
+            else:
+                rng_context = nullcontext()
+
+            with rng_context:
+                output_ = F.scaled_dot_product_attention(
+                    query,
+                    key,
+                    value,
+                    attention_mask,
+                    is_casual=self.casual,
+                    dropout_p=self.dropout,
+                )
+
             return output_
 
         hidden_states = mpu.checkpoint(
@@ -753,12 +673,12 @@ class MEGA(MegatronModule):
 
     def _allocate_memory(
         self, inference_max_sequence_len: int, batch_size: int
-    ) -> torch.tensor:
+    ) -> torch.Tensor:
         return torch.empty(
             inference_max_sequence_len,
             batch_size,
             1,
-            args.hidden_size,
+            self.hidden_size,
             dtype=self.params_dtype,
             device=get_accelerator().current_device(),
         )
@@ -781,9 +701,7 @@ class MEGA(MegatronModule):
         vander = torch.exp(vander * torch.log(q)) * p * self.beta
         kernel = einsum(vander, self.gamma * self.ema_scale, "d n l, d n -> d l")
 
-        k_f, x_f = [
-            torch.fft.rfft(x.float(), n=2 * seq_len) for x in [kernel, hidden_states]
-        ]
+        k_f, x_f = [torch.fft.rfft(x, n=2 * seq_len) for x in [kernel, hidden_states]]
         output = torch.fft.irfft(k_f * x_f, n=2 * seq_len)[..., 0:seq_len].type_as(
             hidden_states
         )
@@ -794,7 +712,7 @@ class MEGA(MegatronModule):
     def forward(
         self,
         hidden_states: torch.Tensor,
-        attention_mask: torch.Tensor = None,
+        attention_mask: Optional[torch.Tensor],
         padding_mask: Optional[torch.Tensor] = None,
         inference_params: Optional[Callable] = None,
     ):
@@ -839,15 +757,14 @@ class MEGA(MegatronModule):
         )
         mu = torch.sigmoid(mu)
         z, r = unpack(F.silu(zr), [[self.z_size], [self.h_size]], "s b *")
-        query, key = rearrange(z, "s b 1 h -> s b h")
+        z = rearrange(z, "s b h -> s b 1 h") * self.kappa + self.sigma
+        query, key = unpack(z, [[], []], "s b * h")
 
         key, _ = pack([key, self.key], "* b h")
         value, _ = pack([value, self.value], "* b h")
         query, key = self.xpos(query, key, value)
 
-        query, key, value = [
-            rearrange(x, "s b h -> s b 1 h") for x in [query, key, value]
-        ]
+        query, key, value = rearrange([query, key, value], "s b h -> s b 1 h")
         query *= self.z_size**-0.5
 
         # Adjust key and value for inference
@@ -868,26 +785,25 @@ class MEGA(MegatronModule):
             value = inference_value_memory[:sequence_end, batch_start:batch_end, ...]
 
         # Core attention computation
-        if self.use_flash_attn:
-            query, key, value = [
-                rearrange(x, "s b 1 h -> b s 1 h") for x in [query, key, value]
-            ]
-            if self.sequence_parallel:
-                rng_context = mpu.get_cuda_rng_tracker().fork()
+        if self.sequence_parallel:
+            rng_context = mpu.get_cuda_rng_tracker().fork()
+        else:
+            rng_context = nullcontext()
+
+        with rng_context:
+            if self.checkpoint_core_attention:
+                h = self._checkpointed_attention_forward(
+                    query, key, value, attention_mask
+                )
             else:
-                rng_context = nullcontext()
-            with rng_context:
-                h = self.core_attention(
+                h = F.scaled_dot_product_attention(
                     query,
                     key,
                     value,
-                    dropout=self.attention_dropout,
-                    casual=self.attn_mask_type == AttnMaskType.causal,
-                    sequence_parallel=self.sequence_parallel,
+                    attention_mask,
+                    is_casual=self.is_casual,
+                    dropout_p=self.attention_dropout,
                 )
-            h = rearrange(x, "b s 1 h -> s b h")
-        else:
-            h = self.core_attention(query, key, value, attention_mask)
 
         h = F.silu(hx + self.h_proj(h * r))
         output = mu * (h - residual) + residual
@@ -909,39 +825,33 @@ class MemorizingMEGA(MEGA):
     core attention computation twice.
     """
 
-    def __init__(
-        self,
-        init_method: torch.nn.init,
-        output_layer_init_method: torch.nn.init,
-        layer_number: int,
-        attn_type: Enum = AttnType.memory,
-        attn_mask_type: Enum = AttnMaskType.padding,
-    ):
-        super(MemorizingMEGA, self).__init__()
+    def __init__(self):
         args = get_args()
+
+        self.size = settings.hidden_size // 256
+        self.topk = settings.mega.memory.topk
+        self.num_probes = settings.mega.memory.num_probes
+        self.num_neighbors = settings.mega.memory.num_neighbors
+        self.num_clusters = settings.mega.memory.num_clusters
+        self.max_memories = settings.hidden_size * 64
+        self.memory_bias = torch.nn.Parameter(torch.ones(1, 1, self.h_size))
 
         # based on faiss docs, flat IVF + HSNW has the best performance curves
         # while still supporting potentially very large (>1M) indexes
-        quantizer = faiss.IndexHNSWFlat(
-            args.mega_memory_size, args.mega_memory_num_neighbors
-        )
+        quantizer = faiss.IndexHNSWFlat(self.size, self.num_neighbors)
         index = faiss.IndexIVFFlat(
             quantizer,
-            args.mega_memory_size,
-            args.mega_memory_num_clusters,
+            self.size,
+            self.num_clusters,
             faiss.METRIC_INNER_PRODUCT,
         )
         refinement_index = faiss.IndexRefineFlat(index)
         self.index = faiss.index_cpu_to_all_gpus(refinement_index)
-        self.topk = args.mega_memory_topk
-        self.num_probes = args.mega_memory_topk or args.mega_memory_num_probes
-        self.max_memories = args.mega_memory_max_size or args.hidden_size**2
-        self.memory_bias = torch.nn.Parameter(torch.ones(1, 1, self.h_size))
 
     def forward(
         self,
         hidden_states: torch.Tensor,
-        attention_mask: torch.Tensor = None,
+        attention_mask: Optional[torch.Tensor] = None,
         padding_mask: Optional[torch.Tensor] = None,
         inference_params: Optional[Callable] = None,
     ):
@@ -986,26 +896,26 @@ class MemorizingMEGA(MEGA):
         )
         mu = torch.sigmoid(mu)
         z, r = unpack(F.silu(zr), [[self.z_size], [self.h_size]], "s b *")
-        query, key = rearrange(z, "s b 1 h -> s b h")
+        z = rearrange(z, "s b h -> s b 1 h") * self.kappa + self.sigma
+        query, key = unpack(z, [[], []], "s b * h")
 
         query, key, value = [faiss.normalize_L2(x) for x in [query, key, value]]
-        # add kv to memory before persistent memory concat and relpos
+        # add key-value pair to memory before persistent memory concat and relpos embed
         self.index.add(key, value)
         mem_key, mem_value = self.index.search(query, self.topk)
         if self.index.ntotal > self.max_memories:
-            removed = torch.arange(self.index.ntotal - self.max_memories)
-            self.index.remove_ids(removed)
+            removed_ids = torch.arange(self.index.ntotal - self.max_memories)
+            self.index.remove_ids(removed_ids)
 
         key, _ = pack([key, self.key], "* b h")
         value, _ = pack([value, self.value], "* b h")
         query, key = self.xpos(query, key, value)
         _, mem_key = self.xpos(query, mem_key, mem_value)
 
-        query, key, value, mem_key, mem_value = [
-            rearrange(x, "s b h -> s b 1 h")
-            for x in [query, key, value, mem_key, mem_value]
-        ]
-        query *= self.z_size**-0.5
+        query, key, value, mem_key, mem_value = rearrange(
+            [query, key, value, mem_key, mem_value], "s b h -> s b 1 h"
+        )
+        query *= torch.pow(self.z_size, -0.5)
 
         # Adjust key and value for inference
         if inference_params:
@@ -1025,36 +935,36 @@ class MemorizingMEGA(MEGA):
             value = inference_value_memory[:sequence_end, batch_start:batch_end, ...]
 
         # Core attention computation
-        if self.use_flash_attn:
-            query, key, value, mem_key, mem_value = [
-                rearrange(x, "s b 1 h -> b s 1 h") for x in [query, key, value]
-            ]
-            if self.sequence_parallel:
-                rng_context = mpu.get_cuda_rng_tracker().fork()
+        if self.sequence_parallel:
+            rng_context = mpu.get_cuda_rng_tracker().fork()
+        else:
+            rng_context = nullcontext()
+
+        with rng_context:
+            if self.checkpoint_core_attention:
+                h = self._checkpointed_attention_forward(
+                    query, key, value, attention_mask
+                )
+                h_mem = self._checkpointed_attention_forward(
+                    query, mem_key, mem_value, attention_mask
+                )
             else:
-                rng_context = nullcontext()
-            with rng_context:
-                h = self.core_attention(
+                h = F.scaled_dot_product_attention(
                     query,
                     key,
                     value,
-                    dropout=self.attention_dropout,
-                    casual=self.attn_mask_type == AttnMaskType.causal,
-                    sequence_parallel=self.sequence_parallel,
+                    attention_mask,
+                    is_casual=self.is_casual,
+                    dropout_p=self.attention_dropout,
                 )
-                h_mem = self.core_attention(
+                h_mem = F.scaled_dot_product_attention(
                     query,
                     mem_key,
                     mem_value,
-                    dropout=self.attention_dropout,
-                    casual=self.attn_mask_type == AttnMaskType.causal,
-                    sequence_parallel=self.sequence_parallel,
+                    attention_mask,
+                    is_casual=self.is_casual,
+                    dropout_p=self.attention_dropout,
                 )
-
-            h, h_mem = [rearrange(x, "b s 1 h -> s b h") for x in [h, h_mem]]
-        else:
-            h = self.core_attention(query, key, value, attention_mask)
-            h_mem = self.core_attention(query, mem_key, mem_value, attention_mask)
 
         memory_gate = torch.sigmoid(self.memory_bias)
         h = h * memory_gate + h_mem * (1 - memory_gate)
@@ -1067,79 +977,73 @@ class MemorizingMEGA(MEGA):
         return output
 
 
-class SwitchAttention(MegatronModule):
+class MixtureOfAttentionExperts(MegatronModule):
     """Routes input to one of N Attention 'experts'
     Inspired by Mixture-of-Attention-Heads:
     https://arxiv.org/abs/2210.05144v1 (Zhang et al., 2022)
 
     Since MEGA uses single-head attention, instead of parameterizing
     MoA as a mixture of attention heads as in the paper we instead
-    extend SwitchMLP and parameterize each 'expert' as an entire
+    extend MoE and parameterize each 'expert' as an entire
     attention module. Doesn't currently support cross-attention.
     """
 
     def __init__(
         self,
-        init_method: torch.nn.init,
-        output_layer_init_method: torch.nn.init,
+        init_method: Callable,
+        output_layer_init_method: Callable,
         layer_number: int,
         attn_type: Enum = AttnType.self_attn,
         attn_mask_type: Enum = AttnMaskType.padding,
     ):
-        super(SwitchAttention, self).__init__()
+        super().__init__()
         args = get_args()
+
+        self.hidden_size = settings.hidden_size
 
         self.layer_number = max(1, layer_number)
         self.attn_type = attn_type
         self.attn_mask_type = attn_mask_type
+        self.num_attn_experts = settings.megatron.num_attn_experts
 
         self.xmoe = args.xmoe
         self.expert_choice = args.expert_choice
 
         if self.xmoe:
             self.wg_reduction = mpu.ColumnParallelLinear(
-                args.hidden_size,
-                args.num_experts / 2,
+                self.hidden_size,
+                self.num_attn_experts // 2,
                 bias=False,
                 gather_output=False,
                 init_method=init_method,
                 async_tensor_model_parallel_allreduce=args.async_tensor_model_parallel_allreduce,
-                **_args_to_kwargs()
+                **_args_to_kwargs(),
             )
             self.wg = torch.nn.Parameter(
-                torch.empty(args.num_experts, args.num_experts / 2)
+                torch.empty(self.num_attn_experts, self.num_attn_experts // 2)
             )
             torch.nn.init.orthogonal_(self.wg, gain=0.32)
         else:
             self.wg_reduction = mpu.ColumnParallelLinear(
-                args.hidden_size,
-                args.num_experts,
+                self.hidden_size,
+                self.num_attn_experts,
                 bias=False,
                 gather_output=False,
                 init_method=init_method,
                 async_tensor_model_parallel_allreduce=args.async_tensor_model_parallel_allreduce,
-                **_args_to_kwargs()
+                **_args_to_kwargs(),
             )
 
-        assert self.attn_type != AttnType.cross_attn
-        if self.attn_type == AttnType.self_attn:
-            attn_expert = ParallelAttention(
-                init_method,
-                output_layer_init_method,
-                self.layer_number,
-                self.attn_type,
-                self.attn_mask_type,
-            )
-        elif self.attn_type == AttnType.mega:
+        assert self.attn_type != AttnType.cross_attn or AttnType.memory
+        if self.attn_type == AttnType.mega:
             attn_expert = MEGA(
                 init_method,
                 output_layer_init_method,
                 self.layer_number,
-                self.attn_type,
                 self.attn_mask_type,
             )
-        elif self.attn_type == AttnType.memory:
-            attn_expert = MemorizingMEGA(
+        else:
+            attn_expert = ParallelAttention(
                 init_method,
                 output_layer_init_method,
                 self.layer_number,
@@ -1148,20 +1052,20 @@ class SwitchAttention(MegatronModule):
             )
 
         self.experts = torch.nn.ModuleList()
-        for i in range(args.num_attn_experts):
+        for i in range(self.num_attn_experts):
             self.experts.append(attn_expert)
         for p in self.experts.parameters():
             p.expert = True
-            p.data *= 1 / math.sqrt(args.num_attn_experts)
+            p.data *= 1 / math.sqrt(self.num_attn_experts)
 
     def forward(
         self,
         hidden_states: torch.Tensor,
-        attention_mask: torch.tensor,
+        attention_mask: torch.Tensor,
         inference_params: Optional[Callable] = None,
     ) -> torch.Tensor:
-        seq_len, batch_size, hidden_size = hidden_states.shape
-        capacity = seq_len * batch_size * 2 / len(self.experts)
+        seq_len, batch_size, _ = hidden_states.shape
+        capacity = seq_len * batch_size * 2 // len(self.experts)
 
         if self.xmoe:
             # Reduce hidden states to same size as expert embeddings
@@ -1187,6 +1091,7 @@ class SwitchAttention(MegatronModule):
 
             expert_input = hidden_states * permute_matrix
 
+            expert_output = torch.empty_like(expert_input)
             for idx, expert in enumerate(self.experts):
                 expert_output = expert(
                     expert_input,
@@ -1195,11 +1100,9 @@ class SwitchAttention(MegatronModule):
                 )
 
             output = einsum(
-                permute_matrix, gating_matrix, x, "i j l, i j, i j h -> l h"
+                permute_matrix, gating_matrix, expert_output, "i j l, i j, i j h -> l h"
             )
-            output = rearrange(
-                x, "(s b) h -> s b h", s=seq_len, b=batch_size, h=hidden_size
-            )
+            output = rearrange(output, "(s b) h -> s b h", s=seq_len, b=batch_size)
         else:
             # Switch Transformer top-1 routing
             max_prob, max_idx = torch.max(scores, dim=2)
@@ -1207,6 +1110,7 @@ class SwitchAttention(MegatronModule):
             max_idx = rearrange(max_idx, "s b -> (s b)")
             hidden_states = rearrange(hidden_states, "s b h -> (s b) h")
 
+            output = torch.empty_like(hidden_states)
             for idx, expert in enumerate(self.experts):
                 local_idx = (max_idx == idx).nonzero()
                 expert_output = expert(
@@ -1214,12 +1118,11 @@ class SwitchAttention(MegatronModule):
                     attention_mask,
                     inference_params=inference_params,
                 )
+                output = torch.empty_like(expert_output)
                 output[local_idx, :] = expert_output
 
             output *= max_prob
-            output = rearrange(
-                output, "(s b) h -> s b h", s=seq_len, b=batch_size, h=hidden_size
-            )
+            output = rearrange(output, "(s b) h -> s b h", s=seq_len, b=batch_size)
 
         return output
 
@@ -1230,20 +1133,21 @@ class xPos(MegatronModule):
 
     Takes query, key, and value layers from the attention layer
     of size [s, b, h], and returns a query and key
-    of the same size with added rotational position bias.
+    of the same size with added rotation-based positional bias.
     """
 
     def __init__(self):
         super().__init__()
         args = get_args()
 
-        self.xpos_size = args.xpos_size
+        self.xpos_size = settings.hidden_size // 128
+        self.xpos_gamma = settings.xpos.gamma
         theta = 1.0 / (
-            10000 ** (torch.arange(0, args.xpos_size, 2).float() / args.xpos_size)
+            10000 ** (torch.arange(0, self.xpos_size, 2).float() / self.xpos_size)
         )
         zeta = (
-            torch.arange(0, args.xpos_size, 2) / (args.xpos_size / 2) + args.xpos_gamma
-        ) / (1 + args.xpos_gamma)
+            torch.arange(0, self.xpos_size, 2) / (self.xpos_size / 2) + self.xpos_gamma
+        ) / (1 + self.xpos_gamma)
         self.register_buffer("theta", theta)
         self.register_buffer("zeta", zeta)
 
@@ -1251,7 +1155,7 @@ class xPos(MegatronModule):
         self.sin_cache = None
         self.cos_cache = None
 
-    def rotate(x: torch.Tensor) -> torch.Tensor:
+    def rotate(self, x: torch.Tensor) -> torch.Tensor:
         x1 = x[..., : x.shape[-1] // 2]
         x2 = x[..., x.shape[-1] // 2 :]
         x_rot, _ = pack([x1, x2], "*")
@@ -1262,7 +1166,7 @@ class xPos(MegatronModule):
         self,
         query: torch.Tensor,
         key: torch.Tensor,
-        value: torch.tensor,
+        value: torch.Tensor,
         offset: int = 0,
     ) -> torch.Tensor:
         seq_len = value.shape[0]
@@ -1301,11 +1205,11 @@ class NGrammer(MegatronModule):
         super().__init__()
         args = get_args()
 
-        self.ngrammer_size = args.hidden_size * args.ngrammer_size
+        self.ngrammer_size = args.hidden_size * 64
         self.vocab_size = args.hidden_size * 256
-        self.num_clusters = args.ngrammer_num_clusters
+        self.num_clusters = args.hidden_size // 128
         self.num_heads = args.ngrammer_num_heads
-        self.dim_per_head = self.ngrammer_size / args.ngrammer_num_heads
+        self.dim_per_head = self.ngrammer_size // args.ngrammer_num_heads
         self.decay = args.ngrammer_decay
         self.eps = args.ngrammer_epsilon
         self.concat = args.ngrammer_concat
@@ -1355,20 +1259,21 @@ class NGrammer(MegatronModule):
         hidden_states_sq = rearrange(
             (torch.square(hidden_states)).sum(dim=-1), "s b nh hd -> s b nh 1"
         )
-        means_sq = rearrange((torch.square(means)).sum(dim=-1), "nh k hd -> 1 1 nh k")
-        dists = einsum(x, means, "s b nh hd, nh k hd -> s b nh k") * -2
+        means_sq = rearrange(
+            (torch.square(self.means)).sum(dim=-1), "nh k hd -> 1 1 nh k"
+        )
+        dists = einsum(hidden_states, self.means, "s b nh hd, nh k hd -> s b nh k")
         dists += hidden_states_sq + means_sq
+        dists *= -2
 
         cluster_ids = dists.argmin(dim=-1)
 
         if self.training:
-            one_hot = F.one_hot(cluster_ids, self.num_clusters)
+            one_hot = F.one_hot(cluster_ids, self.num_clusters).float()
             per_cluster = one_hot.sum(dim=(0, 1))
-            sum = einsum(
-                one_hot.float(), hidden_states, "s b nh k, s b nh hd -> nh k hd"
-            )
-            new_means = sum / (eps / rearrange(per_cluster, "... -> ... 1"))
-            new_means = 1.0 - self.decay * new_means + self.decay * means
+            means_sum = einsum(one_hot, hidden_states, "s b nh k, s b nh hd -> nh k hd")
+            new_means = means_sum / (self.eps / rearrange(per_cluster, "... -> ... 1"))
+            new_means = 1.0 - self.decay * new_means + self.decay * self.means
             self.means.data.copy_(new_means)
 
         if cluster_ids.ndim == 2:
@@ -1388,7 +1293,7 @@ class NGrammer(MegatronModule):
         head_range = 1 + rearrange(
             torch.arange(self.num_heads, device=hidden_states.device), "nh -> 1 1 nh"
         )
-        primes = rearrange(primes, "nh -> 1 1 nh")
+        primes = rearrange(self.primes, "nh -> 1 1 nh")
 
         ngram_ids = ((ngram_ids * head_range * 2) % primes) % self.vocab_size
 
@@ -1407,18 +1312,18 @@ class NGrammer(MegatronModule):
         )
 
         if mask is not None:
-            output * rearrange(mask, "s b -> s b 1").float()
+            output *= rearrange(mask, "s b -> s b 1").float()
 
         return output
 
 
 class ProductKeyMemory(MegatronModule):
-    def __init__(self, init_method: torch.nn.init):
+    def __init__(self, init_method: Callable):
         super().__init__()
         args = get_args()
 
-        self.key_size = args.pkm_key_size
-        self.key_half = args.pkm_key_size // 2
+        self.key_size = args.hidden_size // 16
+        self.key_half = self.key_size // 2
         self.num_keys = args.hidden_size
         self.pkm_size = args.hidden_size**2
         self.num_heads = args.pkm_num_heads
@@ -1442,7 +1347,7 @@ class ProductKeyMemory(MegatronModule):
                 gather_output=False,
                 init_method=init_method,
                 async_tensor_model_parallel_allreduce=args.async_tensor_model_parallel_allreduce,
-                **_args_to_kwargs()
+                **_args_to_kwargs(),
             ),
             torch.nn.BatchNorm1d(args.pkm_num_heads * args.pkm_key_size),
         )
@@ -1469,10 +1374,9 @@ class ProductKeyMemory(MegatronModule):
         indices = indices_prod.gather(-1, indices)
 
         scores = F.softmax(scores.float(), dim=-1)
-        scores, indices = [
-            rearrange(x, "(s b nh) k -> (s b) (nh k)", nh=self.num_heads)
-            for x in [scores, indices]
-        ]
+        scores, indices = rearrange(
+            [scores, indices], "(s b nh) k -> (s b) (nh k)", nh=self.num_heads
+        )
 
         output = self.value_embed(indices, per_sample_weights=scores)
         output = F.dropout(output, self.value_dropout, self.training)
@@ -1496,7 +1400,7 @@ class DynamicPooling(MegatronModule):
         super().__init__()
         args = get_args()
 
-        self.null = torch.nn.Parameter(torch.Tensor(1, 1, args.hidden_size).zero_())
+        self.null = torch.nn.Parameter(torch.zeros(1, 1, args.hidden_size))
         torch.nn.init.normal_(self.null)
 
     def forward(
@@ -1527,7 +1431,7 @@ class DynamicPooling(MegatronModule):
             output = einsum(hidden_states, bar, "sl b h, b s sl -> s b h")
         else:
             output = einsum(hidden_states, bar, "s b h, b s sl -> sl b h")
-            output, _ = pack([null.repeat(1, bar, 1), output], "* b h")
+            output, _ = pack([self.null.repeat(1, bar, 1), output], "* b h")
 
         return output
 
@@ -1552,14 +1456,7 @@ class NoopTransformerLayer(MegatronModule):
         super().__init__()
         self.layer_number = layer_number
 
-    def forward(
-        self,
-        hidden_states: torch.Tensor,
-        attention_mask: Optional[torch.Tensor] = None,
-        encoder_output: Optional[torch.Tensor] = None,
-        enc_dec_attn_mask: Optional[torch.Tensor] = None,
-        inference_params: Optional[Callable] = None,
-    ) -> torch.Tensor:
+    def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
         return hidden_states.clone()
 
 
@@ -1583,14 +1480,12 @@ def _get_num_layers(
             num_ranks_in_decoder = (
                 args.transformer_pipeline_model_parallel_size - num_ranks_in_encoder
             )
-            assert args.encoder_num_layers % num_ranks_in_encoder == 0, (
-                "encoder_num_layers (%d) must be divisible by number of ranks given to encoder (%d)"
-                % (args.encoder_num_layers, num_ranks_in_encoder)
-            )
-            assert args.decoder_num_layers % num_ranks_in_decoder == 0, (
-                "decoder_num_layers (%d) must be divisible by number of ranks given to decoder (%d)"
-                % (args.decoder_num_layers, num_ranks_in_decoder)
-            )
+            assert (
+                args.encoder_num_layers % num_ranks_in_encoder == 0
+            ), f"encoder_num_layers ({args.encoder_num_layers}) must be divisible by number of ranks given to encoder ({num_ranks_in_encoder})"
+            assert (
+                args.decoder_num_layers % num_ranks_in_decoder == 0
+            ), f"decoder_num_layers ({args.decoder_num_layers}) must be divisible by number of ranks given to decoder ({num_ranks_in_decoder}"
             if mpu.is_pipeline_stage_before_split():
                 num_layers = (
                     0
@@ -1627,28 +1522,34 @@ def _get_num_layers(
 def _build_layers(
     args,
     layer_numbers: List,
-    init_method: torch.nn.init,
-    output_layer_init_method: torch.nn.init,
+    init_method: Callable,
+    output_layer_init_method: Callable,
     model_type: Enum = ModelType.encoder_or_decoder,
     attn_type: Enum = AttnType.self_attn,
     attn_mask_type: Enum = AttnMaskType.padding,
-    drop_path_rates: List = 0.0,
+    drop_path_rates: List = [0.0],
 ):
-    def get_MLP(layer_number: int):
+    def get_mlp(layer_number: int):
         if args.num_experts is not None and layer_number % 2 == 0:
-            return SwitchMLP(init_method, output_layer_init_method)
-        elif (
-            layer_number / layer_numbers[-1:] * 100 == 75
+            return MixtureOfExperts(init_method, output_layer_init_method)
+        if (
+            round(layer_number / layer_numbers[-1:].item() * 100) == 75
             and args.use_product_key_memory
         ):
             return ProductKeyMemory(init_method)
-        else:
-            return ParallelMLP(init_method, output_layer_init_method)
+
+        return ParallelMLP(init_method, output_layer_init_method)
 
     def get_attention(layer_number: int, attn_layers: List):
         if args.num_attn_experts is not None and layer_number % 2 == 0:
-            return SwitchAttention(init_method, output_layer_init_method, layer_number)
-        elif attn_type == AttnType.self_attn or AttnType.cross_attn:
+            return MixtureOfAttentionExperts(
+                init_method,
+                output_layer_init_method,
+                layer_number,
+                attn_type=attn_type,
+                attn_mask_type=attn_mask_type,
+            )
+        if attn_type == AttnType.self_attn or AttnType.cross_attn:
             return ParallelAttention(
                 init_method,
                 output_layer_init_method,
@@ -1656,20 +1557,19 @@ def _build_layers(
                 attn_type=attn_type,
                 attn_mask_type=attn_mask_type,
             )
-        elif attn_type == AttnType.mega or (
+        if attn_type == AttnType.mega or (
             attn_type == AttnType.memory and layer_number != attn_layers[-1:]
         ):
             return MEGA(
                 init_method,
                 output_layer_init_method,
                 layer_number,
-                attn_type=attn_type,
                 attn_mask_type=attn_mask_type,
             )
-        elif attn_type == AttnType.memory and (
+        if attn_type == AttnType.memory and (
             layer_number == attn_layers[-1:]
             or (
-                layer_number / layer_numbers[-1:] * 100 == 75
+                round(layer_number / layer_numbers[-1:].item() * 100) == 75
                 and not args.pay_less_attention
             )
         ):
@@ -1677,7 +1577,6 @@ def _build_layers(
                 init_method,
                 output_layer_init_method,
                 layer_number,
-                attn_type=attn_type,
                 attn_mask_type=attn_mask_type,
             )
 
@@ -1692,7 +1591,7 @@ def _build_layers(
                 attention_dropout=args.attention_dropout,
                 init_method=init_method,
                 output_layer_init_method=output_layer_init_method,
-                layer_number=layer_number,
+                layer_number=i,
                 kv_channels=args.kv_channels,
                 self_attn_mask_type=attn_mask_type,
                 tp_group=mpu.get_tensor_model_parallel_group(),
@@ -1715,8 +1614,8 @@ def _build_layers(
         ]
 
     if args.pay_less_attention:
-        num_attn_layers = round(self.num_layers / args.par_coefficient)
-        attn_dist = round(2 * self.num_layers / 3)
+        num_attn_layers = round(len(layer_numbers) / 5)
+        attn_dist = round(2 * len(layer_numbers) / 3)
         attn_layers = torch.linspace(1, attn_dist, num_attn_layers, dtype=torch.int)
     else:
         attn_layers = layer_numbers
@@ -1758,8 +1657,8 @@ class ParallelTransformer(MegatronModule):
 
     def __init__(
         self,
-        init_method: torch.nn.init,
-        output_layer_init_method: torch.nn.init,
+        init_method: Callable,
+        output_layer_init_method: Callable,
         model_type: Enum = ModelType.encoder_or_decoder,
         layer_type: Enum = LayerType.encoder,
         attn_type: Enum = AttnType.self_attn,
@@ -1769,10 +1668,10 @@ class ParallelTransformer(MegatronModule):
         post_process: bool = True,
         drop_path_rate: float = 0.0,
     ):
-        super(ParallelTransformer, self).__init__()
+        super().__init__()
         args = get_args()
 
-        self.model_type = model_type or args.model_type
+        self.model_type = model_type
         self.layer_type = layer_type
         self.bf16 = args.bf16
         self.fp32_residual_connection = args.fp32_residual_connection
@@ -1936,17 +1835,17 @@ class ParallelTransformer(MegatronModule):
                     *args, is_first_microbatch=is_first_microbatch, **kwargs
                 )
 
-            if not is_transformer_engine:
-                return custom_forward
-            else:
+            if self.transformer_impl == "transformer_engine":
                 return custom_forward_transformer_engine
+
+            return custom_forward
 
         if self.recompute_method == "uniform":
             # Uniformly divide the total number of Transformer layers and checkpoint
             # the input activation of each divided chunk.
             # A method to further reduce memory usage reducing checkpoints.
-            l = 0
-            while l < self.num_layers:
+            layers = 0
+            while layers < self.num_layers:
                 if self.transformer_impl == "transformer_engine":
                     hidden_states = transformer_engine.pytorch.distributed.checkpoint(
                         custom(
@@ -1970,14 +1869,14 @@ class ParallelTransformer(MegatronModule):
                         enc_dec_attn_mask,
                     )
 
-                l += self.recompute_num_layers
+                layers += self.recompute_num_layers
 
         elif self.recompute_method == "block":
             # Checkpoint the input activation of only a set number of individual
             # Transformer layers and skip the rest.
             # A method fully use the device memory removing redundant re-computation.
-            for l in range(self.num_layers):
-                if l < self.recompute_num_layers:
+            for layers in range(self.num_layers):
+                if layers < self.recompute_num_layers:
                     if self.transformer_impl == "transformer_engine":
                         hidden_states = (
                             transformer_engine.pytorch.distributed.checkpoint(
@@ -2029,7 +1928,7 @@ class ParallelTransformer(MegatronModule):
         used by internal code to bypass the input provided by the
         forward_step_func"""
 
-    self.input_tensor = input
+        self.input_tensor = input
 
     def forward(
         self,
@@ -2156,7 +2055,6 @@ class ParallelTransformer(MegatronModule):
                             attention_mask=attention_mask,
                             encoder_output=encoder_output,
                             enc_dec_attn_mask=enc_dec_attn_mask,
-                            residual_attention=residual_attention,
                             inference_params=inference_params,
                         )
 

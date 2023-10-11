@@ -2,13 +2,14 @@
 
 """Pretrain Monogatari"""
 
+import math
 from functools import partial
 from typing import Iterable
 
 import deepspeed
 import torch
 from deepspeed.runtime.utils import see_memory_usage
-from einops import pack, unpack
+from einops import pack
 
 from megatron import get_args, get_timers, get_tokenizer, print_rank_0
 from megatron.core import mpu
@@ -25,7 +26,7 @@ def model_provider(pre_process=True, post_process=True):
     """Build the model."""
 
     print_rank_0(">Building Monogatari...")
-    see_memory_usage(f"Memory usage before building model:", force=True)
+    see_memory_usage("Memory usage before building model:", force=True)
     with deepspeed.zero.Init(
         data_parallel_group=mpu.get_data_parallel_group(),
         remote_device=None if args.remote_device == "none" else args.remote_device,
@@ -44,7 +45,7 @@ def model_provider(pre_process=True, post_process=True):
             )
         finally:
             print_rank_0(">Finished building Monogatari.")
-            see_memory_usage(f"Memory usage after building model:", force=True)
+            see_memory_usage("Memory usage after building model:", force=True)
 
         model._megatron_batch_fn = get_batch
 
@@ -127,7 +128,7 @@ def loss_func(loss_mask, *output_tensor):
         [lm_loss, aux_loss, ct_loss, taco_loss]
     )
 
-    return loss, {
+    return lm_loss, {
         "lm loss": averaged_loss[0],
         "aux loss": averaged_loss[1],
         "contrastive token loss": averaged_loss[2],
@@ -242,38 +243,3 @@ if __name__ == "__main__":
         args_defaults={"tokenizer_type": "YTTMTokenizer"},
         data_post_process=data_post_process,
     )
-
-"""sweep_config = {
-    'method': 'grid'
-    }
-
-parameters_dict = {
-    'optimizer': {
-        'values': ['adam', 'adagrad']
-        },
-    'learning_rate': {
-        'distribution': 'uniform',
-        'min': 0,
-        'max': 0.1
-      },
-    'activation_func': {
-        'values': [openai_gelu, square, squish, squish2]
-        },
-    'sub_ln': {
-        'values': [True, False]
-        },
-    'xmos': {
-          'values': [True, False]
-        },
-    'mega_prenorm': {
-          'values': [True, False]
-        },
-    'mega_dconv': {
-          'values': [True, False]
-        },
-    'monogatari_dynamic_pooling': {
-          'values': [True, False]
-        },
-    }
-
-sweep_config['parameters'] = parameters_dict"""

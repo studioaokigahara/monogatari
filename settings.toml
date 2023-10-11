@@ -1,0 +1,146 @@
+activation_func = "relu"
+num_layers = 12
+num_encoder_layers = 6
+num_decoder_layers = 6
+hidden_size = 8192
+feedforward_size_multiplier = 4
+num_attention_heads = 16
+num_experts = 64
+num_attn_experts = 32
+
+[distributed]
+backend = "nccl"
+ddp_implementation = "local"
+tensor_parallel_size = 1
+pipeline_parallel_size = 1
+pipeline_parallel_split_rank
+
+[training]
+micro_batch_size = 1
+recompute_activations = false
+recompute_granularity = "selective"
+recompute_method = "uniform"
+distribute_saved_activations = false
+async_tensor_parallel_allreduce_enabled = true
+persistent_layernorm_kernel_enabled = true
+gradient_accumulation_fusion_enabled = true
+sequence_parallel = true
+attention_dropout = 0.1
+hidden_dropout = 0.1
+[training.logging]
+log_param_norms = false
+log_num_zeros_in_gradient = false
+timing_log_level = 0
+level_1_barrier_enabled = false
+timing_log_option = "minmax"
+[training.logging.wnb]
+interval = 1
+log_timers = false
+log_batch_size = false
+log_learning_rate = true
+log_loss_scale = true
+log_validation_ppl = false
+log_memory = false
+log_world_size = false
+
+[optimizer]
+cpu = false
+[optimizer.adam]
+beta = [ 0.9, 0.999 ]
+epsilon = 1e-8
+[optimizer.sgd]
+momentum = 0.9
+[optimizer.izanagi]
+beta = 0.999
+momentum = 0.9
+epsilon = 1e-8
+
+[inference]
+pipelining_threshold = 512
+max_tokens = 8192
+
+[transformer_engine]
+e4m3 = false
+hybrid = false
+margin = 0
+interval = 1
+enabled = false
+amax_history_length = 0
+amax_algorithm = "most_recent"
+
+[deepspeed]
+inference = false
+moe = false
+tutel = false
+[deepspeed.checkpointing]
+enabled = false
+partition_activations = false
+contigious_checkpointing = false
+checkpoint_on_cpu = false
+synchronize = false
+profile_backwards_pass = false
+[deepspeed.memory]
+scatter_embeddings = false
+split_layers = false
+tile_linears = false
+tile_factor = 1
+[deepspeed.zero]
+reduce_scatter = false
+contiguous_gradients = false
+reduce_bucket_size = 0
+allgather_bucket_size = 0
+remote_device = none
+pin_memory_to_cpu = false
+
+[monogatari]
+sub_ln = true
+prenorm = true
+
+[mega]
+ema_size = 32
+z_size = 128
+h_size = 32
+prenorm = false
+dconv = false
+[mega.memory]
+num_persistent_memories = 32
+num_neighbors = 32
+num_clusters = 32
+num_probes = 32
+size = 32
+top-k = 16
+max_size = 256000
+
+[ngrammer]
+enabled = false
+num_clusters = 64
+num_heads = 16
+decay = 1e6
+epsilon = 1e9
+concat = true
+vocab_size = 256000
+
+[xpos]
+size = 64
+gamma = 1e6
+
+[pkm]
+key_size = 512
+num_heads = 16
+top-k = 16
+dropout = 0.1
+knn_size = 128
+
+[loss]
+amos_temperature = 0.07
+[loss.taco]
+window_size = 5
+num_samples = 50
+temperature = 0.07
+weight = 1
+[loss.ct]
+weight = 1
+
+[mixtape]
+gate_size = 64
+dropout = 0.3

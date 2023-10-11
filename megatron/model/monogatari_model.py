@@ -5,10 +5,11 @@
 import torch
 import torch.nn.functional as F
 from ct.ct_loss import ContrastiveTokenLoss
-from einops import einsum, pack, rearrange, reduce, repeat, unpack
+from einops import einsum, pack, rearrange
 
 from megatron import get_args, get_tokenizer
 from megatron.core import mpu
+from megatron.model import LayerNorm
 
 from .enums import AttnMaskType, AttnType
 from .language_model import Embedding, parallel_lm_logits
@@ -69,7 +70,6 @@ def post_auxiliary_model_processing(
     logit_weights,
     fp16_lm_cross_entropy,
 ):
-
     # Output.
     lm_logits = lm_head(lm_output, logit_weights)
 
@@ -140,17 +140,13 @@ def post_language_model_processing(
 
     logits = lm_head(lm_output, logit_weights, parallel_output)
 
-    binary_logits = None
-    if binary_head is not None:
-        binary_logits = binary_head(pooled_output)
-
-    if labels is None:
+    if lm_labels is None:
         return rearrange(logits, "s b h -> b s h")
     else:
-        labels = rearrange(labels, "b s -> s b")
+        labels = rearrange(lm_labels, "b s -> s b")
 
         if fp16_lm_cross_entropy:
-            assert output.dtype == torch.half
+            assert lm_output.dtype == torch.half
             loss = mpu.vocab_parallel_cross_entropy(logits, labels)
         else:
             loss = mpu.vocab_parallel_cross_entropy(logits.float(), labels)
@@ -158,7 +154,7 @@ def post_language_model_processing(
         loss = rearrange(loss, "s b -> b s")
 
         ct = ContrastiveTokenLoss(pad_id=tokenizer.pad)
-        ct_loss = ct(output, labels)
+        ct_loss = ct(lm_output, labels)
         loss += ct_loss * args.ct_loss_weight
 
         aux_loss, taco_loss = post_auxiliary_model_processing(
@@ -174,7 +170,7 @@ def post_language_model_processing(
         return loss, aux_loss, ct_loss, taco_loss
 
 
-class GradReversal(Function):
+class GradReversal(torch.autograd.Function):
     """Gradient backpropagation reversal."""
 
     @staticmethod
@@ -206,7 +202,7 @@ class MaskedLMHead(MegatronModule):
         layernorm_epsilon,
         parallel_output,
     ):
-        super(MaskedLMHead, self).__init__()
+        super().__init__()
         args = get_args()
 
         self.bias = torch.nn.Parameter(torch.zeros(mpu_vocab_size))
@@ -221,31 +217,32 @@ class MaskedLMHead(MegatronModule):
             hidden_size, eps=layernorm_epsilon, sequence_parallel=args.sequence_parallel
         )
 
-        if args.activation_func == gelu:
+        if args.activation_func == "gelu":
             self.activation_func = F.gelu
-        elif args.activation_func == squared_relu:
+        elif args.activation_func == "squared_relu":
             self.activation_func = F.relu
             self.squared_relu = True
-        elif args.activation_func == squish or squish2 or swiglu:
+        elif args.activation_func == "squish":
             self.activation_func = F.silu
-            if args.activation_func == squish:
-                self.squish = True
-                self.squishy = 1.4
-            elif args.activation_func == squish2:
-                self.squish2 = True
-                self.squishy = 1.8
-            elif args.activation_func == swiglu:
-                self.swiglu = True
+            self.squish = True
+            self.squishy = 1.4
+        elif args.activation_func == "squish2":
+            self.activation_func = F.silu
+            self.squish = True
+            self.squishy = 1.8
+        elif args.activation_func == "swiglu":
+            self.activation_func = F.silu
+            self.swiglu = True
 
     def forward(self, hidden_states, word_embeddings_weight):
         hidden_states = self.dense(hidden_states)
 
         if self.squared_relu:
             hidden_states = torch.square(self.activation_func(hidden_states))
-        elif self.squish or self.squish2:
+        elif self.squish:
             hidden_states = torch.pow(self.activation_func(hidden_states), self.squishy)
         elif self.swiglu:
-            hidden_states, gate = hidden_states.chunk(2)
+            hidden_states, gate = torch.chunk(hidden_states, 2)
             hidden_states *= self.activation_func(gate)
         else:
             hidden_states = self.activation_func(hidden_states)
@@ -276,22 +273,44 @@ class MixtapeHead(MegatronModule):
     """
 
     def __init__(self, mpu_vocab_size, init_method, parallel_output):
-        super(MixtapeHead, self).__init()
+        super().__init__()
         args = get_args()
 
         self.bias = torch.nn.Parameter(torch.zeros(mpu_vocab_size))
         mpu.set_tensor_model_parallel_attributes(self.bias, True, 0, 1)
         self.parallel_output = parallel_output
 
+        self.gate_proj = mpu.ColumnParallelLinear(
+            args.hidden_size,
+            args.mixtape_gate_size,
+            bias=False,
+            gather_output=False,
+            init_method=init_method,
+            async_tensor_model_parallel_allreduce=args.async_tensor_model_parallel_allreduce,
+        )
+        self.dense = mpu.RowParallelLinear(
+            args.mixtape_gate_size,
+            args.hidden_size,
+            bias=False,
+            input_is_parallel=True,
+            init_method=output_layer_init_method,
+        )
+
         self.dropout = args.mixtape_dropout
 
-        self.delta = torch.nn.Parameter(mpu_vocab_size, args.hidden_size)
-        self.gamma = torch.nn.Parameter(args.mixtape_gate_size)
-        self.tau = torch.nn.Parameter(args.mixtape_gate_size, args.hidden_size)
-        self.mu = torch.nn.Parameter(args.hidden_size)
-        self.beta = torch.nn.Parameter()
+        self.delta = torch.nn.Parameter(
+            torch.zeros(mpu_vocab_size, args.mixtape_gate_size)
+        )
+        self.gamma = torch.nn.Parameter(torch.zeros(args.mixtape_gate_size))
+        self.tau = torch.nn.Parameter(
+            torch.zeros(args.mixtape_gate_size, args.mixtape_gate_size)
+        )
+        self.mu = torch.nn.Parameter(torch.zeros(args.mixtape_gate_size))
+        self.beta = torch.nn.Parameter(torch.zeros(args.mixtape_gate_size))
 
     def forward(self, hidden_states, word_embeddings_weight):
+        hidden_states = self.gate_proj(hidden_states)
+
         context_embed = einsum("v h, s b h -> s b h", self.delta, hidden_states)
         context_embed = F.dropout(torch.tanh(context_embed), p=self.dropout)
         shared_prior = einsum("h, s b h -> s b h", self.mu, hidden_states)
@@ -303,18 +322,22 @@ class MixtapeHead(MegatronModule):
 
         sigmoid_prob = torch.sigmoid(gate_prior)
 
+        sigmoid_tree = torch.zeros_like(sigmoid_prob)
         sigmoid_tree[0] = sigmoid_prob[0] * sigmoid_prob[1]
         sigmoid_tree[1] = sigmoid_prob[0] * (1 - sigmoid_prob[1])
         sigmoid_tree[2] = (1 - sigmoid_prob[0]) * sigmoid_prob[2]
         sigmoid_tree[3] = (1 - sigmoid_prob[0]) * (1 - sigmoid_prob[2])
 
+        context = context_embed + shared_prior
+        context *= sigmoid_tree
+        context = self.dense(context)
+
         output = parallel_lm_logits(
-            context_embed + shared_prior,
+            context,
             word_embeddings_weight,
             self.parallel_output,
             self.bias,
         )
-        output *= sigmoid_tree
 
         return output
 
@@ -341,7 +364,7 @@ class MonogatariAuxiliaryModel(MegatronModule):
         post_process=True,
         add_binary_head=True,
     ):
-        super(MonogatariAuxiliaryModel, self).__init__()
+        super().__init__()
         args = get_args()
 
         self.hidden_size = args.hidden_size
@@ -390,7 +413,6 @@ class MonogatariAuxiliaryModel(MegatronModule):
         labels=None,
         inference_params=None,
     ):
-
         output = self.encoder(input_ids, attention_mask, inference_params)
 
         if self.post_process:
@@ -462,7 +484,7 @@ class MonogatariLanguageModel(MegatronModule):
         pre_process=True,
         post_process=True,
     ):
-        super(MonogatariLanguageModel, self).__init__()
+        super().__init__()
         args = get_args()
 
         self.embedding = Embedding(
@@ -481,7 +503,7 @@ class MonogatariLanguageModel(MegatronModule):
             output_layer_init_method,
             layer_type=LayerType.decoder,
             attn_type=AttnType.mega,
-            self_attn_mask_type=AttnMaskType.causal,
+            attn_mask_type=AttnMaskType.causal,
             pre_process=pre_process,
             post_process=post_process,
         )
@@ -495,7 +517,6 @@ class MonogatariLanguageModel(MegatronModule):
         labels=None,
         inference_params=None,
     ):
-
         output = self.decoder(input, attention_mask, inference_params)
 
         if self.post_process:
@@ -533,7 +554,7 @@ class MonogatariModel(MegatronModule):
         pre_process=True,
         post_process=True,
     ):
-        super(MonogatariModel, self).__init__()
+        super().__init__()
         args = get_args()
 
         self.fp16_lm_cross_entropy = args.fp16_lm_cross_entropy
@@ -608,7 +629,7 @@ class MonogatariModel(MegatronModule):
         input_ids = input_ids.clone()
         input_ids[masked_ids] = sampled_input
         embedding = self.language_model.embedding.weight
-        token_embeddings = self.language_model.embedding(src_tokens)
+        token_embeddings = self.language_model.embedding(input_ids)
         sampled_embeddings = einsum(sampled_probs, embedding, "b s, b s -> b s")
         token_embeddings[masked_ids] = sampled_embeddings
 
@@ -634,7 +655,7 @@ class MonogatariModel(MegatronModule):
         else:
             return lm_output
 
-    def state_dict_for_save_checkpoint(self, prefix="", keep_vars=False) -> output:
+    def state_dict_for_save_checkpoint(self, prefix="", keep_vars=False):
         """For easy load."""
 
         state_dict_ = {}
