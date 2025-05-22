@@ -70,9 +70,8 @@ export default function CharacterProfile() {
     const character: CharacterRecord =
         characterProfileRoute.useMatch().context.character!;
     const image =
-        character.image ||
-        (character.assets.find((asset) => asset.name === "main")?.blob ??
-            character.assets[0].blob);
+        character.assets.find((asset) => asset.name === "main")?.blob ??
+        character.assets[0].blob;
     const imageURL = useImageURL(image);
     const { setCharacter } = useCharacterContext();
 
