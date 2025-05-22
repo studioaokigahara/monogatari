@@ -99,7 +99,6 @@ export default function CharacterProfile() {
             ...(character.data.alternate_greetings || []),
         ];
 
-        let activeGreeting: string | null = null;
         allGreetings.forEach((greeting, index) => {
             const greetingMessage = {
                 id: `greeting-${index + 1}`,
@@ -109,10 +108,9 @@ export default function CharacterProfile() {
             };
 
             const newVertexID = graph.branchFrom(graph.id, [greetingMessage]);
-            if (index === 0) activeGreeting = newVertexID;
+            if (index === 0) graph.setActiveVertex(newVertexID);
         });
 
-        if (activeGreeting) graph.setActiveVertex(activeGreeting);
         await saveGraph(graph, [character.id]);
         router.navigate({ to: "/chat/$id", params: { id: graph.id } });
     };
