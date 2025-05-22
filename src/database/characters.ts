@@ -25,6 +25,33 @@ export async function addAssets(id: string, newAssets: AssetRecord[]) {
         });
 }
 
+export async function replaceAssetBlob(
+    characterId: string,
+    assetName: string,
+    newBlob: Blob,
+    newExt: string,
+): Promise<number> {
+    return db.characters
+        .where("id")
+        .equals(characterId)
+        .modify((rec) => {
+            rec.assets = rec.assets.map((asset) =>
+                asset.name === assetName
+                    ? { ...asset, blob: newBlob, ext: newExt }
+                    : asset,
+            );
+
+            rec.data.assets = rec.data.assets.map((pointer) =>
+                pointer.name === assetName
+                    ? {
+                          ...pointer,
+                          uri: `embedded://${pointer.name}.${newExt}`,
+                      }
+                    : pointer,
+            );
+        });
+}
+
 export async function replaceImageUrls(
     id: string,
     embeddedURLMap: Map<string, string>,

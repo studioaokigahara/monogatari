@@ -1,22 +1,18 @@
 import Header from "@/components/header";
 import { Button } from "@/components/ui/button";
-import {
-    Card,
-    CardContent,
-    CardFooter,
-    CardHeader,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCharacterContext } from "@/contexts/character-context";
 import { db } from "@/database/database";
 import { PersonaRecord } from "@/database/schema/persona";
+import { useFileDialog } from "@/hooks/use-file-dialog";
 import { useImageURL } from "@/hooks/use-image-url";
 import { nanoid } from "@/lib/utils";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Plus, Save, Upload } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 interface PersonaImageProps {
@@ -58,7 +54,6 @@ export default function PersonaEditor() {
     const personas = useLiveQuery(() => db.personas.toArray(), []);
     const { persona, setPersona } = useCharacterContext();
     const [localPersona, setLocalPersona] = useState<PersonaRecord>(persona!);
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const localImageURL = useImageURL(localPersona?.blob);
 
     const blobs = useMemo(
@@ -66,7 +61,7 @@ export default function PersonaEditor() {
         [personas],
     );
 
-    const personaURLs = useImageURL(blobs);
+    const personaURLs = useImageURL(blobs!);
 
     useEffect(() => {
         setLocalPersona(persona!);
@@ -111,6 +106,11 @@ export default function PersonaEditor() {
         }
     };
 
+    const { browse, input } = useFileDialog({
+        accept: ".png, .jpeg, .webp",
+        onChange: handleImageUpload,
+    });
+
     return (
         <div className="flex flex-col w-full">
             <Header />
@@ -150,17 +150,9 @@ export default function PersonaEditor() {
                             <div className="flex flex-col gap-4">
                                 <PersonaImage
                                     imageURL={localImageURL}
-                                    onImageClick={() =>
-                                        fileInputRef.current?.click()
-                                    }
+                                    onImageClick={browse}
                                 />
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    className="hidden"
-                                    accept="image/*"
-                                    onChange={handleImageUpload}
-                                />
+                                {input}
                             </div>
                             <div className="flex flex-col grow gap-4">
                                 <div className="space-y-2">

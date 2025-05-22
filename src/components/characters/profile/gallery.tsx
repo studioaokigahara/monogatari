@@ -10,8 +10,10 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { addAssets } from "@/database/characters";
 import { db } from "@/database/database";
 import { AssetRecord, CharacterRecord } from "@/database/schema/character";
+import { useFileDialog } from "@/hooks/use-file-dialog";
 import { useImageURL } from "@/hooks/use-image-url";
 import { ImageUp, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -44,11 +46,39 @@ export default function Gallery({ character }: GalleryProps) {
         toast.success(`Deleted ${asset.name}.${asset.ext}`);
     };
 
+    const addToGallery = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = event.target.files;
+        if (!files) return;
+
+        let assets: AssetRecord[] = [];
+        for (const file of files) {
+            assets.push({
+                blob: new Blob([file]),
+                type: "x_gallery",
+                name: `gallery_${Date.now()}`,
+                ext: file.type.split("/")[1],
+            });
+        }
+
+        toast.promise(addAssets(character.id, assets), {
+            loading: "Uploading files...",
+            success: `Files uploaded to gallery successfully!`,
+            error: "Failed to upload files.",
+        });
+    };
+
+    const { browse, input } = useFileDialog({
+        accept: ".png, .jpeg, .webp",
+        multiple: true,
+        onChange: addToGallery,
+    });
+
     return (
         <Card>
             <CardHeader className="flex flex-row-reverse gap-2">
                 <GalleryScanner character={character} />
-                <Button>
+                <Button onClick={browse}>
+                    {input}
                     <ImageUp />
                     Upload
                 </Button>

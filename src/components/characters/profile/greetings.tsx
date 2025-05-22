@@ -1,11 +1,11 @@
 import { Prose } from "@/components/prose";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { db } from "@/database/database";
 import { CharacterRecord } from "@/database/schema/character";
 import { Plus, Trash } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 interface GreetingsProps {
@@ -76,9 +76,9 @@ export default function Greetings({ character, editing }: GreetingsProps) {
     };
 
     return (
-        <Card>
+        <Card className="overflow-hidden">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <CardHeader>
+                <CardHeader className="overflow-x-auto">
                     <TabsList className="bg-muted/50">
                         {greetings.map((_, idx) => (
                             <TabsTrigger

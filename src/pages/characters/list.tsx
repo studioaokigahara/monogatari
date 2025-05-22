@@ -4,6 +4,7 @@ import CharacterCard from "@/components/characters/card";
 import ImportCharacter from "@/components/characters/import-character";
 import NewCharacter from "@/components/characters/new-character";
 import Header from "@/components/header";
+import { Button } from "@/components/ui/button";
 import {
     Pagination,
     PaginationContent,
@@ -14,7 +15,10 @@ import {
     PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useFileDialog } from "@/hooks/use-file-dialog";
+import { handleFileChange } from "@/lib/character/utils";
 import { useLiveQuery } from "dexie-react-hooks";
+import { Import } from "lucide-react";
 
 function CharacterListItems() {
     const characters = useLiveQuery(
@@ -46,11 +50,20 @@ function CharacterListItems() {
 }
 
 export default function CharacterList() {
+    const { browse, input } = useFileDialog({
+        accept: ".png, .json, .charx",
+        onChange: handleFileChange,
+    });
+
     return (
         <>
             <Header className="justify-between flex-wrap">
                 <div className="flex justify-center gap-2">
-                    <ImportCharacter />
+                    <Button onClick={browse}>
+                        {input}
+                        <Import />
+                        Import
+                    </Button>
                     <NewCharacter />
                 </div>
             </Header>

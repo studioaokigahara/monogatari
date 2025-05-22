@@ -14,8 +14,10 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCharacterContext } from "@/contexts/character-context";
+import { replaceAssetBlob } from "@/database/characters";
 import { saveGraph } from "@/database/chats";
 import { CharacterRecord } from "@/database/schema/character";
+import { useFileDialog } from "@/hooks/use-file-dialog";
 import { useImageURL } from "@/hooks/use-image-url";
 import { replaceMacros } from "@/lib/curly-braces";
 import { characterProfileRoute, router } from "@/router";
@@ -69,9 +71,10 @@ function CharacterImage({
 export default function CharacterProfile() {
     const character: CharacterRecord =
         characterProfileRoute.useMatch().context.character!;
-    const image =
+    const [image, setImage] = useState<Blob>(
         character.assets.find((asset) => asset.name === "main")?.blob ??
-        character.assets[0].blob;
+            character.assets[0].blob,
+    );
     const imageURL = useImageURL(image);
     const { setCharacter } = useCharacterContext();
 
@@ -115,6 +118,22 @@ export default function CharacterProfile() {
         router.navigate({ to: "/chat/$id", params: { id: graph.id } });
     };
 
+    const replaceImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const blob = new Blob([file], { type: file.type });
+        const ext = file.type.split("/")[1];
+        await replaceAssetBlob(character.id, "main", blob, ext);
+        setImage(blob);
+    };
+
+    const { browse, input } = useFileDialog({
+        accept: ".png, .jpeg, .webp",
+        multiple: false,
+        onChange: replaceImage,
+    });
+
     return (
         <>
             <div className="flex flex-col w-full">
@@ -136,7 +155,8 @@ export default function CharacterProfile() {
                                     className="max-h-[80dvh] rounded-xl mx-auto"
                                 />
                                 <DialogFooter>
-                                    <Button className="w-1/2">
+                                    <Button className="w-1/2" onClick={browse}>
+                                        {input}
                                         <Upload />
                                         Replace
                                     </Button>
