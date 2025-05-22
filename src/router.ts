@@ -6,9 +6,8 @@ import {
     redirect,
 } from "@tanstack/react-router";
 
-import Layout from "@/App";
 import type { CharacterRecord } from "@/database/schema/character";
-import { NanoID } from "@/database/schema/util";
+import Layout from "@/layout";
 import CharacterList from "@/pages/characters/list";
 import CharacterProfile from "@/pages/characters/profile";
 import Chat from "@/pages/chat";
@@ -75,9 +74,7 @@ export const characterProfileRoute = createRoute({
     beforeLoad: async ({ params }) => {
         const { id } = params;
 
-        const character = NanoID.safeParse(id)
-            ? await db.characters.get(id)
-            : await db.characters.where("data.name").equals(id).first();
+        const character = await db.characters.get(id);
 
         if (!character) {
             throw new Error("Character not found");
