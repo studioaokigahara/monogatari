@@ -7,8 +7,28 @@ import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 
 function parseMarkdown(markdown: string): string[] {
-    const tokens = marked.lexer(markdown);
-    return tokens.map((token) => token.raw);
+    const cache = useRef<{ source: string; tokens: string[] }>({
+        source: "",
+        tokens: [],
+    });
+
+    if (markdown === cache.current.source) return cache.current.tokens;
+
+    if (markdown.startsWith(cache.current.source)) {
+        const delta = markdown.slice(cache.current.source.length);
+        const prevTokens = [...cache.current.tokens];
+        const lastToken = prevTokens.pop() ?? "";
+        const newTokens = marked
+            .lexer(lastToken + delta)
+            .map((token) => token.raw);
+        const merged = prevTokens.concat(newTokens);
+        cache.current = { source: markdown, tokens: merged };
+        return merged;
+    }
+
+    const fresh = marked.lexer(markdown).map((token) => token.raw);
+    cache.current = { source: markdown, tokens: fresh };
+    return fresh;
 }
 
 interface MarkdownBlockProps {
@@ -29,7 +49,7 @@ const MarkdownBlock = memo(
                 rehypePlugins={[rehypeRaw]}
                 urlTransform={urlTransform}
                 components={{
-                    img: ({ node, ...props }) => (
+                    img: ({ node: _node, ...props }) => (
                         <img {...props} loading="eager" fetchPriority="high" />
                     ),
                 }}
@@ -51,7 +71,7 @@ export interface MarkdownProps {
 
 export const Markdown = memo(
     ({ children, id, urlTransform }: MarkdownProps) => {
-        const blocks = useMemo(() => parseMarkdown(children), [children]);
+        const blocks = parseMarkdown(children);
 
         return (
             <>
