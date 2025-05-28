@@ -1,7 +1,7 @@
 import { useCharacterContext } from "@/contexts/character-context";
 import remarkCurlyBraces from "@/lib/remark-curly-braces";
 import { marked } from "marked";
-import { memo, useEffect, useMemo, useRef } from "react";
+import { memo, useMemo, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
@@ -9,7 +9,7 @@ import remarkGfm from "remark-gfm";
 function parseMarkdown(markdown: string): string[] {
     const cache = useRef<{ source: string; tokens: string[] }>({
         source: "",
-        tokens: [],
+        tokens: []
     });
 
     if (markdown === cache.current.source) return cache.current.tokens;
@@ -33,56 +33,64 @@ function parseMarkdown(markdown: string): string[] {
 
 interface MarkdownBlockProps {
     children: string;
-    urlTransform: (url: string) => string;
 }
 
 const MarkdownBlock = memo(
-    ({ children, urlTransform }: MarkdownBlockProps) => {
-        const { character, persona } = useCharacterContext();
+    ({ children }: MarkdownBlockProps) => {
+        const { character, persona, urlTransform } = useCharacterContext();
+
+        const remarkPlugins = useMemo(
+            () => [remarkGfm, [remarkCurlyBraces, { character, persona }]],
+            [character, persona]
+        );
+        const rehypePlugins = useMemo(() => [rehypeRaw], []);
+        const components = useMemo(() => {
+            const handleImgLoad = () => {
+                const anchor = document.getElementById("chat-scroll-anchor");
+                requestAnimationFrame(() =>
+                    anchor?.scrollIntoView({ behavior: "smooth" })
+                );
+            };
+
+            return {
+                img: ({ ...props }) => (
+                    <img
+                        {...props}
+                        loading="eager"
+                        fetchPriority="high"
+                        onLoad={handleImgLoad}
+                    />
+                )
+            };
+        }, []);
 
         return (
             <ReactMarkdown
-                remarkPlugins={[
-                    remarkGfm,
-                    [remarkCurlyBraces, { character, persona }],
-                ]}
-                rehypePlugins={[rehypeRaw]}
+                remarkPlugins={remarkPlugins}
+                rehypePlugins={rehypePlugins}
                 urlTransform={urlTransform}
-                components={{
-                    img: ({ node: _node, ...props }) => (
-                        <img {...props} loading="eager" fetchPriority="high" />
-                    ),
-                }}
+                components={components}
             >
                 {children}
             </ReactMarkdown>
         );
     },
-    (prev, next) =>
-        prev.children === next.children &&
-        prev.urlTransform === next.urlTransform,
+    (prev, next) => prev.children === next.children
 );
 
 export interface MarkdownProps {
     children: string;
     id: string;
-    urlTransform: (url: string) => string;
 }
 
-export const Markdown = memo(
-    ({ children, id, urlTransform }: MarkdownProps) => {
-        const blocks = parseMarkdown(children);
+export const Markdown = memo(({ children, id }: MarkdownProps) => {
+    const blocks = parseMarkdown(children);
 
-        return (
-            <>
-                {blocks.map((block, index) => (
-                    <MarkdownBlock
-                        key={`${id}-block-${index}`}
-                        children={block}
-                        urlTransform={urlTransform}
-                    />
-                ))}
-            </>
-        );
-    },
-);
+    return (
+        <>
+            {blocks.map((block, index) => (
+                <MarkdownBlock key={`${id}-block-${index}`} children={block} />
+            ))}
+        </>
+    );
+});
