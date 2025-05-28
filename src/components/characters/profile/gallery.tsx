@@ -1,4 +1,4 @@
-import GalleryScanner from "@/components/characters/gallery-scanner";
+import GalleryScanner from "@/components/characters/profile/gallery-scanner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {

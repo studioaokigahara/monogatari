@@ -7,7 +7,7 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
+    AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -42,7 +42,7 @@ export default function GalleryScanner({ character }: GalleryScannerProps) {
             onProgress: (current, total) => {
                 setTotal(total);
                 setCurrent(current);
-            },
+            }
         });
 
         setLoading(false);
