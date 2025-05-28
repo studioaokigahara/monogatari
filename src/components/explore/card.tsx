@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 
 import { getButtonIcon, getButtonText } from "@/lib/chub/utils";
 import { ButtonState, Character } from "@/types/chub";
@@ -11,7 +11,7 @@ import { Skeleton } from "../ui/skeleton";
 
 interface CharacterImageProps {
     character: Character;
-    onCardClick: () => void;
+    onCardClick: (event: React.MouseEvent) => void;
 }
 
 function CharacterImage({ character, onCardClick }: CharacterImageProps) {
@@ -40,8 +40,8 @@ interface CharacterCardProps {
     character: Character;
     buttonState: ButtonState;
     isDownloaded: boolean;
-    onCardClick: () => void;
-    onDownloadClick: () => void;
+    onCardClick: (character: Character) => void;
+    onDownloadClick: (character: Character) => Promise<void>;
     onCreatorClick: (creator: string) => void;
     onTagClick: (tag: string) => void;
 }
@@ -53,22 +53,39 @@ function _CharacterCard({
     onDownloadClick,
     onCreatorClick,
     onTagClick,
-    buttonState,
+    buttonState
 }: CharacterCardProps) {
-    const handleDownloadClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onDownloadClick();
-    };
+    const handleCardClick = useCallback(
+        (e: React.MouseEvent) => {
+            e.stopPropagation();
+            onCardClick(character);
+        },
+        [onCardClick]
+    );
 
-    const handleCreatorClick = (e: React.MouseEvent, creator: string) => {
-        e.stopPropagation();
-        onCreatorClick(creator);
-    };
+    const handleDownloadClick = useCallback(
+        (e: React.MouseEvent) => {
+            e.stopPropagation();
+            onDownloadClick(character);
+        },
+        [onDownloadClick]
+    );
 
-    const handleTagClick = (e: React.MouseEvent, tag: string) => {
-        e.stopPropagation();
-        onTagClick(tag);
-    };
+    const handleCreatorClick = useCallback(
+        (e: React.MouseEvent) => {
+            e.stopPropagation();
+            onCreatorClick(character.creator);
+        },
+        [onCreatorClick]
+    );
+
+    const handleTagClick = useCallback(
+        (e: React.MouseEvent, tag: string) => {
+            e.stopPropagation();
+            onTagClick(tag);
+        },
+        [onTagClick]
+    );
 
     const highlightClass = isDownloaded ? "ring-2 ring-green-500/50" : "";
 
@@ -79,7 +96,7 @@ function _CharacterCard({
             <div className="relative mx-auto mb-2">
                 <CharacterImage
                     character={character}
-                    onCardClick={onCardClick}
+                    onCardClick={handleCardClick}
                 />
                 <Button
                     variant="secondary"
@@ -95,7 +112,7 @@ function _CharacterCard({
             <CardContent className="p-0 max-w-3/5 md:max-w-full">
                 <h3
                     className="font-bold text-lg truncate hover:underline cursor-pointer"
-                    onClick={onCardClick}
+                    onClick={handleCardClick}
                 >
                     {character.name}
                 </h3>
@@ -103,9 +120,7 @@ function _CharacterCard({
                 <div className="flex flex-wrap items-center justify-between mb-1">
                     <span
                         className="text-sm text-muted-foreground hover:underline cursor-pointer"
-                        onClick={(e) =>
-                            handleCreatorClick(e, character.creator)
-                        }
+                        onClick={handleCreatorClick}
                     >
                         @{character.creator}
                     </span>

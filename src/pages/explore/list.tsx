@@ -26,7 +26,7 @@ export default function CharacterList({
     onCharacterDownload,
     onLoadMore,
     onTagClick,
-    onCreatorClick,
+    onCreatorClick
 }: CharacterListProps) {
     const [selectedCharacter, setSelectedCharacter] =
         useState<Character | null>(null);
@@ -63,7 +63,7 @@ export default function CharacterList({
             setSelectedCharacter(character);
             setIsDialogOpen(true);
         },
-        [setSelectedCharacter, setIsDialogOpen],
+        [setSelectedCharacter, setIsDialogOpen]
     );
 
     const handleDownloadClick = useCallback(
@@ -72,14 +72,14 @@ export default function CharacterList({
 
             if (isDownloaded) {
                 const confirmed = window.confirm(
-                    "This character is already downloaded. Would you like to update it?",
+                    "This character is already downloaded. Would you like to update it?"
                 );
                 if (!confirmed) return;
             }
 
             onCharacterDownload(character);
         },
-        [characterPaths, onCharacterDownload],
+        [characterPaths, onCharacterDownload]
     );
 
     return (
@@ -101,12 +101,10 @@ export default function CharacterList({
                             key={`${character.fullPath}-${index}`}
                             character={character}
                             isDownloaded={characterPaths.has(
-                                character.fullPath,
+                                character.fullPath
                             )}
-                            onCardClick={() => handleCharacterClick(character)}
-                            onDownloadClick={() =>
-                                handleDownloadClick(character)
-                            }
+                            onCardClick={handleCharacterClick}
+                            onDownloadClick={handleDownloadClick}
                             onCreatorClick={onCreatorClick}
                             onTagClick={onTagClick}
                             buttonState={
@@ -135,7 +133,7 @@ export default function CharacterList({
                     openState={[isDialogOpen, setIsDialogOpen]}
                     character={selectedCharacter}
                     isDownloaded={characterPaths.has(
-                        selectedCharacter.fullPath,
+                        selectedCharacter.fullPath
                     )}
                     onDownloadClick={() => {
                         handleDownloadClick(selectedCharacter);

@@ -1,24 +1,47 @@
-import { Badge } from "@/components/ui/badge";
+import { Badge, badgeVariants } from "@/components/ui/badge";
 import { useTagList } from "@/hooks/use-tag-list";
 import { cn } from "@/lib/utils";
+import { VariantProps } from "class-variance-authority";
+import { memo, useCallback } from "react";
+
+type BadgeVariants = VariantProps<typeof badgeVariants>["variant"];
+
+interface TagProps {
+    index: number;
+    value: string;
+    variant?: BadgeVariants;
+    className?: string;
+    onClick?: React.MouseEventHandler<HTMLSpanElement>;
+}
+
+const Tag = memo(
+    ({ index, value, variant, className, onClick, ...props }: TagProps) => {
+        return (
+            <Badge
+                data-index={index}
+                data-value={value}
+                variant={variant}
+                className={cn(className)}
+                onClick={onClick}
+                {...props}
+            >
+                {value}
+            </Badge>
+        );
+    },
+    (prev, next) =>
+        prev.index === next.index &&
+        prev.value === next.value &&
+        prev.variant === next.variant &&
+        prev.className === next.className &&
+        prev.onClick === next.onClick
+);
 
 interface TagListProps extends React.ComponentProps<"span"> {
     tags: string[];
     maxRows?: number;
-    variant?:
-        | "default"
-        | "destructive"
-        | "outline"
-        | "secondary"
-        | null
-        | undefined;
-    hiddenVariant?:
-        | "default"
-        | "destructive"
-        | "outline"
-        | "secondary"
-        | null
-        | undefined;
+    variant?: BadgeVariants;
+    hiddenVariant?: BadgeVariants;
     onTagClick?: (e: React.MouseEvent<HTMLSpanElement>, tag: string) => void;
 }
 
@@ -33,45 +56,49 @@ export function TagList({
 }: TagListProps) {
     const { visibleRef, ghostRef, visibleTags, hiddenCount } = useTagList(
         tags,
-        maxRows,
+        maxRows
+    );
+
+    const handleTagClick = useCallback(
+        (e: React.MouseEvent<HTMLSpanElement>) => {
+            e.stopPropagation();
+            const tagValue = e.currentTarget.getAttribute("data-value")!;
+            onTagClick?.(e, tagValue);
+        },
+        [onTagClick]
     );
 
     return (
         <>
             <div
                 ref={ghostRef}
-                className={`invisible fixed flex flex-wrap gap-0.5`}
+                className="invisible fixed flex flex-wrap gap-0.5"
             >
                 {tags.map((tag, index) => (
-                    <Badge
+                    <Tag
                         key={index}
-                        data-index={index}
+                        index={index}
+                        value={tag}
                         variant={variant}
-                        className={cn(className)}
+                        className={className}
                         {...props}
-                    >
-                        {tag}
-                    </Badge>
+                    />
                 ))}
             </div>
             <div
                 ref={visibleRef}
-                className={`flex flex-wrap gap-0.5 overflow-hidden`}
+                className="flex flex-wrap gap-0.5 overflow-hidden"
             >
                 {visibleTags.map((tag) => (
-                    <Badge
+                    <Tag
                         key={tag.id}
-                        data-index={tag.id}
+                        index={tag.id}
+                        value={tag.value}
                         variant={variant}
-                        className={cn(className)}
+                        className={className}
+                        onClick={handleTagClick}
                         {...props}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onTagClick?.(e, tag.value);
-                        }}
-                    >
-                        {tag.value}
-                    </Badge>
+                    />
                 ))}
                 {hiddenCount > 0 && (
                     <Badge

@@ -7,7 +7,7 @@ import {
     Dialog,
     DialogContent,
     DialogDescription,
-    DialogTitle,
+    DialogTitle
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCharacterImage } from "@/hooks/use-character-image";
@@ -21,7 +21,7 @@ import {
     Heart,
     Star,
     StarHalf,
-    TextSelect,
+    TextSelect
 } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 
@@ -42,7 +42,7 @@ function CharacterImage({ imageURL, character }: CharacterImageProps) {
             {imageURL && (
                 <img
                     src={imageURL}
-                    alt={name}
+                    alt={character!.name}
                     className="max-h-full object-cover rounded-xl"
                     onLoad={() => setImageLoaded(true)}
                 />
@@ -71,11 +71,11 @@ export default function CharacterPopup({
     isDownloaded,
     onDownloadClick,
     onTagClick,
-    onCreatorClick,
+    onCreatorClick
 }: CharacterPopupProps) {
     const [isOpen, setIsOpen] = openState;
     const image = useCharacterImage(character);
-    const imageURL = useImageURL(image);
+    const imageURL = useImageURL(image!);
 
     const handleTagClick = (e: React.MouseEvent, tag: string) => {
         e.preventDefault();
@@ -98,16 +98,13 @@ export default function CharacterPopup({
                     key={`star-${i}`}
                     fill="currentColor"
                     className="size-4 text-yellow-500"
-                />,
+                />
             );
         }
 
         if (hasHalfStar) {
             stars.push(
-                <StarHalf
-                    key="half-star"
-                    className="h-4 w-4 text-yellow-400"
-                />,
+                <StarHalf key="half-star" className="h-4 w-4 text-yellow-400" />
             );
         }
 
@@ -148,7 +145,7 @@ export default function CharacterPopup({
                                 <span>
                                     Created{" "}
                                     {new Date(
-                                        character.createdAt,
+                                        character.createdAt
                                     ).toLocaleDateString()}{" "}
                                     by{" "}
                                     <button
@@ -165,7 +162,7 @@ export default function CharacterPopup({
                                 <span>
                                     Last Updated{" "}
                                     {new Date(
-                                        character.lastActivityAt,
+                                        character.lastActivityAt
                                     ).toLocaleString()}
                                 </span>
                             </div>
