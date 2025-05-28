@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCharacterImage } from "@/hooks/use-character-image";
-import { useImageURL } from "@/hooks/use-image-url";
+import { useImageURL } from "@/contexts/image-context";
 import { getButtonIcon, getButtonText } from "@/lib/chub/utils";
 import type { ButtonState, Character } from "@/types/chub";
 import {

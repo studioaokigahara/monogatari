@@ -16,8 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useCharacterContext } from "@/contexts/character-context";
 import { db } from "@/database/database";
-import { PersonaRecord } from "@/database/schema/persona";
-import { useImageURL } from "@/hooks/use-image-url";
+import { useImageURL } from "@/contexts/image-context";
 import { Link } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronsUpDown, UserPen } from "lucide-react";

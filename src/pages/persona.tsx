@@ -8,7 +8,7 @@ import { useCharacterContext } from "@/contexts/character-context";
 import { db } from "@/database/database";
 import { PersonaRecord } from "@/database/schema/persona";
 import { useFileDialog } from "@/hooks/use-file-dialog";
-import { useImageURL } from "@/hooks/use-image-url";
+import { useImageURL } from "@/contexts/image-context";
 import { nanoid } from "@/lib/utils";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Plus, Save, Upload } from "lucide-react";

@@ -8,6 +8,7 @@ import {
     useEffect,
     useState,
 } from "react";
+import { useImageContext } from "./image-context";
 import { useSettingsContext } from "./settings-context";
 
 interface CharacterContextType {

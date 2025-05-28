@@ -14,11 +14,11 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCharacterContext } from "@/contexts/character-context";
+import { useImageURL } from "@/contexts/image-context";
 import { replaceAssetBlob } from "@/database/characters";
 import { saveGraph } from "@/database/chats";
 import { CharacterRecord } from "@/database/schema/character";
 import { useFileDialog } from "@/hooks/use-file-dialog";
-import { useImageURL } from "@/hooks/use-image-url";
 import { replaceMacros } from "@/lib/curly-braces";
 import { characterProfileRoute, router } from "@/router";
 import { ConversationGraph } from "@/types/conversation-graph";
@@ -71,12 +71,11 @@ function CharacterImage({
 export default function CharacterProfile() {
     const character: CharacterRecord =
         characterProfileRoute.useMatch().context.character!;
-    const [image, setImage] = useState<Blob>(
-        character.assets.find((asset) => asset.name === "main")?.blob ??
-            character.assets[0].blob,
-    );
-    const imageURL = useImageURL(image);
     const { setCharacter } = useCharacterContext();
+    const image =
+        character.assets.find((asset) => asset.name === "main")?.blob ??
+        character.assets[0].blob;
+    const imageURL = useImageURL(image);
 
     const [editing, setEditing] = useState(false);
 

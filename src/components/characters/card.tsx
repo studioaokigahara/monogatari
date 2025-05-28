@@ -10,8 +10,7 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { CharacterRecord } from "@/database/schema/character";
-import { useImageURL } from "@/hooks/use-image-url";
-import { router } from "@/router";
+import { useImageURL } from "@/contexts/image-context";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Skeleton } from "../ui/skeleton";
@@ -59,11 +58,9 @@ interface CharacterCardProps {
 
 function CharacterCard({ character }: CharacterCardProps) {
     const image =
-        character.image ||
-        (character.assets.find((asset) => asset.name === "main")?.blob ??
-            character.assets[0].blob);
-    const url = useImageURL(image);
-    const imageURL: string = Array.isArray(url) ? url[0] : url;
+        character.assets.find((asset) => asset.name === "main")?.blob ??
+        character.assets[0].blob;
+    const imageURL = useImageURL(image);
 
     return (
         <Card className="max-w-2xl w-full max-h-48 h-full flex flex-0 flex-row p-2 gap-4 border rounded-lg shadow-sm overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-gray-500/50">

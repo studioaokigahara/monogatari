@@ -5,7 +5,7 @@ import Header from "@/components/header";
 import { useCharacterContext } from "@/contexts/character-context";
 
 import { useChatContext } from "@/contexts/chat-context";
-import { useImageURL } from "@/hooks/use-image-url";
+import { useImageURL } from "@/contexts/image-context";
 import { Link, useLocation } from "@tanstack/react-router";
 
 export default function Chat() {

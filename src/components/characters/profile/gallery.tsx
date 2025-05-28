@@ -10,11 +10,11 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { useImageURL } from "@/contexts/image-context";
 import { addAssets } from "@/database/characters";
 import { db } from "@/database/database";
 import { AssetRecord, CharacterRecord } from "@/database/schema/character";
 import { useFileDialog } from "@/hooks/use-file-dialog";
-import { useImageURL } from "@/hooks/use-image-url";
 import { ImageUp, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -26,10 +26,9 @@ interface GalleryProps {
 export default function Gallery({ character }: GalleryProps) {
     const [assets, setAssets] = useState<AssetRecord[]>(character.assets);
     const [openIndex, setOpenIndex] = useState<number | null>(null);
-
     const imageBlobs = useMemo(
         () => assets.map((asset) => asset.blob),
-        [assets],
+        [character, assets]
     );
     const imageURLs = useImageURL(imageBlobs);
 
