@@ -1,7 +1,7 @@
 import type {
     ModelRegistry,
     ProviderRegistry,
-    Providers,
+    Providers
 } from "@/types/models";
 import { z } from "zod";
 
@@ -18,19 +18,19 @@ export const MODEL_REGISTRY: ModelRegistry = {
                 structuredOutput: false,
                 tools: true,
                 reasoning: false,
-                logprobs: true,
+                logprobs: true
             },
             checkpoints: [
                 {
-                    id: "gpt-3.5-turbo-0125",
+                    id: "gpt-3.5-turbo-0125"
                 },
                 {
-                    id: "gpt-3.5-turbo-1106",
+                    id: "gpt-3.5-turbo-1106"
                 },
                 {
-                    id: "gpt-3.5-turbo-instruct",
-                },
-            ],
+                    id: "gpt-3.5-turbo-instruct"
+                }
+            ]
         },
         {
             id: "gpt-4",
@@ -43,16 +43,16 @@ export const MODEL_REGISTRY: ModelRegistry = {
                 structuredOutput: false,
                 tools: false,
                 reasoning: false,
-                logprobs: true,
+                logprobs: true
             },
             checkpoints: [
                 {
-                    id: "gpt-4-0613",
+                    id: "gpt-4-0613"
                 },
                 {
-                    id: "gpt-4-0314",
-                },
-            ],
+                    id: "gpt-4-0314"
+                }
+            ]
         },
         {
             id: "gpt-4-turbo",
@@ -65,24 +65,24 @@ export const MODEL_REGISTRY: ModelRegistry = {
                 structuredOutput: false,
                 tools: false,
                 reasoning: false,
-                logprobs: true,
+                logprobs: true
             },
             checkpoints: [
                 {
                     id: "gpt-4-turbo-2024-04-09",
-                    supports: { imageInput: true, tools: true },
+                    supports: { imageInput: true, tools: true }
                 },
                 {
-                    id: "gpt-4-0125-preview",
+                    id: "gpt-4-0125-preview"
                 },
                 {
-                    id: "gpt-4-1106-preview",
+                    id: "gpt-4-1106-preview"
                 },
                 {
                     id: "gpt-4-1106-vision-preview",
-                    supports: { imageInput: true },
-                },
-            ],
+                    supports: { imageInput: true }
+                }
+            ]
         },
         {
             id: "gpt-4o",
@@ -95,7 +95,7 @@ export const MODEL_REGISTRY: ModelRegistry = {
                 structuredOutput: true,
                 tools: true,
                 reasoning: false,
-                logprobs: true,
+                logprobs: true
             },
             checkpoints: [
                 {
@@ -105,29 +105,29 @@ export const MODEL_REGISTRY: ModelRegistry = {
                         "ChatGPT-4o points to the GPT-4o snapshot currently used in ChatGPT.",
                     price: {
                         input: 5,
-                        output: 15,
+                        output: 15
                     },
                     contextLength: 128000,
                     maxOutputTokens: 16384,
                     supports: {
-                        structuredOutput: false,
-                    },
+                        structuredOutput: false
+                    }
                 },
                 {
-                    id: "gpt-4o-2024-11-20",
+                    id: "gpt-4o-2024-11-20"
                 },
                 {
-                    id: "gpt-4o-2024-08-06",
+                    id: "gpt-4o-2024-08-06"
                 },
                 {
                     id: "gpt-4o-mini-2024-07-18",
                     name: "GPT‑4o mini",
-                    maxOutputTokens: 4096,
+                    maxOutputTokens: 4096
                 },
                 {
-                    id: "gpt-4o-2024-05-13",
-                },
-            ],
+                    id: "gpt-4o-2024-05-13"
+                }
+            ]
         },
         {
             id: "gpt-4.1",
@@ -140,7 +140,7 @@ export const MODEL_REGISTRY: ModelRegistry = {
                 structuredOutput: true,
                 tools: true,
                 reasoning: false,
-                logprobs: true,
+                logprobs: true
             },
             checkpoints: [
                 {
@@ -148,26 +148,26 @@ export const MODEL_REGISTRY: ModelRegistry = {
                     name: "GPT-4.1",
                     price: {
                         input: 2,
-                        output: 8,
-                    },
+                        output: 8
+                    }
                 },
                 {
                     id: "gpt-4.1-mini-2025-04-14",
                     name: "GPT-4.1 mini",
                     price: {
                         input: 0.4,
-                        output: 1.6,
-                    },
+                        output: 1.6
+                    }
                 },
                 {
                     id: "gpt-4.1-nano-2025-04-14",
                     name: "GPT-4.1 nano",
                     price: {
                         input: 0.1,
-                        output: 0.4,
-                    },
-                },
-            ],
+                        output: 0.4
+                    }
+                }
+            ]
         },
         {
             id: "gpt-4.5-preview-2025-02-27",
@@ -175,7 +175,7 @@ export const MODEL_REGISTRY: ModelRegistry = {
             description: "Will be deprecated on 2025-07-14.",
             price: {
                 input: 75,
-                output: 150,
+                output: 150
             },
             contextLength: 128000,
             maxOutputTokens: 16384,
@@ -185,9 +185,9 @@ export const MODEL_REGISTRY: ModelRegistry = {
                 structuredOutput: true,
                 tools: true,
                 reasoning: false,
-                logprobs: true,
-            },
-        },
+                logprobs: true
+            }
+        }
     ],
     anthropic: [
         {
@@ -199,22 +199,22 @@ export const MODEL_REGISTRY: ModelRegistry = {
                 streaming: true,
                 imageInput: true,
                 tools: true,
-                reasoning: false,
+                reasoning: false
             },
             checkpoints: [
                 {
                     id: "claude-3-opus-20240229",
-                    name: "Claude 3 Opus",
+                    name: "Claude 3 Opus"
                 },
                 {
                     id: "claude-3-sonnet-20240229",
-                    name: "Claude 3 Sonnet",
+                    name: "Claude 3 Sonnet"
                 },
                 {
                     id: "claude-3-haiku-20240307",
-                    name: "Claude 3 Haiku",
-                },
-            ],
+                    name: "Claude 3 Haiku"
+                }
+            ]
         },
         {
             id: "claude-3-5",
@@ -225,22 +225,22 @@ export const MODEL_REGISTRY: ModelRegistry = {
                 streaming: true,
                 imageInput: true,
                 tools: true,
-                reasoning: false,
+                reasoning: false
             },
             checkpoints: [
                 {
                     id: "claude-3-5-sonnet-20241022",
-                    name: "Claude 3.5 Sonnet V2",
+                    name: "Claude 3.5 Sonnet V2"
                 },
                 {
                     id: "claude-3-5-sonnet-20240620",
-                    name: "Claude 3.5 Sonnet",
+                    name: "Claude 3.5 Sonnet"
                 },
                 {
                     id: "claude-3-5-haiku-20241022",
-                    name: "Claude 3.5 Haiku",
-                },
-            ],
+                    name: "Claude 3.5 Haiku"
+                }
+            ]
         },
         {
             id: "claude-3-7-sonnet-20250219",
@@ -251,9 +251,40 @@ export const MODEL_REGISTRY: ModelRegistry = {
                 streaming: true,
                 imageInput: true,
                 tools: true,
-                reasoning: true,
-            },
+                reasoning: true
+            }
         },
+        {
+            id: "claude-4",
+            name: "Claude 4",
+            contextLength: 200000,
+            maxOutputTokens: 64000,
+            supports: {
+                streaming: true,
+                imageInput: true,
+                tools: true,
+                reasoning: true
+            },
+            checkpoints: [
+                {
+                    id: "claude-opus-4-20250514",
+                    name: "Claude Opus 4",
+                    maxOutputTokens: 32000,
+                    price: {
+                        input: 15,
+                        output: 75
+                    }
+                },
+                {
+                    id: "claude-sonnet-4-20250514",
+                    name: "Claude Sonnet 4",
+                    price: {
+                        input: 3,
+                        output: 15
+                    }
+                }
+            ]
+        }
     ],
     azure: [],
     xai: [],
@@ -268,23 +299,23 @@ export const MODEL_REGISTRY: ModelRegistry = {
                 streaming: true,
                 imageInput: true,
                 tools: true,
-                reasoning: false,
+                reasoning: false
             },
             checkpoints: [
                 {
                     id: "gemini-1.5-pro",
                     name: "Gemini 1.5 Pro",
-                    contextLength: 2097152,
+                    contextLength: 2097152
                 },
                 {
                     id: "gemini-1.5-flash",
-                    name: "Gemini 1.5 Flash",
+                    name: "Gemini 1.5 Flash"
                 },
                 {
                     id: "gemini-1.5-flash-8b",
-                    name: "Gemini 1.5 Flash 8B",
-                },
-            ],
+                    name: "Gemini 1.5 Flash 8B"
+                }
+            ]
         },
         {
             id: "gemini-2.0",
@@ -295,12 +326,12 @@ export const MODEL_REGISTRY: ModelRegistry = {
                 streaming: true,
                 imageInput: true,
                 tools: true,
-                reasoning: false,
+                reasoning: false
             },
             checkpoints: [
                 {
                     id: "gemini-2.0-flash",
-                    name: "Gemini 2.0 Flash",
+                    name: "Gemini 2.0 Flash"
                 },
                 // {
                 //     id: "gemini-2.0-flash-preview-image-generation",
@@ -308,13 +339,13 @@ export const MODEL_REGISTRY: ModelRegistry = {
                 // },
                 {
                     id: "gemini-2.0-flash-lite",
-                    name: "Gemini 2.0 Flash-Lite",
-                },
+                    name: "Gemini 2.0 Flash-Lite"
+                }
                 // {
                 //     id: "gemini-2.0-flash-live-001",
                 //     name: "Gemini 2.0 Flash Live",
                 // },
-            ],
+            ]
         },
         {
             id: "gemini-2.5",
@@ -325,19 +356,19 @@ export const MODEL_REGISTRY: ModelRegistry = {
                 streaming: true,
                 imageInput: true,
                 tools: true,
-                reasoning: true,
+                reasoning: true
             },
             checkpoints: [
                 {
                     id: "gemini-2.5-pro-preview-05-06",
-                    name: "Gemini 2.5 Pro Preview",
+                    name: "Gemini 2.5 Pro Preview"
                 },
                 {
                     id: "gemini-2.5-flash-preview-04-17",
-                    name: "Gemini 2.5 Flash Preview",
-                },
-            ],
-        },
+                    name: "Gemini 2.5 Flash Preview"
+                }
+            ]
+        }
     ],
     "google-vertex": [],
     mistral: [],
@@ -355,8 +386,8 @@ export const MODEL_REGISTRY: ModelRegistry = {
                 streaming: true,
                 imageInput: false,
                 tools: true,
-                reasoning: true,
-            },
+                reasoning: true
+            }
         },
         {
             id: "deepseek-chat",
@@ -367,9 +398,9 @@ export const MODEL_REGISTRY: ModelRegistry = {
                 streaming: true,
                 imageInput: false,
                 tools: true,
-                reasoning: false,
-            },
-        },
+                reasoning: false
+            }
+        }
     ],
     cerebras: [],
     groq: [],
@@ -379,105 +410,105 @@ export const MODEL_REGISTRY: ModelRegistry = {
     hume: [],
     revai: [],
     deepgram: [],
-    gladia: [],
+    gladia: []
 };
 
 export const PROVIDER_REGISTRY: ProviderRegistry = {
     openai: {
         name: "OpenAI",
-        models: MODEL_REGISTRY.openai,
+        models: MODEL_REGISTRY.openai
     },
     anthropic: {
         name: "Anthropic",
-        models: MODEL_REGISTRY.anthropic,
+        models: MODEL_REGISTRY.anthropic
     },
     azure: {
         name: "Microsoft Azure",
-        models: MODEL_REGISTRY.azure,
+        models: MODEL_REGISTRY.azure
     },
     xai: {
         name: "xAI",
-        models: MODEL_REGISTRY.xai,
+        models: MODEL_REGISTRY.xai
     },
     "amazon-bedrock": {
         name: "Amazon Bedrock",
-        models: MODEL_REGISTRY["amazon-bedrock"],
+        models: MODEL_REGISTRY["amazon-bedrock"]
     },
     google: {
         name: "Google",
-        models: MODEL_REGISTRY.google,
+        models: MODEL_REGISTRY.google
     },
     "google-vertex": {
         name: "Google Vertex AI",
-        models: MODEL_REGISTRY["google-vertex"],
+        models: MODEL_REGISTRY["google-vertex"]
     },
     mistral: {
         name: "Mistral",
-        models: MODEL_REGISTRY.mistral,
+        models: MODEL_REGISTRY.mistral
     },
     togetherai: {
         name: "TogetherAI",
-        models: MODEL_REGISTRY.togetherai,
+        models: MODEL_REGISTRY.togetherai
     },
     cohere: {
         name: "Cohere",
-        models: MODEL_REGISTRY.cohere,
+        models: MODEL_REGISTRY.cohere
     },
     fireworks: {
         name: "Fireworks",
-        models: MODEL_REGISTRY.fireworks,
+        models: MODEL_REGISTRY.fireworks
     },
     deepinfra: {
         name: "DeepInfra",
-        models: MODEL_REGISTRY.deepinfra,
+        models: MODEL_REGISTRY.deepinfra
     },
     deepseek: {
         name: "DeepSeek",
-        models: MODEL_REGISTRY.deepseek,
+        models: MODEL_REGISTRY.deepseek
     },
     cerebras: {
         name: "Cerebras",
-        models: MODEL_REGISTRY.cerebras,
+        models: MODEL_REGISTRY.cerebras
     },
     groq: {
         name: "Groq",
-        models: MODEL_REGISTRY.groq,
+        models: MODEL_REGISTRY.groq
     },
     perplexity: {
         name: "Perplexity",
-        models: MODEL_REGISTRY.perplexity,
+        models: MODEL_REGISTRY.perplexity
     },
     elevenlabs: {
         name: "ElevenLabs",
-        models: MODEL_REGISTRY.elevenlabs,
+        models: MODEL_REGISTRY.elevenlabs
     },
     lmnt: {
         name: "LMNT",
-        models: MODEL_REGISTRY.lmnt,
+        models: MODEL_REGISTRY.lmnt
     },
     hume: {
         name: "Hume",
-        models: MODEL_REGISTRY.hume,
+        models: MODEL_REGISTRY.hume
     },
     revai: {
         name: "Rev.ai",
-        models: MODEL_REGISTRY.revai,
+        models: MODEL_REGISTRY.revai
     },
     deepgram: {
         name: "Deepgram",
-        models: MODEL_REGISTRY.deepgram,
+        models: MODEL_REGISTRY.deepgram
     },
     gladia: {
         name: "Gladia",
-        models: MODEL_REGISTRY.gladia,
-    },
+        models: MODEL_REGISTRY.gladia
+    }
 };
 
 const rawProviders = Object.keys(PROVIDER_REGISTRY) as Providers[];
 const [firstProvider, ...restProviders] = rawProviders;
 const providerKeys = [firstProvider, ...restProviders] as [
     Providers,
-    ...Providers[],
+    ...Providers[]
 ];
 
 export const ProviderSchema = z.enum(providerKeys);
@@ -487,13 +518,13 @@ export const ModelSchema = providerKeys.reduce(
             ...MODEL_REGISTRY[provider].map((m) => m.id),
             ...MODEL_REGISTRY[provider]
                 .flatMap((m) => m.checkpoints ?? [])
-                .map((c) => c.id),
+                .map((c) => c.id)
         ] as [string, ...string[]];
 
         acc[provider] = z.enum(ids);
         return acc;
     },
-    {} as Record<Providers, z.ZodEnum<[string, ...string[]]>>,
+    {} as Record<Providers, z.ZodEnum<[string, ...string[]]>>
 );
 export const ModelsSchema = z
     .object(
@@ -502,29 +533,29 @@ export const ModelsSchema = z
                 acc[provider] = ModelSchema[provider].optional();
                 return acc;
             },
-            {} as Record<Providers, z.ZodTypeAny>,
-        ),
+            {} as Record<Providers, z.ZodTypeAny>
+        )
     )
     .default({});
 
 export function getModel<
     P extends Providers,
-    ID extends ModelRegistry[P][number]["id"],
+    ID extends ModelRegistry[P][number]["id"]
 >(
     provider: P,
-    id: ID,
+    id: ID
 ): Extract<ModelRegistry[P][number], { id: ID }> | undefined {
     return MODEL_REGISTRY[provider].find(
-        (m) => m.id === id || m.checkpoints?.find((c) => c.id === id),
+        (m) => m.id === id || m.checkpoints?.find((c) => c.id === id)
     ) as any;
 }
 
 export function getCheckpoint<
     P extends Providers,
-    ID extends ModelRegistry[P][number]["id"],
+    ID extends ModelRegistry[P][number]["id"]
 >(
     provider: P,
-    id: ID,
+    id: ID
 ): Extract<ModelRegistry[P][number]["checkpoints"], { id: ID }> | undefined {
     const model = getModel(provider, id);
     return (
