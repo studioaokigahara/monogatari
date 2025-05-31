@@ -1,21 +1,26 @@
+import { GraphLoader } from "@/components/graph/graph-loader";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogTitle
+} from "@/components/ui/dialog";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
-    DropdownMenuTrigger,
+    DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import {
     SidebarGroup,
     SidebarGroupLabel,
     SidebarMenu,
-    // SidebarMenu,
     SidebarMenuAction,
     SidebarMenuButton,
-    // SidebarMenuButton,
     SidebarMenuItem,
-    useSidebar,
+    useSidebar
 } from "@/components/ui/sidebar";
 import { useCharacterContext } from "@/contexts/character-context";
 import { useChatContext } from "@/contexts/chat-context";
@@ -29,87 +34,86 @@ import {
     FileDown,
     MoreHorizontal,
     PencilLine,
-    Trash2,
+    Trash2
 } from "lucide-react";
 import { DateTime } from "luxon";
-import { ReactNode, memo, useCallback, useMemo, useState } from "react";
-import { GraphLoader } from "../graph/graph-loader";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogTitle,
-} from "../ui/dialog";
+import { memo, useCallback, useMemo, useState } from "react";
 
-interface ChatListItemProps {
+interface ChatHistoryItem {
     chat: ChatRecord;
     isActive: boolean;
     isMobile: boolean;
     setGraphID: (id: string) => void;
 }
 
-const ChatListItem = memo(function ChatListItem({
-    chat,
-    isActive,
-    isMobile,
-    setGraphID,
-}: ChatListItemProps) {
-    return (
-        <SidebarMenuItem>
-            <SidebarMenuButton asChild data-active={isActive}>
-                <Link to="/chat/$id" params={{ id: chat.id }}>
-                    <span className="truncate">
-                        {chat.title ||
-                            DateTime.fromJSDate(chat.updatedAt).toFormat(
-                                "MMM d, HH:mm",
-                            )}
-                    </span>
-                </Link>
-            </SidebarMenuButton>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <SidebarMenuAction showOnHover>
-                        <MoreHorizontal />
-                        <span className="sr-only">More</span>
-                    </SidebarMenuAction>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                    className="w-48 rounded-lg"
-                    side={isMobile ? "bottom" : "right"}
-                    align={isMobile ? "end" : "start"}
-                >
-                    <DropdownMenuLabel>
-                        <span>
+const ChatHistoryItem = memo(
+    ({ chat, isActive, isMobile, setGraphID }: ChatHistoryItem) => {
+        return (
+            <SidebarMenuItem>
+                <SidebarMenuButton asChild data-active={isActive}>
+                    <Link to="/chat/$id" params={{ id: chat.id }}>
+                        <span className="truncate">
                             {chat.title ||
                                 DateTime.fromJSDate(chat.updatedAt).toFormat(
-                                    "MMM d, HH:mm",
+                                    "MMM d, HH:mm"
                                 )}
                         </span>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                        <PencilLine className="text-muted-foreground" />
-                        <span>Rename</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setGraphID(chat.id)}>
-                        <ChartNetwork className="text-muted-foreground" />
-                        <span>View Graph</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                        <FileDown className="text-muted-foreground" />
-                        <span>Export</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem variant="destructive">
-                        <Trash2 className="text-muted-foreground" />
-                        <span>Delete</span>
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-        </SidebarMenuItem>
-    );
-});
+                    </Link>
+                </SidebarMenuButton>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <SidebarMenuAction showOnHover>
+                            <MoreHorizontal />
+                            <span className="sr-only">More</span>
+                        </SidebarMenuAction>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                        className="w-48 rounded-lg"
+                        side={isMobile ? "bottom" : "right"}
+                        align={isMobile ? "end" : "start"}
+                    >
+                        <DropdownMenuLabel>
+                            <span>
+                                {chat.title ||
+                                    DateTime.fromJSDate(
+                                        chat.updatedAt
+                                    ).toFormat("MMM d, HH:mm")}
+                            </span>
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem>
+                            <PencilLine className="text-muted-foreground" />
+                            <span>Rename</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setGraphID(chat.id)}>
+                            <ChartNetwork className="text-muted-foreground" />
+                            <span>View Graph</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                            <FileDown className="text-muted-foreground" />
+                            <span>Export</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem variant="destructive">
+                            <Trash2 className="text-muted-foreground" />
+                            <span>Delete</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </SidebarMenuItem>
+        );
+    },
+    (prev, next) => {
+        return (
+            prev.chat.id === next.chat.id &&
+            prev.chat.title === next.chat.title &&
+            prev.chat.updatedAt.getTime() === next.chat.updatedAt.getTime() &&
+            prev.isActive === next.isActive &&
+            prev.isMobile === next.isMobile
+        );
+    }
+);
 
-interface ChatListGroupProps {
+interface ChatHistoryGroup {
     label: string;
     chatList: ChatRecord[];
     activeID: string;
@@ -117,47 +121,50 @@ interface ChatListGroupProps {
     setGraphID: (id: string) => void;
 }
 
-const ChatListGroup = memo(function ChatListGroup({
-    label,
-    chatList,
-    activeID,
-    isMobile,
-    setGraphID,
-}: ChatListGroupProps) {
-    return (
-        <SidebarMenu>
-            <SidebarGroupLabel>{label}</SidebarGroupLabel>
-            {chatList.map((chat) => (
-                <ChatListItem
-                    key={chat.id}
-                    chat={chat}
-                    isActive={activeID == chat.id}
-                    isMobile={isMobile}
-                    setGraphID={setGraphID}
-                />
-            ))}
-        </SidebarMenu>
-    );
-});
+const ChatHistoryGroup = memo(
+    ({ label, chatList, activeID, isMobile, setGraphID }: ChatHistoryGroup) => {
+        return (
+            <SidebarMenu>
+                <SidebarGroupLabel>{label}</SidebarGroupLabel>
+                {chatList.map((chat) => (
+                    <ChatHistoryItem
+                        key={chat.id}
+                        chat={chat}
+                        isActive={activeID === chat.id}
+                        isMobile={isMobile}
+                        setGraphID={setGraphID}
+                    />
+                ))}
+            </SidebarMenu>
+        );
+    }
+);
 
-export const ChatList = memo(function ChatList() {
+export const ChatHistory = memo(() => {
     const { character } = useCharacterContext();
+    const { isMobile } = useSidebar();
     const id = useChatContext((context) => context.id);
-    const chats = useLiveQuery(
-        () => db.chats.orderBy("updatedAt").reverse().toArray(),
-        [],
-    );
     const [graphID, setGraphID] = useState<string | null>(null);
+    const chats = useLiveQuery(
+        () =>
+            db.chats
+                .where("characterIDs")
+                .anyOf(character!.id)
+                .reverse()
+                .sortBy("updatedAt"),
+        [character?.id]
+    );
+
+    const signature = useMemo(() => {
+        if (!chats) return [];
+        return chats.map((c) => `${c.id}::${c.title ?? ""}`);
+    }, [chats]);
 
     const timeGroups = useMemo(() => {
         if (!character || !chats) return [];
 
-        const filteredChats = chats.filter((chat) =>
-            chat.characterIDs.includes(character.id),
-        );
-
         const groups: Record<string, typeof chats> = {};
-        filteredChats.forEach((chat) => {
+        chats.forEach((chat) => {
             const time = DateTime.fromJSDate(chat.updatedAt);
             const group = getTimeGroup(time);
             if (!groups[group]) groups[group] = [];
@@ -167,9 +174,7 @@ export const ChatList = memo(function ChatList() {
         return Object.entries(groups)
             .sort(([a], [b]) => sortByTimeGroupLabel(a, b))
             .map(([label, chatList]) => [label, chatList] as const);
-    }, [character, chats]);
-
-    const { isMobile } = useSidebar();
+    }, [character?.id, signature.join("|")]);
 
     const handleSetGraphID = useCallback((id: string) => {
         setGraphID(id);
@@ -179,7 +184,7 @@ export const ChatList = memo(function ChatList() {
         <>
             <SidebarGroup className="group-data-[collapsible=icon]:hidden overflow-y-auto">
                 {timeGroups.map(([label, chatList]) => (
-                    <ChatListGroup
+                    <ChatHistoryGroup
                         key={label}
                         label={label}
                         chatList={chatList}
