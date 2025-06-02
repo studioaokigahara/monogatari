@@ -32,29 +32,29 @@ export default function CharacterList({
         useState<Character | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const listRef = useRef<HTMLDivElement>(null);
+    const sentinelRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const handleScroll = () => {
-            if (!listRef.current || isLoading) return;
+        if (!sentinelRef.current) return;
 
-            const { scrollTop, scrollHeight, clientHeight } = listRef.current;
-            const scrollPosition = scrollTop + clientHeight;
-            const scrollThreshold = scrollHeight - 50;
-
-            if (scrollPosition >= scrollThreshold) {
-                onLoadMore();
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const entry = entries[0];
+                if (entry.isIntersecting && !isLoading) {
+                    onLoadMore();
+                }
+            },
+            {
+                root: listRef.current,
+                rootMargin: "100px",
+                threshold: 0.1
             }
-        };
+        );
 
-        const listElement = listRef.current;
-        if (listElement) {
-            listElement.addEventListener("scroll", handleScroll);
-        }
+        observer.observe(sentinelRef.current);
 
         return () => {
-            if (listElement) {
-                listElement.removeEventListener("scroll", handleScroll);
-            }
+            observer.disconnect();
         };
     }, [isLoading, onLoadMore]);
 
@@ -126,6 +126,7 @@ export default function CharacterList({
                         ))}
                     </>
                 )}
+                <div ref={sentinelRef} className="col-span-full h-1" />
             </div>
 
             {selectedCharacter && (
