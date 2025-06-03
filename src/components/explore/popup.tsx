@@ -9,7 +9,6 @@ import {
     DialogDescription,
     DialogTitle
 } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useCharacterImage } from "@/hooks/use-character-image";
 import { useImageURL } from "@/contexts/image-context";
 import { getButtonIcon, getButtonText } from "@/lib/chub/utils";
@@ -23,36 +22,7 @@ import {
     StarHalf,
     TextSelect
 } from "lucide-react";
-import { Suspense, useEffect, useState } from "react";
-
-interface CharacterImageProps {
-    imageURL: string | null;
-    character: Character;
-}
-
-function CharacterImage({ imageURL, character }: CharacterImageProps) {
-    const [imageLoaded, setImageLoaded] = useState(false);
-
-    useEffect(() => {
-        setImageLoaded(false);
-    }, [imageURL]);
-
-    return (
-        <>
-            {imageURL && (
-                <img
-                    src={imageURL}
-                    alt={character!.name}
-                    className="max-h-full object-cover rounded-xl"
-                    onLoad={() => setImageLoaded(true)}
-                />
-            )}
-            {(!imageURL || !imageLoaded) && (
-                <Skeleton className="w-96 h-128 rounded-xl" />
-            )}
-        </>
-    );
-}
+import LazyImage from "@/components/lazy-image";
 
 interface CharacterPopupProps {
     character: Character;
@@ -125,9 +95,11 @@ export default function CharacterPopup({
                 <div className="flex flex-col md:flex-row gap-6">
                     <div className="flex flex-col md:basis-2/5 space-y-4 overflow-y-auto">
                         <div className="relative max-h-full self-center">
-                            <CharacterImage
+                            <LazyImage
                                 imageURL={imageURL}
-                                character={character}
+                                alt={character.name}
+                                size="max-h-full"
+                                className="object-cover rounded-xl"
                             />
                             <Button
                                 variant="secondary"

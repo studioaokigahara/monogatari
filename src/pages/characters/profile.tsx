@@ -4,14 +4,14 @@ import Gallery from "@/components/characters/profile/gallery";
 import Greetings from "@/components/characters/profile/greetings";
 import ProfileInfo from "@/components/characters/profile/info";
 import Header from "@/components/header";
+import LazyImage from "@/components/lazy-image";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
     DialogContent,
     DialogFooter,
-    DialogTrigger,
+    DialogTrigger
 } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCharacterContext } from "@/contexts/character-context";
 import { useImageURL } from "@/contexts/image-context";
@@ -28,45 +28,9 @@ import {
     MessageSquareText,
     MessagesSquare,
     Text,
-    Upload,
+    Upload
 } from "lucide-react";
 import { useEffect, useState } from "react";
-
-interface CharacterImageProps {
-    imageURL: string;
-    character: CharacterRecord;
-}
-
-function CharacterImage({
-    imageURL,
-    character,
-    ...props
-}: CharacterImageProps) {
-    const [imageLoaded, setImageLoaded] = useState(false);
-
-    useEffect(() => {
-        setImageLoaded(false);
-    }, [imageURL]);
-
-    const size = imageLoaded ? "md:max-w-1/6 h-full" : "hidden";
-
-    return (
-        <>
-            {imageURL && (
-                <img
-                    src={imageURL}
-                    alt={character.data.name}
-                    className={`${size} object-cover rounded-xl cursor-pointer`}
-                    onLoad={() => setImageLoaded(true)}
-                    {...props}
-                />
-            )}
-            {(!imageURL || !imageLoaded) && (
-                <Skeleton className="shrink-0 md:w-1/8 h-full rounded-xl" />
-            )}
-        </>
-    );
-}
 
 export default function CharacterProfile() {
     const character: CharacterRecord =
@@ -75,7 +39,8 @@ export default function CharacterProfile() {
     const image =
         character.assets.find((asset) => asset.name === "main")?.blob ??
         character.assets[0].blob;
-    const imageURL = useImageURL(image);
+    const [currentImage, setCurrentImage] = useState(image);
+    const imageURL = useImageURL(currentImage);
 
     const [editing, setEditing] = useState(false);
 
@@ -89,16 +54,16 @@ export default function CharacterProfile() {
             id: "character_definitions",
             role: "system" as const,
             content: replaceMacros(character.data.description, {
-                character,
+                character
             }),
-            createdAt: now,
+            createdAt: now
         };
 
         const graph = new ConversationGraph([systemMessage]);
 
         const allGreetings = [
             character.data.first_mes,
-            ...(character.data.alternate_greetings || []),
+            ...(character.data.alternate_greetings || [])
         ];
 
         allGreetings.forEach((greeting, index) => {
@@ -106,7 +71,7 @@ export default function CharacterProfile() {
                 id: `greeting-${index + 1}`,
                 role: "assistant" as const,
                 content: replaceMacros(greeting, { character }),
-                createdAt: now,
+                createdAt: now
             };
 
             const newVertexID = graph.branchFrom(graph.id, [greetingMessage]);
@@ -117,20 +82,22 @@ export default function CharacterProfile() {
         router.navigate({ to: "/chat/$id", params: { id: graph.id } });
     };
 
-    const replaceImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = async (
+        event: React.ChangeEvent<HTMLInputElement>
+    ) => {
         const file = event.target.files?.[0];
         if (!file) return;
 
         const blob = new Blob([file], { type: file.type });
         const ext = file.type.split("/")[1];
         await replaceAssetBlob(character.id, "main", blob, ext);
-        setImage(blob);
+        setCurrentImage(blob);
     };
 
     const { browse, input } = useFileDialog({
         accept: ".png, .jpeg, .webp",
         multiple: false,
-        onChange: replaceImage,
+        onChange: handleImageUpload
     });
 
     return (
@@ -142,9 +109,11 @@ export default function CharacterProfile() {
                     <div className="flex flex-col md:flex-row gap-4 md:items-end mb-4">
                         <Dialog>
                             <DialogTrigger asChild>
-                                <CharacterImage
+                                <LazyImage
                                     imageURL={imageURL}
-                                    character={character}
+                                    alt={character.data?.name}
+                                    size="md:max-w-1/6 h-full"
+                                    className="object-cover rounded-xl cursor-pointer"
                                 />
                             </DialogTrigger>
                             <DialogContent>

@@ -7,50 +7,12 @@ import {
     CardDescription,
     CardFooter,
     CardHeader,
-    CardTitle,
+    CardTitle
 } from "@/components/ui/card";
 import { CharacterRecord } from "@/database/schema/character";
 import { useImageURL } from "@/contexts/image-context";
 import { Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Skeleton } from "../ui/skeleton";
-
-interface CharacterImageProps {
-    imageURL: string;
-    character: CharacterRecord;
-}
-
-function CharacterImage({ imageURL, character }: CharacterImageProps) {
-    const [imageLoaded, setImageLoaded] = useState(false);
-
-    useEffect(() => {
-        setImageLoaded(false);
-    }, [imageURL]);
-
-    const size = imageLoaded ? "w-1/4" : "hidden";
-
-    return (
-        <>
-            {imageURL && (
-                <Link
-                    to="/characters/$id"
-                    params={{ id: character.id }}
-                    className={`${size} shrink-0`}
-                >
-                    <img
-                        src={imageURL}
-                        alt={character.data.name}
-                        className={`aspect-2/3 rounded-md object-cover`}
-                        onLoad={() => setImageLoaded(true)}
-                    />
-                </Link>
-            )}
-            {(!imageURL || !imageLoaded) && (
-                <Skeleton className="w-1/4 shrink-0 aspect-2/3 rounded-md" />
-            )}
-        </>
-    );
-}
+import LazyImage from "@/components/lazy-image";
 
 interface CharacterCardProps {
     character: CharacterRecord;
@@ -64,7 +26,18 @@ function CharacterCard({ character }: CharacterCardProps) {
 
     return (
         <Card className="max-w-2xl w-full max-h-48 h-full flex flex-0 flex-row p-2 gap-4 border rounded-lg shadow-sm overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-gray-500/50">
-            <CharacterImage imageURL={imageURL} character={character} />
+            <Link
+                to="/characters/$id"
+                params={{ id: character.id }}
+                className="w-1/4 shrink-0"
+            >
+                <LazyImage
+                    imageURL={imageURL}
+                    alt={character.data.name}
+                    size="w-full"
+                    className="aspect-2/3 rounded-md object-cover"
+                />
+            </Link>
             <div className="w-full flex flex-col overflow-hidden">
                 <CardHeader className="p-0 mb-2 gap-0">
                     <CardTitle>

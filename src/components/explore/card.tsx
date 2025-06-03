@@ -6,35 +6,8 @@ import { ButtonState, Character } from "@/types/chub";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Heart } from "lucide-react";
-import { TagList } from "../tags";
-import { Skeleton } from "../ui/skeleton";
-
-interface CharacterImageProps {
-    character: Character;
-    onCardClick: (event: React.MouseEvent) => void;
-}
-
-function CharacterImage({ character, onCardClick }: CharacterImageProps) {
-    const [imageLoaded, setImageLoaded] = useState(false);
-
-    useEffect(() => {
-        setImageLoaded(false);
-    }, [character]);
-
-    return (
-        <>
-            <img
-                src={character.avatar}
-                alt={character.name}
-                className={`aspect-1/1 rounded-xl cursor-pointer ${imageLoaded ? "block" : "hidden"}`}
-                // className={`size-[200px] rounded-xl cursor-pointer transition-discrete transition-opacity ${imageLoaded ? "block opacity-100" : "hidden opacity-0"}`}
-                onClick={onCardClick}
-                onLoad={() => setImageLoaded(true)}
-            />
-            {!imageLoaded && <Skeleton className="size-[200px] rounded-xl" />}
-        </>
-    );
-}
+import { TagList } from "@/components/tags";
+import LazyImage from "@/components/lazy-image";
 
 interface CharacterCardProps {
     character: Character;
@@ -94,9 +67,12 @@ function _CharacterCard({
             className={`flex flex-row md:flex-col gap-2 md:gap-0 p-4 transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-gray-500/50 ${highlightClass}`}
         >
             <div className="relative mx-auto mb-2">
-                <CharacterImage
-                    character={character}
-                    onCardClick={handleCardClick}
+                <LazyImage
+                    imageURL={character.avatar}
+                    alt={character.name}
+                    size="size-[200px]"
+                    className="aspect-1/1 rounded-xl cursor-pointer"
+                    onClick={handleCardClick}
                 />
                 <Button
                     variant="secondary"
