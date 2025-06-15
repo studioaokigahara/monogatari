@@ -122,7 +122,7 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     return (
-        <Sidebar collapsible="icon" {...props}>
+        <Sidebar variant="floating" collapsible="icon" {...props}>
             <SidebarContent>
                 <NavMain items={data.navMain} />
                 <SearchForm />
@@ -130,7 +130,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <ChatHistory />
             </SidebarContent>
             <SidebarFooter>
-                <PersonaSwitcher personas={data.personas} />
+                <PersonaSwitcher />
             </SidebarFooter>
             <SidebarRail />
         </Sidebar>
