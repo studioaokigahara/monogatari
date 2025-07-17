@@ -21,18 +21,18 @@ interface ScanResult {
  */
 export async function scanGallery(
     character: CharacterRecord,
-    { onLog = () => {}, onProgress = () => {} }: ScanCallbacks = {},
+    { onLog = () => {}, onProgress = () => {} }: ScanCallbacks = {}
 ): Promise<ScanResult> {
     onLog("Starting scan...");
     const fields = [
         character.data.first_mes,
         character.data.description,
         ...character.data.alternate_greetings,
-        ...character.data.group_only_greetings,
+        ...character.data.group_only_greetings
     ].filter(Boolean);
 
     const charURLs = Array.from(
-        new Set(fields.flatMap((f) => extractImageUrls(f))),
+        new Set(fields.flatMap((f) => extractImageUrls(f)))
     );
     if (charURLs.length === 0) {
         onLog("No image URLs found in character fields.");
@@ -58,7 +58,7 @@ export async function scanGallery(
         descURLs = extractImageUrls(info.description);
         onLog(`Found ${descURLs.length} image(s) in description.`);
         downloads.push(
-            ...descURLs.map((url) => ({ type: "url" as const, url })),
+            ...descURLs.map((url) => ({ type: "url" as const, url }))
         );
 
         if (info.hasGallery) {
@@ -68,8 +68,8 @@ export async function scanGallery(
             downloads.push(
                 ...galleryBlobs.map((blob) => ({
                     type: "blob" as const,
-                    blob,
-                })),
+                    blob
+                }))
             );
         } else {
             onLog(`No gallery found for ID ${info.id}.`);
@@ -90,14 +90,14 @@ export async function scanGallery(
         if (job.type === "url") {
             urlCount++;
             onLog(
-                `(${step}/${total}) Downloading URL ${urlCount} of ${urlCountTotal}: ${job.url}...`,
+                `(${step}/${total}) Downloading URL ${urlCount} of ${urlCountTotal}: ${job.url}...`
             );
             try {
                 const asset = await downloadAsset(job.url);
                 await addAssets(character.id, [asset]);
                 urlToEmbedded.set(
                     job.url,
-                    `embedded://${asset.name}.${asset.ext}`,
+                    `embedded://${asset.name}.${asset.ext}`
                 );
                 onLog(`✔ Saved ${job.url}`);
             } catch (e) {
@@ -107,13 +107,13 @@ export async function scanGallery(
         } else {
             galleryCount++;
             onLog(
-                `(${step}/${total}) Saving gallery image ${galleryCount} of ${galleryBlobs.length}...`,
+                `(${step}/${total}) Saving gallery image ${galleryCount} of ${galleryBlobs.length}...`
             );
             const asset: AssetRecord = {
                 blob: job.blob,
                 type: "x_gallery",
                 name: `gallery_${Date.now()}`,
-                ext: job.blob.type.split("/")[1],
+                ext: job.blob.type.split("/")[1]
             };
             await addAssets(character.id, [asset]);
             onLog(`✔ Saved gallery image #${galleryCount}`);

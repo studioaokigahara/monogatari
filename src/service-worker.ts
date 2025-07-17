@@ -6,7 +6,7 @@ import {
     embed,
     experimental_generateImage as generateImage,
     generateText,
-    streamText,
+    streamText
 } from "ai";
 
 class Deferred<T> {
@@ -29,8 +29,8 @@ let settings: Settings;
 let registry = createProviderRegistry({});
 const providerOptions = {
     openai: {
-        store: false,
-    },
+        store: false
+    }
 };
 
 async function saveSettings(settings: Settings) {
@@ -60,28 +60,28 @@ function initializeRegistry(settings: Settings) {
     const provider = settings.provider;
     const proxyID = settings.proxies.selected[provider];
     const proxy = settings.proxies.profiles.find(
-        (profile) => profile.id === proxyID,
+        (profile) => profile.id === proxyID
     );
     const apiKey =
         (settings as Extract<Settings, { provider: "openai" }>).openaiKey || "";
     registry = createProviderRegistry({
         openai: createOpenAI({
             baseURL: proxy?.baseURL || "",
-            apiKey: proxy?.password || apiKey,
-        }),
+            apiKey: proxy?.password || apiKey
+        })
     });
 }
 
 self.addEventListener("install", (event: ExtendableEvent) =>
-    event.waitUntil(self.skipWaiting()),
+    event.waitUntil(self.skipWaiting())
 );
 self.addEventListener("activate", (event: ExtendableEvent) =>
     event.waitUntil(
         (async () => {
             self.clients.claim();
             await loadSettings();
-        })(),
-    ),
+        })()
+    )
 );
 
 self.addEventListener("message", (event) => {
@@ -108,13 +108,13 @@ self.addEventListener("fetch", (event: FetchEvent) => {
                 settings = await Promise.race<Settings>([
                     settingsReady.promise,
                     new Promise<Settings>((_resolve, reject) =>
-                        setTimeout(() => reject(new Error(timeout)), 5000),
-                    ),
+                        setTimeout(() => reject(new Error(timeout)), 5000)
+                    )
                 ]);
             } catch {
                 return new Response(JSON.stringify({ error: timeout }), {
                     headers: { "Content-Type": "application/json" },
-                    status: 503,
+                    status: 503
                 });
             }
 
@@ -130,7 +130,7 @@ self.addEventListener("fetch", (event: FetchEvent) => {
                 default:
                     return new Response("Not found", { status: 404 });
             }
-        })(),
+        })()
     );
 });
 
@@ -147,7 +147,7 @@ async function stream(request: Request, settings: Settings) {
         maxTokens: settings.maxOutputTokens,
         temperature: settings.temperature,
         topP: settings.top_p,
-        experimental_generateMessageId: () => nanoid(),
+        experimental_generateMessageId: () => nanoid()
     });
 
     result.consumeStream();
@@ -167,11 +167,11 @@ async function completion(request: Request, settings: Settings) {
         maxTokens: settings.maxOutputTokens,
         temperature: settings.temperature,
         topP: settings.top_p,
-        experimental_generateMessageId: () => nanoid(),
+        experimental_generateMessageId: () => nanoid()
     });
 
     return new Response(text, {
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
+        headers: { "Content-Type": "text/plain; charset=utf-8" }
     });
 }
 
@@ -180,7 +180,7 @@ async function image(request: Request) {
 
     const { image } = await generateImage({
         model: registry.imageModel(model as never),
-        prompt: prompt,
+        prompt: prompt
     });
 
     const blob = new Blob([image.uint8Array], { type: "image/png" });
@@ -193,10 +193,10 @@ async function generateEmbed(request: Request) {
 
     const { embedding } = await embed({
         model: registry.textEmbeddingModel(model as never),
-        value,
+        value
     });
 
     return new Response(JSON.stringify(embedding), {
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
+        headers: { "Content-Type": "text/plain; charset=utf-8" }
     });
 }

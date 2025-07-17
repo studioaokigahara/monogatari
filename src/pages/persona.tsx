@@ -58,7 +58,7 @@ export default function PersonaEditor() {
 
     const blobs = useMemo(
         () => personas?.map((persona) => persona.blob),
-        [personas],
+        [personas]
     );
 
     const personaURLs = useImageURL(blobs!);
@@ -72,7 +72,7 @@ export default function PersonaEditor() {
         if (file) {
             setLocalPersona((prev) => ({
                 ...prev,
-                blob: new Blob([file], { type: file.type }),
+                blob: new Blob([file], { type: file.type })
             }));
         }
     };
@@ -84,7 +84,7 @@ export default function PersonaEditor() {
             description: localPersona.description,
             blob: localPersona.blob,
             createdAt: localPersona.createdAt ?? new Date(),
-            updatedAt: new Date(),
+            updatedAt: new Date()
         };
 
         const result = PersonaRecord.safeParse(record);
@@ -108,7 +108,7 @@ export default function PersonaEditor() {
 
     const { browse, input } = useFileDialog({
         accept: ".png, .jpeg, .webp",
-        onChange: handleImageUpload,
+        onChange: handleImageUpload
     });
 
     return (
@@ -163,7 +163,7 @@ export default function PersonaEditor() {
                                         onChange={(e) =>
                                             setLocalPersona((prev) => ({
                                                 ...prev,
-                                                name: e.target.value,
+                                                name: e.target.value
                                             }))
                                         }
                                         placeholder="Enter persona name..."
@@ -179,7 +179,7 @@ export default function PersonaEditor() {
                                         onChange={(e) =>
                                             setLocalPersona((prev) => ({
                                                 ...prev,
-                                                description: e.target.value,
+                                                description: e.target.value
                                             }))
                                         }
                                         placeholder="Enter persona description..."

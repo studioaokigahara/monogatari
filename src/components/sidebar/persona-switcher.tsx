@@ -6,13 +6,13 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuShortcut,
-    DropdownMenuTrigger,
+    DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
-    useSidebar,
+    useSidebar
 } from "@/components/ui/sidebar";
 import { useCharacterContext } from "@/contexts/character-context";
 import { db } from "@/database/database";
@@ -23,20 +23,16 @@ import { ChevronsUpDown, UserPen } from "lucide-react";
 import { useEffect, useMemo } from "react";
 
 export function PersonaSwitcher() {
-    // Retrieve the current persona from context
     const { persona, setPersona } = useCharacterContext();
-    // Live query (defaults to empty array to avoid undefined)
     const personas = useLiveQuery(() => db.personas.toArray(), []) ?? [];
     const { isMobile } = useSidebar();
 
-    // Memoize the array of persona blobs, which helps to avoid re-renders.
     const personaBlobs = useMemo(
         () => personas.map((personaItem) => personaItem.blob),
-        [personas],
+        [personas]
     );
     const imageURLs = useImageURL(personaBlobs);
 
-    // If the context has no persona set, but we have personas, set the context to the first persona
     useEffect(() => {
         if (personas.length > 0) {
             if (!persona || !personas.find((p) => p.id === persona.id)) {
@@ -45,13 +41,10 @@ export function PersonaSwitcher() {
         }
     }, [personas, persona, setPersona]);
 
-    // If no personas or no active persona in context, do not render anything
     if (personas.length === 0 || !persona) {
         return null;
     }
 
-    // Determine the index of the current persona within the list,
-    // then use that index to retrieve the corresponding image URL.
     const activeIndex = personas.findIndex((p) => p.id === persona.id);
     const activeImageURL =
         activeIndex !== -1 && Array.isArray(imageURLs)

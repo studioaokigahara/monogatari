@@ -6,13 +6,13 @@ const ProxyProfile = z.object({
     name: z.string().default(""),
     baseURL: z.string().default(""),
     password: z.string().optional(),
-    routes: z.record(ProviderSchema, z.string()).optional(),
+    routes: z.record(ProviderSchema, z.string()).optional()
 });
 
 const ProxySettings = z
     .object({
         profiles: z.array(ProxyProfile).default([]),
-        selected: z.record(ProviderSchema, z.string()).default({}),
+        selected: z.record(ProviderSchema, z.string()).default({})
     })
     .default({});
 
@@ -24,33 +24,34 @@ const Settings = z.object({
     streaming: z.boolean().default(true),
     chub: z
         .object({
-            apiKey: z.string().default(""),
+            apiKey: z.string().default("")
         })
         .default({}),
     models: ModelsSchema,
     proxies: ProxySettings,
     persona: z.string().default(""),
+    promptSet: z.string().default("")
 });
 
 const OpenAISettings = Settings.extend({
     provider: z.literal("openai"),
-    openaiKey: z.string().optional(),
+    openaiKey: z.string().optional()
 });
 
 const AnthropicSettings = Settings.extend({
     provider: z.literal("anthropic"),
-    anthropicKey: z.string().optional(),
+    anthropicKey: z.string().optional()
 });
 
 const GoogleSettings = Settings.extend({
     provider: z.literal("google"),
-    googleKey: z.string().optional(),
+    googleKey: z.string().optional()
 });
 
 export const SettingsSchema = z.discriminatedUnion("provider", [
     OpenAISettings,
     AnthropicSettings,
-    GoogleSettings,
+    GoogleSettings
 ]);
 
 export type Settings = z.infer<typeof SettingsSchema>;

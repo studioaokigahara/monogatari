@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
     Collapsible,
     CollapsibleContent,
-    CollapsibleTrigger,
+    CollapsibleTrigger
 } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,7 @@ import {
     SelectContent,
     SelectItem,
     SelectTrigger,
-    SelectValue,
+    SelectValue
 } from "@/components/ui/select";
 import type { SearchOptions } from "@/types/chub";
 import { stairsArrowDownLeft, stairsArrowUpRight } from "@lucide/lab";
@@ -37,7 +37,7 @@ import {
     TrendingUp,
     User,
     UserPlus,
-    UserSearch,
+    UserSearch
 } from "lucide-react";
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -52,7 +52,7 @@ interface SearchPanelProps {
 export default function Search({
     searchOptions,
     onSearchOptionsChange,
-    onReset,
+    onReset
 }: SearchPanelProps) {
     const [isOpen, setIsOpen] = useState(false);
     const formRef = useRef<HTMLFormElement>(null);
@@ -77,14 +77,14 @@ export default function Search({
         searchOptions.searchTerm,
         searchOptions.creator,
         searchOptions.includedTags.join(),
-        searchOptions.excludedTags.join(),
+        searchOptions.excludedTags.join()
     ]);
 
     const handleSelect =
         (field: keyof SearchOptions, parser?: (value: string) => any) =>
         (value: string) => {
             onSearchOptionsChange({
-                [field]: parser ? parser(value) : value,
+                [field]: parser ? parser(value) : value
             });
         };
 
@@ -106,7 +106,7 @@ export default function Search({
             creator: creator,
             includedTags: inc,
             excludedTags: exc,
-            page: 1,
+            page: 1
         });
     };
 
@@ -118,9 +118,9 @@ export default function Search({
     const namespaceOptions = useMemo(
         () => [
             { label: "Characters", icon: <User />, value: "characters" },
-            { label: "Lorebooks", icon: <BookOpenText />, value: "lorebooks" },
+            { label: "Lorebooks", icon: <BookOpenText />, value: "lorebooks" }
         ],
-        [],
+        []
     );
 
     const itemsPerPageOptions = useMemo(() => [8, 16, 24, 32, 40, 48, 64], []);
@@ -130,38 +130,38 @@ export default function Search({
             {
                 label: "Trending",
                 icon: <TrendingUp />,
-                value: "trending_downloads",
+                value: "trending_downloads"
             },
             { label: "Downloads", icon: <Download />, value: "download_count" },
             {
                 label: "Stars",
                 icon: <Star fill="currentColor" />,
-                value: "star_count",
+                value: "star_count"
             },
             { label: "ID", icon: <Fingerprint />, value: "id" },
             {
                 label: "Rating",
                 icon: <StarHalf fill="currentColor" />,
-                value: "rating",
+                value: "rating"
             },
             { label: "Rating Count", icon: <Hash />, value: "rating_count" },
             {
                 label: "Recently Updated",
                 icon: <Clock />,
-                value: "last_activity_at",
+                value: "last_activity_at"
             },
             {
                 label: "Favorites",
                 icon: <Heart fill="currentColor" />,
-                value: "n_favorites",
+                value: "n_favorites"
             },
             { label: "Creation Date", icon: <Cake />, value: "created_at" },
             { label: "Name", icon: <PencilLine />, value: "name" },
             { label: "Token Count", icon: <TextSelect />, value: "n_tokens" },
             { label: "Newcomers", icon: <UserPlus />, value: "newcomer" },
-            { label: "Random", icon: <Dices />, value: "random" },
+            { label: "Random", icon: <Dices />, value: "random" }
         ],
-        [],
+        []
     );
 
     return (
@@ -231,7 +231,7 @@ export default function Search({
                                         name="includedTags"
                                         placeholder="tag1, tag2, tag3"
                                         defaultValue={searchOptions.includedTags.join(
-                                            ", ",
+                                            ", "
                                         )}
                                         ref={incTagsRef}
                                     />
@@ -247,7 +247,7 @@ export default function Search({
                                         name="excludedTags"
                                         placeholder="tag1, tag2, tag3"
                                         defaultValue={searchOptions.excludedTags.join(
-                                            ", ",
+                                            ", "
                                         )}
                                         ref={excTagsRef}
                                     />
@@ -260,7 +260,7 @@ export default function Search({
                                         defaultValue="characters"
                                         value={searchOptions.namespace}
                                         onValueChange={handleSelect(
-                                            "namespace",
+                                            "namespace"
                                         )}
                                     >
                                         <SelectTrigger>
@@ -286,7 +286,7 @@ export default function Search({
                                     <Select
                                         value={searchOptions.itemsPerPage.toString()}
                                         onValueChange={handleSelect(
-                                            "itemsPerPage",
+                                            "itemsPerPage"
                                         )}
                                     >
                                         <SelectTrigger>
@@ -338,7 +338,7 @@ export default function Search({
                                         }
                                         onValueChange={handleSelect(
                                             "sortAscending",
-                                            (value) => value === "asc",
+                                            (value) => value === "asc"
                                         )}
                                     >
                                         <SelectTrigger>
@@ -372,7 +372,7 @@ export default function Search({
                                         checked={searchOptions.nsfw}
                                         onCheckedChange={(checked) =>
                                             onSearchOptionsChange({
-                                                nsfw: checked === true,
+                                                nsfw: checked === true
                                             })
                                         }
                                     />

@@ -6,7 +6,7 @@ import {
     type CharacterCardV3Data,
     CharacterRecord,
     TavernCardV2,
-    type TavernCardV2Data,
+    type TavernCardV2Data
 } from "@/database/schema/character";
 import { ThrowError, decodeBase64, encodeBase64, nanoid } from "@/lib/utils";
 import { router } from "@/router";
@@ -30,7 +30,7 @@ export function readCharacterImage(image: ArrayBuffer) {
     }
 
     const ccv3Index = tEXtChunks.findIndex(
-        (chunk) => chunk.keyword.toLowerCase() === "ccv3",
+        (chunk) => chunk.keyword.toLowerCase() === "ccv3"
     );
 
     if (ccv3Index > -1) {
@@ -38,7 +38,7 @@ export function readCharacterImage(image: ArrayBuffer) {
     }
 
     const charaIndex = tEXtChunks.findIndex(
-        (chunk) => chunk.keyword.toLowerCase() === "chara",
+        (chunk) => chunk.keyword.toLowerCase() === "chara"
     );
 
     if (charaIndex > -1) {
@@ -83,7 +83,7 @@ function dataUrlToBlob(dataUrl: string): Blob {
 
 async function extractAssetRecord(
     assets: CharacterCardV3Asset[],
-    imageBuffer?: ArrayBuffer,
+    imageBuffer?: ArrayBuffer
 ): Promise<[AssetRecord[], CharacterCardV3Asset[]]> {
     const assetRecords: AssetRecord[] = [];
     const pointers: CharacterCardV3Asset[] = [];
@@ -118,13 +118,13 @@ async function extractAssetRecord(
             blob: blob,
             type: asset.type,
             name: asset.name,
-            ext: asset.ext,
+            ext: asset.ext
         });
         pointers.push({
             type: asset.type,
             uri: `embedded://${asset.name}.${asset.ext}`,
             name: asset.name,
-            ext: asset.ext,
+            ext: asset.ext
         });
     }
 
@@ -132,7 +132,7 @@ async function extractAssetRecord(
 }
 
 export async function handleFileChange(
-    event: React.ChangeEvent<HTMLInputElement>,
+    event: React.ChangeEvent<HTMLInputElement>
 ) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -158,7 +158,7 @@ export async function handleFileChange(
 export async function importCharacter(
     parsedJSON: unknown,
     imageBuffer?: ArrayBuffer,
-    redirect = false,
+    redirect = false
 ) {
     let data:
         | z.infer<typeof CharacterCardV3Data>
@@ -171,7 +171,7 @@ export async function importCharacter(
     } else {
         console.warn(
             "V3 validation failed, attempting V2 fallback...",
-            V3Parse.error,
+            V3Parse.error
         );
         toast.warning("V3 validation failed, attempting V2 fallback…");
         console.log(parsedJSON);
@@ -180,7 +180,7 @@ export async function importCharacter(
         if (!V2Parse.success) {
             ThrowError(
                 "Uploaded character does not conform to V2 or V3 schema",
-                V2Parse.error,
+                V2Parse.error
             );
         }
 
@@ -194,13 +194,13 @@ export async function importCharacter(
             type: "icon",
             uri: `embedded://main.png`,
             name: "main",
-            ext: "png",
+            ext: "png"
         });
     }
 
     const [assetRecord, pointers] = await extractAssetRecord(
         data.assets,
-        imageBuffer,
+        imageBuffer
     );
     data.assets = pointers;
 
@@ -209,7 +209,7 @@ export async function importCharacter(
         data,
         assets: assetRecord,
         tagline: data.creator_notes,
-        favorite: false,
+        favorite: false
     });
 
     if (!record.success) {
@@ -221,7 +221,7 @@ export async function importCharacter(
     if (redirect) {
         router.navigate({
             to: `/characters/$id`,
-            params: { id: record.data.id },
+            params: { id: record.data.id }
         });
     }
     return record.data;
@@ -245,6 +245,6 @@ export async function downloadAsset(url: string): Promise<AssetRecord> {
         blob: blob,
         type: "x_gallery",
         name: name,
-        ext: ext,
+        ext: ext
     };
 }

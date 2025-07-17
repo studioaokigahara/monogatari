@@ -7,7 +7,7 @@ export default function SplashScreen() {
     const ref = useRef<HTMLDivElement>(null);
     const lotto = useMemo(
         () => (Math.random() >= 0.1 ? "Monogatari" : "Mowonowogatari"),
-        [],
+        []
     );
 
     return (

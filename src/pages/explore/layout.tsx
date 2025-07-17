@@ -22,13 +22,13 @@ const defaultSearchOptions: SearchOptions = {
     itemsPerPage: 24,
     sort: "trending_downloads",
     sortAscending: false,
-    page: 1,
+    page: 1
 };
 
 export default function ExploreLayout() {
     const [characters, setCharacters] = useState<Character[]>([]);
     const [characterPaths, setCharacterPaths] = useState<Set<string>>(
-        new Set(),
+        new Set()
     );
     const [totalCharactersLoaded, setTotalCharactersLoaded] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
@@ -42,7 +42,7 @@ export default function ExploreLayout() {
 
     const downloadedCharacters = useLiveQuery(
         () => db.characters.toArray(),
-        [],
+        []
     );
 
     useEffect(() => {
@@ -52,10 +52,10 @@ export default function ExploreLayout() {
 
         downloadedCharacters
             .filter(
-                (character: any) => character.data?.extensions?.chub?.full_path,
+                (character: any) => character.data?.extensions?.chub?.full_path
             )
             .forEach((character: any) =>
-                paths.add(character.data.extensions.chub.full_path),
+                paths.add(character.data.extensions.chub.full_path)
             );
 
         console.log(paths);
@@ -63,7 +63,7 @@ export default function ExploreLayout() {
 
         if (paths.size === 0) {
             toast.warning(
-                "No chub info found in database. Character download button states will be broken.",
+                "No chub info found in database. Character download button states will be broken."
             );
         }
 
@@ -82,10 +82,10 @@ export default function ExploreLayout() {
         (fullPath: string, state: ButtonState, errorMessage = "") => {
             setButtonStates((prevStates) => ({
                 ...prevStates,
-                [fullPath]: { state, error: errorMessage },
+                [fullPath]: { state, error: errorMessage }
             }));
         },
-        [setButtonStates],
+        [setButtonStates]
     );
 
     const enqueueDownload = useCallback(
@@ -93,7 +93,7 @@ export default function ExploreLayout() {
             setDownloadQueue((jobs) => [...jobs, job]);
             updateButtonState(job.fullPath, ButtonState.IN_QUEUE);
         },
-        [processingQueue, updateButtonState],
+        [processingQueue, updateButtonState]
     );
 
     const downloadCharacter = async (job: Character) => {
@@ -108,7 +108,7 @@ export default function ExploreLayout() {
             await scanGallery(record, {
                 onLog: (line) => console.log(line),
                 onProgress: (current, total) =>
-                    console.log(`Scanning ${current / total}`),
+                    console.log(`Scanning ${current / total}`)
             });
         } catch (error) {
             console.error("Gallery scan failed:", error);
@@ -132,7 +132,7 @@ export default function ExploreLayout() {
                 toast.promise(downloadCharacter(job), {
                     loading: `${loadingText} ${job.name}...`,
                     success: `${successText} ${job.name}`,
-                    error: `${errorText} failed for ${job.name}`,
+                    error: `${errorText} failed for ${job.name}`
                 });
                 updateButtonState(job.fullPath, ButtonState.DONE);
                 setTimeout(() => {
@@ -143,7 +143,7 @@ export default function ExploreLayout() {
                 updateButtonState(
                     job.fullPath,
                     ButtonState.ERROR,
-                    error.message,
+                    error.message
                 );
                 setTimeout(() => {
                     updateButtonState(job.fullPath, ButtonState.READY_DOWNLOAD);
@@ -190,8 +190,8 @@ export default function ExploreLayout() {
             setCharacters,
             setTotalCharactersLoaded,
             setIsLoading,
-            fetchCharacters,
-        ],
+            fetchCharacters
+        ]
     );
 
     const handleSearch = useCallback(
@@ -199,10 +199,10 @@ export default function ExploreLayout() {
             return toast.promise(search(resetList), {
                 loading: "Searching...",
                 success: "Search complete.",
-                error: (error: Error) => `❌ ${error.message}`,
+                error: (error: Error) => `❌ ${error.message}`
             });
         },
-        [search, toast],
+        [search, toast]
     );
 
     useEffect(() => {
@@ -213,10 +213,10 @@ export default function ExploreLayout() {
         (newOptions: Partial<SearchOptions>) => {
             setSearchOptions((prev) => ({
                 ...prev,
-                ...newOptions,
+                ...newOptions
             }));
         },
-        [setSearchOptions],
+        [setSearchOptions]
     );
 
     const loadMore = useCallback(() => {
@@ -229,14 +229,14 @@ export default function ExploreLayout() {
         if (lastBatchCount < itemsPerPage) return;
 
         updateSearchOptions({
-            page: searchOptions.page + 1,
+            page: searchOptions.page + 1
         });
     }, [
         isLoading,
         totalCharactersLoaded,
         searchOptions.page,
         searchOptions.itemsPerPage,
-        updateSearchOptions,
+        updateSearchOptions
     ]);
 
     return (
@@ -262,7 +262,7 @@ export default function ExploreLayout() {
                         includedTags: prev.includedTags.includes(tag)
                             ? prev.includedTags.filter((t) => t !== tag)
                             : [...prev.includedTags, tag],
-                        page: 1,
+                        page: 1
                     }));
                 }}
                 onCreatorClick={(creator) => {
@@ -270,7 +270,7 @@ export default function ExploreLayout() {
                         ...defaultSearchOptions,
                         creator: creator.replace("@", ""),
                         excludedTags: [],
-                        sort: "created_at",
+                        sort: "created_at"
                     });
                 }}
             />
