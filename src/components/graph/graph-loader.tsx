@@ -1,4 +1,4 @@
-import { loadGraph } from "@/database/chats";
+import { ChatManager } from "@/database/chats";
 import { ConversationGraph } from "@/types/conversation-graph";
 import { useEffect, useState } from "react";
 import ReactFlow, { Background } from "reactflow";
@@ -9,7 +9,7 @@ export function GraphLoader({ id }: { id: string }) {
 
     useEffect(() => {
         let canceled = false;
-        loadGraph(id).then((graph) => {
+        ChatManager.loadGraph(id).then((graph) => {
             if (canceled) return;
             setGraph(graph ?? new ConversationGraph([], id));
         });

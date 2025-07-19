@@ -1,12 +1,13 @@
 import {
     Action,
     ActionButtons,
-    SiblingNavigator,
+    SiblingNavigator
 } from "@/components/chat/buttons";
 import { Prose } from "@/components/prose";
 import { useChatContext } from "@/contexts/chat-context";
 import { cn, nanoid } from "@/lib/utils";
-import { Message } from "@ai-sdk/react";
+import { UseChatHelpers } from "@ai-sdk/react";
+import type { UIMessage } from "ai";
 import { Check, Copy, Dot, Pencil, RefreshCw, Trash2, X } from "lucide-react";
 import {
     memo,
@@ -14,10 +15,11 @@ import {
     useLayoutEffect,
     useMemo,
     useRef,
-    useState,
+    useState
 } from "react";
 import { toast } from "sonner";
 import { Textarea } from "../ui/textarea";
+import { ConversationGraph } from "@/types/conversation-graph";
 
 function TypingIndicator() {
     return (
@@ -30,47 +32,67 @@ function TypingIndicator() {
 }
 
 interface MessageItemProps {
-    message: Message;
+    message: UIMessage;
     index: number;
+    messages: UseChatHelpers["messages"];
+    status: UseChatHelpers["status"];
+    reload: UseChatHelpers["reload"];
+    setMessages: UseChatHelpers["setMessages"];
+    graph: ConversationGraph;
+    vertexMap: Map<string, string>;
+    siblingIndex: Record<string, number>;
+    branchFrom: (vertexID: string) => void;
+    deleteVertex: (vertexID: string) => void;
+    goToNextSibling: (vertexID: string) => void;
+    goToPreviousSibling: (vertexID: string) => void;
 }
 
 const MessageItem = memo(
-    function MessageItem({ message, index }: MessageItemProps) {
-        const messages = useChatContext((context) => context.messages);
-        const status = useChatContext((context) => context.status);
-        const reload = useChatContext((context) => context.reload);
-        const graph = useChatContext((context) => context.graph);
-        const branchFrom = useChatContext((context) => context.branchFrom);
-        const setMessages = useChatContext((context) => context.setMessages);
-        const vertexMap = useChatContext((context) => context.vertexMap);
-        const deleteVertex = useChatContext((context) => context.deleteVertex);
-        const siblingIndex = useChatContext((context) => context.siblingIndex);
-        const goToNextSibling = useChatContext(
-            (context) => context.goToNextSibling,
+    function MessageItem({
+        message,
+        index,
+        messages,
+        status,
+        reload,
+        graph,
+        branchFrom,
+        setMessages,
+        vertexMap,
+        deleteVertex,
+        siblingIndex,
+        goToNextSibling,
+        goToPreviousSibling
+    }: MessageItemProps) {
+        const currentID = useMemo(
+            () => vertexMap.get(message.id),
+            [vertexMap, message.id]
         );
-        const goToPreviousSibling = useChatContext(
-            (context) => context.goToPreviousSibling,
+        const vertex = useMemo(
+            () => (currentID ? graph.getVertex(currentID) : undefined),
+            [graph, currentID]
         );
-
-        const currentID = vertexMap.get(message.id);
-        const vertex = currentID ? graph.getVertex(currentID) : undefined;
-        const parentID = vertex?.parents[0];
-        const parent = parentID ? graph.getVertex(parentID) : undefined;
-        const siblings = parent?.children ?? [];
+        const parentID = useMemo(() => vertex?.parents[0], [vertex]);
+        const parent = useMemo(
+            () => (parentID ? graph.getVertex(parentID) : undefined),
+            [graph, parentID]
+        );
+        const siblings = useMemo(() => parent?.children ?? [], [parent]);
         const totalSiblings = siblings.length;
-        const currentSibling =
-            parentID && siblingIndex[parentID] !== undefined
-                ? siblingIndex[parentID] + 1
-                : siblings.findIndex((v) => v === currentID) + 1;
+        const currentSibling = useMemo(() => {
+            if (!currentID || !parent || siblings.length === 0) return 1;
+
+            const actualIndex = siblings.findIndex((v) => v === currentID);
+            return actualIndex !== -1 ? actualIndex + 1 : 1;
+        }, [currentID, parent, siblings]);
 
         const handlePrevious = useCallback(
             () => goToPreviousSibling(message.id),
-            [goToPreviousSibling, message.id],
+            [goToPreviousSibling, message.id]
         );
 
         const handleNext = useCallback(
             () => goToNextSibling(message.id),
-            [goToNextSibling, message.id],
+            [goToNextSibling, message.id]
         );
 
         const handleReload = useCallback(async () => {
@@ -89,13 +111,13 @@ const MessageItem = memo(
             }
             reload();
         }, [
-            message,
+            message.id,
             messages,
             setMessages,
             index,
             vertexMap,
             branchFrom,
-            reload,
+            reload
         ]);
 
         const handleCopy = useCallback(async () => {
@@ -138,7 +160,7 @@ const MessageItem = memo(
                         id: nanoid(),
                         role: "user",
                         content: editedContent,
-                        createdAt: new Date(),
+                        createdAt: new Date()
                     });
                     return newMsgs;
                 });
@@ -160,44 +182,46 @@ const MessageItem = memo(
             vertexMap,
             branchFrom,
             setMessages,
-            reload,
+            reload
         ]);
 
-        const actions: Action[] = [];
+        const actions = useMemo(() => {
+            const actions: Action[] = [];
 
-        if (isEditing) {
-            actions.push({
-                Icon: Check,
-                onClick: handleSaveEdit,
-            });
-            actions.push({
-                Icon: X,
-                onClick: handleCancelEdit,
-            });
-        } else {
-            // Show reload for assistant messages or if this is the last user message
-            if (
-                message.role === "assistant" ||
-                (message.role === "user" && index === messages.length - 1)
-            ) {
+            if (isEditing) {
                 actions.push({
-                    Icon: RefreshCw,
-                    onClick: handleReload,
+                    Icon: Check,
+                    onClick: handleSaveEdit
+                });
+                actions.push({
+                    Icon: X,
+                    onClick: handleCancelEdit
+                });
+            } else {
+                const isUser =
+                    message.role === "user" && index === messages.length - 1;
+                if (message.role === "assistant" || isUser) {
+                    actions.push({
+                        Icon: RefreshCw,
+                        onClick: handleReload
+                    });
+                }
+                actions.push({
+                    Icon: Copy,
+                    onClick: handleCopy
+                });
+                actions.push({
+                    Icon: Pencil,
+                    onClick: handleEdit
+                });
+                actions.push({
+                    Icon: Trash2,
+                    onClick: handleDelete
                 });
             }
-            actions.push({
-                Icon: Copy,
-                onClick: handleCopy,
-            });
-            actions.push({
-                Icon: Pencil,
-                onClick: handleEdit,
-            });
-            actions.push({
-                Icon: Trash2,
-                onClick: handleDelete,
-            });
-        }
+
+            return actions;
+        }, [isEditing, message.role, index, messages.length]);
 
         const userClasses =
             "relative message-tail-path dark:group-data-[role=user]:[--tw-prose-body:--tw-prose-invert-headings] group-data-[role=user]:bg-blue-500 group-data-[role=user]:before:bg-blue-500 group-data-[role=user]:mr-[12.25px] group-data-[role=user]:rounded-3xl group-data-[role=user]:max-w-4/5 group-data-[role=user]:px-3 group-data-[role=user]:py-2";
@@ -208,7 +232,7 @@ const MessageItem = memo(
                 data-role={message.role}
                 className={cn(
                     `group last:mb-4 space-y-1`,
-                    message.role === "user" && "justify-items-end",
+                    message.role === "user" && "justify-items-end"
                 )}
             >
                 {isEditing ? (
@@ -217,9 +241,7 @@ const MessageItem = memo(
                         onChange={(e) => setEditedContent(e.target.value)}
                         className={cn(
                             "w-full p-2 h-32 rounded border border-gray-300 dark:border-gray-700 bg-transparent resize-none",
-                            message.role === "user"
-                                ? userClasses
-                                : "max-w-full",
+                            message.role === "user" ? userClasses : "max-w-full"
                         )}
                     />
                 ) : (
@@ -228,7 +250,7 @@ const MessageItem = memo(
                         className={cn(
                             message.role === "user"
                                 ? userClasses
-                                : "group-data-[role=assistant]:max-w-full",
+                                : "group-data-[role=assistant]:max-w-full"
                         )}
                     >
                         {message.content}
@@ -257,12 +279,28 @@ const MessageItem = memo(
         prev.message.id === next.message.id &&
         prev.message.role === next.message.role &&
         prev.message.content === next.message.content &&
-        prev.index === next.index,
+        prev.index === next.index &&
+        prev.status === next.status &&
+        prev.vertexMap === next.vertexMap
 );
+MessageItem.displayName = "Message";
 
-const ChatMessages = memo(function ChatMessages() {
+const ChatMessages = memo(function Chat() {
     const messages = useChatContext((context) => context.messages);
     const status = useChatContext((context) => context.status);
+    const reload = useChatContext((context) => context.reload);
+    const graph = useChatContext((context) => context.graph);
+    const branchFrom = useChatContext((context) => context.branchFrom);
+    const setMessages = useChatContext((context) => context.setMessages);
+    const vertexMap = useChatContext((context) => context.vertexMap);
+    const deleteVertex = useChatContext((context) => context.deleteVertex);
+    const siblingIndex = useChatContext((context) => context.siblingIndex);
+    const goToNextSibling = useChatContext(
+        (context) => context.goToNextSibling
+    );
+    const goToPreviousSibling = useChatContext(
+        (context) => context.goToPreviousSibling
+    );
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useLayoutEffect(() => {
@@ -271,13 +309,30 @@ const ChatMessages = memo(function ChatMessages() {
 
     return (
         <div className="flex sm:w-2xl @min-[1025px]:w-3xl sm:mx-auto place-center">
-            <div className="mt-4 mb-16">
+            <div className="w-full mt-4 mb-16">
                 {messages.map((m, i) => {
                     if (m.role === "system") return;
-                    return <MessageItem key={m.id} message={m} index={i} />;
+                    return (
+                        <MessageItem
+                            key={m.id}
+                            message={m}
+                            index={i}
+                            messages={messages}
+                            status={status}
+                            reload={reload}
+                            graph={graph}
+                            branchFrom={branchFrom}
+                            setMessages={setMessages}
+                            vertexMap={vertexMap}
+                            deleteVertex={deleteVertex}
+                            siblingIndex={siblingIndex}
+                            goToNextSibling={goToNextSibling}
+                            goToPreviousSibling={goToPreviousSibling}
+                        />
+                    );
                 })}
                 {status === "submitted" && <TypingIndicator />}
-                <div ref={scrollRef} />
+                <div id="chat-scroll-anchor" ref={scrollRef} />
             </div>
         </div>
     );
