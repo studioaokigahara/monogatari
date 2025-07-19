@@ -1,5 +1,6 @@
 import type { CharacterRecord } from "@/database/schema/character";
 import type { PersonaRecord } from "@/database/schema/persona";
+import { get } from "lodash";
 
 function hashString(s: string): number {
     let hash = 0x811c9dc5;
@@ -69,6 +70,16 @@ export function processMacro(inner: string, ctx: MacroContext): string {
     const key = rawKey.trim().toLowerCase();
     const payload = rest.join(":").trim();
 
+    if (key.startsWith("char.")) {
+        const path = key
+            .slice(5)
+            .replace(/\[(\d+)]/g, ".$1")
+            .split(".")
+            .filter(Boolean);
+        const value = get(character?.data, path);
+        return Array.isArray(value) ? value.join("\n") : (String(value) ?? "");
+    }
+
     switch (key) {
         case "char":
             if (
@@ -81,6 +92,9 @@ export function processMacro(inner: string, ctx: MacroContext): string {
 
         case "user":
             return persona?.name ?? "(You)";
+
+        case "user.description":
+            return persona?.description ?? "";
 
         case "random": {
             const vals = splitValues(payload);
