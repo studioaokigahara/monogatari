@@ -20,7 +20,7 @@ export const TavernCardV2Data = TavernCard.extend({
     system_prompt: z.string(),
     post_history_instructions: z.string(),
     alternate_greetings: z.array(z.string().min(1)),
-    character_book: CharacterBook.optional(),
+    character_book: CharacterBook.optional().nullable(),
     tags: z.array(z.string()),
     creator: z.string().min(1),
     character_version: z.string(),
@@ -76,7 +76,7 @@ export type CharacterCardV3Asset = z.infer<typeof CharacterCardV3Asset>;
 export const CharacterCardV3Data = TavernCardV2Data.extend({
     // changed fields from CCV2
     creator_notes: z.string(),
-    character_book: Lorebook.optional(),
+    character_book: Lorebook.optional().nullable(),
     // new fields in CCV3
     assets: z.array(CharacterCardV3Asset).default([
         {
