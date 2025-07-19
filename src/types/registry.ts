@@ -168,25 +168,6 @@ export const MODEL_REGISTRY: ModelRegistry = {
                     }
                 }
             ]
-        },
-        {
-            id: "gpt-4.5-preview-2025-02-27",
-            name: "GPT-4.5",
-            description: "Will be deprecated on 2025-07-14.",
-            price: {
-                input: 75,
-                output: 150
-            },
-            contextLength: 128000,
-            maxOutputTokens: 16384,
-            supports: {
-                streaming: true,
-                imageInput: true,
-                structuredOutput: true,
-                tools: true,
-                reasoning: false,
-                logprobs: true
-            }
         }
     ],
     anthropic: [
