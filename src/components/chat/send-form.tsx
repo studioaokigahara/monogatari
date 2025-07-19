@@ -5,7 +5,7 @@ import {
     TooltipProvider,
     TooltipTrigger
 } from "@/components/ui/tooltip";
-import { Textarea } from "@/components/ui/textarea";
+import { TextareaAutosize as Textarea } from "@/components/ui/textarea-autosize";
 import { useChatContext } from "@/contexts/chat-context";
 import {
     ArrowUp,
