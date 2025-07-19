@@ -38,4 +38,5 @@ export interface SearchOptions {
     sort: string;
     sortAscending: boolean;
     page: number;
+    inclusiveOr: boolean;
 }

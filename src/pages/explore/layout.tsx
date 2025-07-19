@@ -22,7 +22,8 @@ const defaultSearchOptions: SearchOptions = {
     itemsPerPage: 24,
     sort: "trending_downloads",
     sortAscending: false,
-    page: 1
+    page: 1,
+    inclusiveOr: false
 };
 
 export default function ExploreLayout() {
@@ -240,15 +241,19 @@ export default function ExploreLayout() {
     ]);
 
     return (
-        <>
-            <Header />
-            <SearchPanel
-                searchOptions={searchOptions}
-                onSearchOptionsChange={updateSearchOptions}
-                onReset={() => {
-                    setSearchOptions(defaultSearchOptions);
-                }}
-            />
+        <div className="flex flex-col relative">
+            <div className="sticky top-0 z-50">
+                <Header className="bg-background -mb-1" />
+                <div className="bg-background/66 backdrop-blur border rounded-xl">
+                    <SearchPanel
+                        searchOptions={searchOptions}
+                        onSearchOptionsChange={updateSearchOptions}
+                        onReset={() => {
+                            setSearchOptions(defaultSearchOptions);
+                        }}
+                    />
+                </div>
+            </div>
             <CharacterList
                 characters={characters}
                 characterPaths={characterPaths}
@@ -274,6 +279,6 @@ export default function ExploreLayout() {
                     });
                 }}
             />
-        </>
+        </div>
     );
 }

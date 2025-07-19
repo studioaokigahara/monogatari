@@ -117,6 +117,7 @@ export async function fetchCharacters(
         searchParams.append("chub", "true");
         searchParams.append("nsfw", searchOptions.nsfw.toString());
         searchParams.append("nsfl", searchOptions.nsfw.toString());
+        searchParams.append("inclusive_or", searchOptions.inclusiveOr.toString());
 
         const includedTags = searchOptions.includedTags
             .filter((tag) => tag.length)

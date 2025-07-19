@@ -365,17 +365,33 @@ export default function Search({
                                     </Select>
                                 </div>
                                 <div className="flex items-center gap-2 mt-4">
-                                    <Label htmlFor="nsfw">NSFW</Label>
-                                    <Switch
-                                        id="nsfw"
-                                        name="nsfw"
-                                        checked={searchOptions.nsfw}
-                                        onCheckedChange={(checked) =>
-                                            onSearchOptionsChange({
-                                                nsfw: checked === true
-                                            })
-                                        }
-                                    />
+                                    <Label htmlFor="nsfw">
+                                        NSFW
+                                        <Switch
+                                            id="nsfw"
+                                            name="nsfw"
+                                            checked={searchOptions.nsfw}
+                                            onCheckedChange={(checked) =>
+                                                onSearchOptionsChange({
+                                                    nsfw: checked === true
+                                                })
+                                            }
+                                        />
+                                    </Label>
+                                    <Label htmlFor="inclusiveOr">
+                                        Inclusive Tags
+                                        <Switch
+                                            id="inclusiveOr"
+                                            name="inclusiveOr"
+                                            checked={!searchOptions.inclusiveOr}
+                                            onCheckedChange={(checked) =>
+                                                onSearchOptionsChange({
+                                                    inclusiveOr:
+                                                        checked !== true
+                                                })
+                                            }
+                                        />
+                                    </Label>
                                 </div>
                             </div>
                         </CollapsibleContent>

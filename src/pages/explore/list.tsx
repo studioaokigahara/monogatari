@@ -45,7 +45,7 @@ export default function CharacterList({
                 }
             },
             {
-                root: listRef.current,
+                root: null,
                 rootMargin: "100px",
                 threshold: 0.1
             }
@@ -86,7 +86,7 @@ export default function CharacterList({
         <>
             <div
                 ref={listRef}
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 max-h-full overflow-y-auto py-4 px-0.5"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 pt-2 pb-4 px-0.5"
             >
                 {characters.length === 0 && !isLoading ? (
                     <div className="col-span-full flex flex-col items-center justify-center h-64">
