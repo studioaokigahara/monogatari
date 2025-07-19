@@ -1,4 +1,4 @@
-import { addAssets, replaceImageUrls } from "@/database/characters";
+import { CharacterManager } from "@/database/characters";
 import type { AssetRecord, CharacterRecord } from "@/database/schema/character";
 import { downloadAsset, extractImageUrls } from "@/lib/character/utils";
 import { fetchCharacterInfo, fetchGalleryImages } from "@/lib/chub/api";
@@ -94,7 +94,7 @@ export async function scanGallery(
             );
             try {
                 const asset = await downloadAsset(job.url);
-                await addAssets(character.id, [asset]);
+                await CharacterManager.addAssets(character.id, [asset]);
                 urlToEmbedded.set(
                     job.url,
                     `embedded://${asset.name}.${asset.ext}`
@@ -115,12 +115,12 @@ export async function scanGallery(
                 name: `gallery_${Date.now()}`,
                 ext: job.blob.type.split("/")[1]
             };
-            await addAssets(character.id, [asset]);
+            await CharacterManager.addAssets(character.id, [asset]);
             onLog(`✔ Saved gallery image #${galleryCount}`);
         }
     }
 
-    await replaceImageUrls(character.id, urlToEmbedded);
+    await CharacterManager.replaceImageURLs(character.id, urlToEmbedded);
     onLog(`Replaced ${urlToEmbedded.size} URLs with embedded images.`);
     onLog("Scan complete.");
 

@@ -3,7 +3,7 @@ import {
     createRootRouteWithContext,
     createRoute,
     createRouter,
-    redirect,
+    redirect
 } from "@tanstack/react-router";
 
 import type { CharacterRecord } from "@/database/schema/character";
@@ -19,6 +19,8 @@ import SettingsLayout from "@/pages/settings/layout";
 import LorebookSettings from "@/pages/settings/lorebook";
 import PromptSettings from "@/pages/settings/prompts";
 import PersonaEditor from "./pages/persona";
+import CharacterCreator from "./pages/characters/new";
+import { CharacterManager } from "./database/characters";
 
 interface Context {
     breadcrumb?: string;
@@ -32,7 +34,7 @@ const rootRoute = createRootRouteWithContext<Context>()({
             throw redirect({ to: "/chat" });
         }
         return { breadcrumb: "Home" };
-    },
+    }
 });
 
 export const chatRoute = createRoute({
@@ -40,22 +42,22 @@ export const chatRoute = createRoute({
     path: "chat",
     component: Chat,
     beforeLoad: () => ({
-        breadcrumb: "Chat",
-    }),
+        breadcrumb: "Chat"
+    })
 });
 
 export const characterChatRoute = createRoute({
     getParentRoute: () => chatRoute,
     path: "$id",
-    component: Chat,
+    component: Chat
 });
 
 const charactersRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "characters",
     beforeLoad: () => ({
-        breadcrumb: "Characters",
-    }),
+        breadcrumb: "Characters"
+    })
 });
 
 const characterListRoute = createRoute({
@@ -63,8 +65,17 @@ const characterListRoute = createRoute({
     path: "/",
     component: CharacterList,
     beforeLoad: () => ({
-        breadcrumb: null,
-    }),
+        breadcrumb: null
+    })
+});
+
+export const newCharacterRoute = createRoute({
+    getParentRoute: () => charactersRoute,
+    path: "new",
+    component: CharacterCreator,
+    beforeLoad: () => ({
+        breadcrumb: "New Character"
+    })
 });
 
 export const characterProfileRoute = createRoute({
@@ -74,14 +85,10 @@ export const characterProfileRoute = createRoute({
     beforeLoad: async ({ params }) => {
         const { id } = params;
 
-        const character = await db.characters.get(id);
-
-        if (!character) {
-            throw new Error("Character not found");
-        }
+        const character = await CharacterManager.get(id);
 
         return { character, breadcrumb: character.data.name ?? id };
-    },
+    }
 });
 
 const exploreRoute = createRoute({
@@ -89,8 +96,8 @@ const exploreRoute = createRoute({
     path: "explore",
     component: ExploreLayout,
     beforeLoad: () => ({
-        breadcrumb: "Explore",
-    }),
+        breadcrumb: "Explore"
+    })
 });
 
 const personasRoute = createRoute({
@@ -98,8 +105,8 @@ const personasRoute = createRoute({
     path: "personas",
     component: PersonaEditor,
     beforeLoad: () => ({
-        breadcrumb: "Personas",
-    }),
+        breadcrumb: "Personas"
+    })
 });
 
 const settingsRoute = createRoute({
@@ -107,8 +114,8 @@ const settingsRoute = createRoute({
     path: "settings",
     component: SettingsLayout,
     beforeLoad: () => ({
-        breadcrumb: "Settings",
-    }),
+        breadcrumb: "Settings"
+    })
 });
 
 const generalSettingsRoute = createRoute({
@@ -116,8 +123,8 @@ const generalSettingsRoute = createRoute({
     path: "/",
     component: GeneralSettings,
     beforeLoad: () => ({
-        breadcrumb: null!,
-    }),
+        breadcrumb: null!
+    })
 });
 
 const apiSettingsRoute = createRoute({
@@ -125,16 +132,16 @@ const apiSettingsRoute = createRoute({
     path: "api",
     component: ApiSettings,
     beforeLoad: () => ({
-        breadcrumb: "API",
-    }),
+        breadcrumb: "API"
+    })
 });
 
 const toolSettingsRoute = createRoute({
     getParentRoute: () => settingsRoute,
     path: "tools",
     beforeLoad: () => ({
-        breadcrumb: "Tools",
-    }),
+        breadcrumb: "Tools"
+    })
 });
 
 const promptSettingsRoute = createRoute({
@@ -142,8 +149,8 @@ const promptSettingsRoute = createRoute({
     path: "prompts",
     component: PromptSettings,
     beforeLoad: () => ({
-        breadcrumb: "Prompts",
-    }),
+        breadcrumb: "Prompts"
+    })
 });
 
 const lorebookSettingsRoute = createRoute({
@@ -151,8 +158,8 @@ const lorebookSettingsRoute = createRoute({
     path: "lorebooks",
     component: LorebookSettings,
     beforeLoad: () => ({
-        breadcrumb: "Lorebooks",
-    }),
+        breadcrumb: "Lorebooks"
+    })
 });
 
 const formatSettingsRoute = createRoute({
@@ -160,13 +167,17 @@ const formatSettingsRoute = createRoute({
     path: "formatting",
     component: FormatSettings,
     beforeLoad: () => ({
-        breadcrumb: "Formatting",
-    }),
+        breadcrumb: "Formatting"
+    })
 });
 
 const routeTree = rootRoute.addChildren([
     chatRoute.addChildren([characterChatRoute]),
-    charactersRoute.addChildren([characterListRoute, characterProfileRoute]),
+    charactersRoute.addChildren([
+        characterListRoute,
+        newCharacterRoute,
+        characterProfileRoute
+    ]),
     exploreRoute,
     personasRoute,
     settingsRoute.addChildren([
@@ -175,8 +186,8 @@ const routeTree = rootRoute.addChildren([
         toolSettingsRoute,
         promptSettingsRoute,
         lorebookSettingsRoute,
-        formatSettingsRoute,
-    ]),
+        formatSettingsRoute
+    ])
 ]);
 
 export const router = createRouter({ routeTree, defaultPreload: "intent" });

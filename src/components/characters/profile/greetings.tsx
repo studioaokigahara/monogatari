@@ -7,17 +7,34 @@ import { CharacterRecord } from "@/database/schema/character";
 import { Plus, Trash } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { CharacterManager } from "@/database/characters";
 
 interface GreetingsProps {
-    character: CharacterRecord;
+    character: CharacterRecord | null;
     editing: boolean;
+    isNewMode?: boolean;
+    formData?: Partial<CharacterRecord["data"]>;
+    onUpdate?: (data: Partial<CharacterRecord["data"]>) => void;
 }
 
-export default function Greetings({ character, editing }: GreetingsProps) {
-    const [greetings, setGreetings] = useState<string[]>([
-        character.data.first_mes,
-        ...character.data.alternate_greetings,
-    ]);
+export default function Greetings({
+    character,
+    editing,
+    isNewMode = false,
+    formData,
+    onUpdate
+}: GreetingsProps) {
+    const [greetings, setGreetings] = useState<string[]>(
+        isNewMode
+            ? [
+                  formData?.first_mes || "",
+                  ...(formData?.alternate_greetings || [])
+              ]
+            : [
+                  character?.data.first_mes || "",
+                  ...(character?.data.alternate_greetings || [])
+              ]
+    );
     const [activeTab, setActiveTab] = useState<string>("greeting-1");
     const activeIndex = useMemo(() => {
         const index = Number(activeTab.split("-")[1]) - 1;
@@ -29,15 +46,30 @@ export default function Greetings({ character, editing }: GreetingsProps) {
         updated[activeIndex] = value;
         setGreetings(updated);
 
-        await db.characters
-            .where("id")
-            .equals(character.id)
-            .modify((record) => {
-                if (activeIndex === 0) record.data.first_mes = value;
-                else record.data.alternate_greetings = updated.slice(1);
+        if (isNewMode && onUpdate) {
+            onUpdate({
+                first_mes: updated[0],
+                alternate_greetings: updated.slice(1)
             });
+            return;
+        }
 
-        toast.success(`Saved greeting ${activeIndex + 1}`);
+        if (character) {
+            if (activeIndex === 0) {
+                await CharacterManager.updateField(
+                    character.id,
+                    "first_mes",
+                    updated[0]
+                );
+            } else {
+                await CharacterManager.updateField(
+                    character.id,
+                    "alternate_greetings",
+                    updated.slice(1)
+                );
+            }
+            toast.success(`Saved greeting ${activeIndex + 1}`);
+        }
     };
 
     const addGreeting = async () => {
@@ -45,14 +77,23 @@ export default function Greetings({ character, editing }: GreetingsProps) {
         setGreetings(updated);
         setActiveTab(`greeting-${updated.length}`);
 
-        await db.characters
-            .where("id")
-            .equals(character.id)
-            .modify((record) => {
-                record.data.alternate_greetings = updated.slice(1);
+        if (isNewMode && onUpdate) {
+            onUpdate({
+                first_mes: updated[0],
+                alternate_greetings: updated.slice(1)
             });
+            return;
+        }
 
-        toast.success("Added new greeting.");
+        if (character) {
+            await CharacterManager.updateField(
+                character.id,
+                "alternate_greetings",
+                updated.slice(1)
+            );
+
+            toast.success("Added new greeting.");
+        }
     };
 
     const deleteGreeting = async () => {
@@ -65,21 +106,30 @@ export default function Greetings({ character, editing }: GreetingsProps) {
         setGreetings(updated);
         setActiveTab(`greeting-${activeIndex}`);
 
-        await db.characters
-            .where("id")
-            .equals(character.id)
-            .modify((record) => {
-                record.data.alternate_greetings = updated.slice(1);
+        if (isNewMode && onUpdate) {
+            onUpdate({
+                first_mes: updated[0],
+                alternate_greetings: updated.slice(1)
             });
+            return;
+        }
 
-        toast.success(`Deleted greeting ${activeIndex + 1}.`);
+        if (character) {
+            await CharacterManager.updateField(
+                character.id,
+                "alternate_greetings",
+                updated.slice(1)
+            );
+
+            toast.success(`Deleted greeting ${activeIndex + 1}.`);
+        }
     };
 
     return (
         <Card className="overflow-hidden">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <CardHeader className="overflow-x-auto">
-                    <TabsList className="bg-muted/50">
+                    <TabsList className="bg-muted/50 rounded-full *:rounded-full *:cursor-pointer">
                         {greetings.map((_, idx) => (
                             <TabsTrigger
                                 key={idx}
@@ -118,8 +168,17 @@ export default function Greetings({ character, editing }: GreetingsProps) {
                                 const draft = [...greetings];
                                 draft[activeIndex] = e.currentTarget.value;
                                 setGreetings(draft);
+                                if (isNewMode && onUpdate) {
+                                    onUpdate({
+                                        first_mes: draft[0],
+                                        alternate_greetings: draft.slice(1)
+                                    });
+                                }
                             }}
                             onBlur={(e) => saveGreeting(e.currentTarget.value)}
+                            minRows={6}
+                            placeholder="Write how your character greets someone..."
+                            className="font-mono text-sm"
                         />
                     ) : (
                         <Prose>

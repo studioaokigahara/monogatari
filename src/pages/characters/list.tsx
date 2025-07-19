@@ -1,8 +1,5 @@
 import { db } from "@/database/database";
-
 import CharacterCard from "@/components/characters/card";
-import ImportCharacter from "@/components/characters/import-character";
-import NewCharacter from "@/components/characters/new-character";
 import Header from "@/components/header";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,18 +9,19 @@ import {
     PaginationItem,
     PaginationLink,
     PaginationNext,
-    PaginationPrevious,
+    PaginationPrevious
 } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFileDialog } from "@/hooks/use-file-dialog";
 import { handleFileChange } from "@/lib/character/utils";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Import } from "lucide-react";
+import { Import, UserPlus } from "lucide-react";
+import { router } from "@/router";
 
 function CharacterListItems() {
     const characters = useLiveQuery(
         () => db.characters.orderBy("id").reverse().toArray(),
-        [],
+        []
     );
 
     if (characters === undefined) {
@@ -52,8 +50,12 @@ function CharacterListItems() {
 export default function CharacterList() {
     const { browse, input } = useFileDialog({
         accept: ".png, .json, .charx",
-        onChange: handleFileChange,
+        onChange: handleFileChange
     });
+
+    const navigateToCreation = () => {
+        router.navigate({ to: "/characters/new" });
+    };
 
     return (
         <>
@@ -64,7 +66,10 @@ export default function CharacterList() {
                         <Import />
                         Import
                     </Button>
-                    <NewCharacter />
+                    <Button onClick={navigateToCreation}>
+                        <UserPlus />
+                        New Character
+                    </Button>
                 </div>
             </Header>
             <Pagination className="my-2">

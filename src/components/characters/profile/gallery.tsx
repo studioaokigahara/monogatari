@@ -7,11 +7,11 @@ import {
     DialogDescription,
     DialogFooter,
     DialogTitle,
-    DialogTrigger,
+    DialogTrigger
 } from "@/components/ui/dialog";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useImageURL } from "@/contexts/image-context";
-import { addAssets } from "@/database/characters";
+import { addAssets, CharacterManager } from "@/database/characters";
 import { db } from "@/database/database";
 import { AssetRecord, CharacterRecord } from "@/database/schema/character";
 import { useFileDialog } from "@/hooks/use-file-dialog";
@@ -39,7 +39,7 @@ export default function Gallery({ character }: GalleryProps) {
 
         const asset = assets[index];
         const updatedAssets = assets.filter((_, i) => i !== index);
-        await db.characters.update(character.id, { assets: updatedAssets });
+        await CharacterManager.updateAssets(character!.id, updatedAssets);
         setAssets(updatedAssets);
         setOpenIndex(null);
         toast.success(`Deleted ${asset.name}.${asset.ext}`);
@@ -55,21 +55,21 @@ export default function Gallery({ character }: GalleryProps) {
                 blob: new Blob([file]),
                 type: "x_gallery",
                 name: `gallery_${Date.now()}`,
-                ext: file.type.split("/")[1],
+                ext: file.type.split("/")[1]
             });
         }
 
-        toast.promise(addAssets(character.id, assets), {
+        toast.promise(CharacterManager.addAssets(character!.id, assets), {
             loading: "Uploading files...",
-            success: `Files uploaded to gallery successfully!`,
-            error: "Failed to upload files.",
+            success: `Files uploaded successfully!`,
+            error: "Failed to upload files."
         });
     };
 
     const { browse, input } = useFileDialog({
         accept: ".png, .jpeg, .webp",
         multiple: true,
-        onChange: addToGallery,
+        onChange: addToGallery
     });
 
     return (

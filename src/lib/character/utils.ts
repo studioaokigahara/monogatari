@@ -1,4 +1,4 @@
-import { addCharacter } from "@/database/characters";
+import { CharacterManager } from "@/database/characters";
 import {
     type AssetRecord,
     CharacterCardV3,
@@ -216,7 +216,7 @@ export async function importCharacter(
         ThrowError(`Failed to parse character record`, record.error);
     }
 
-    await addCharacter(record.data);
+    await CharacterManager.add(record.data);
     toast.success(`${record.data.data.name} imported successfully!`);
     if (redirect) {
         router.navigate({

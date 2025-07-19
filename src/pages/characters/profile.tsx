@@ -14,14 +14,15 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCharacterContext } from "@/contexts/character-context";
+import { useSettingsContext } from "@/contexts/settings-context";
 import { useImageURL } from "@/contexts/image-context";
-import { replaceAssetBlob } from "@/database/characters";
-import { saveGraph } from "@/database/chats";
+import { CharacterManager } from "@/database/characters";
+import { ChatManager } from "@/database/chats";
 import { CharacterRecord } from "@/database/schema/character";
 import { useFileDialog } from "@/hooks/use-file-dialog";
-import { replaceMacros } from "@/lib/curly-braces";
 import { characterProfileRoute, router } from "@/router";
-import { ConversationGraph } from "@/types/conversation-graph";
+import { db } from "@/database/database";
+import { useLiveQuery } from "dexie-react-hooks";
 import {
     Edit,
     Images,
@@ -35,7 +36,13 @@ import { useEffect, useState } from "react";
 export default function CharacterProfile() {
     const character: CharacterRecord =
         characterProfileRoute.useMatch().context.character!;
-    const { setCharacter } = useCharacterContext();
+    const { setCharacter, persona } = useCharacterContext();
+    const { settings } = useSettingsContext();
+
+    const preset = useLiveQuery(
+        () => db.promptSets.get(settings.promptSet),
+        [settings.promptSet]
+    );
     const image =
         character.assets.find((asset) => asset.name === "main")?.blob ??
         character.assets[0].blob;
@@ -49,36 +56,8 @@ export default function CharacterProfile() {
     }, [character, setCharacter]);
 
     const startNewChat = async () => {
-        const now = new Date();
-        const systemMessage = {
-            id: "character_definitions",
-            role: "system" as const,
-            content: replaceMacros(character.data.description, {
-                character
-            }),
-            createdAt: now
-        };
-
-        const graph = new ConversationGraph([systemMessage]);
-
-        const allGreetings = [
-            character.data.first_mes,
-            ...(character.data.alternate_greetings || [])
-        ];
-
-        allGreetings.forEach((greeting, index) => {
-            const greetingMessage = {
-                id: `greeting-${index + 1}`,
-                role: "assistant" as const,
-                content: replaceMacros(greeting, { character }),
-                createdAt: now
-            };
-
-            const newVertexID = graph.branchFrom(graph.id, [greetingMessage]);
-            if (index === 0) graph.setActiveVertex(newVertexID);
-        });
-
-        await saveGraph(graph, [character.id]);
+        const graph = ChatManager.createChatGraph(character, preset, persona);
+        await ChatManager.saveGraph(graph, [character.id]);
         router.navigate({ to: "/chat/$id", params: { id: graph.id } });
     };
 
@@ -90,7 +69,12 @@ export default function CharacterProfile() {
 
         const blob = new Blob([file], { type: file.type });
         const ext = file.type.split("/")[1];
-        await replaceAssetBlob(character.id, "main", blob, ext);
+        await CharacterManager.replaceAssetBlob(
+            character.id,
+            "main",
+            blob,
+            ext
+        );
         setCurrentImage(blob);
     };
 
@@ -145,7 +129,7 @@ export default function CharacterProfile() {
 
                     {/* Main Content */}
                     <Tabs defaultValue="description" className="gap-4 mb-4">
-                        <TabsList className="w-full bg-muted/50">
+                        <TabsList className="w-full bg-muted/50 rounded-full *:rounded-full *:cursor-pointer">
                             <TabsTrigger value="description">
                                 <Text />
                                 Description

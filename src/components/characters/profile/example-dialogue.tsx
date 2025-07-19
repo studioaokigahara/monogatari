@@ -1,21 +1,22 @@
 import { Prose } from "@/components/prose";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { db } from "@/database/database";
+import { CharacterManager } from "@/database/characters";
 import { CharacterRecord } from "@/database/schema/character";
 import { useState } from "react";
 import { toast } from "sonner";
 
 function extractExamples(raw: string): string[] {
-    return Array.from(raw.matchAll(/<START>\s*([\s\S]*?)(?=<START>|$)/g), (m) =>
-        m[1].trim(),
+    return Array.from(
+        raw.matchAll(/<START>\s*([\s\S]*?)(?=<START>|$)/g),
+        (matches) => matches[1].trim()
     ).filter(Boolean);
 }
 
 function formatExamples(
     block: string,
     index: number,
-    characterName: string,
+    characterName: string
 ): { key: number; content: string } {
     const lines = block
         .split(/\r?\n/)
@@ -39,29 +40,32 @@ function formatExamples(
 }
 
 interface ExampleDialogueProps {
-    character: CharacterRecord;
-    editing: Boolean;
+    character: CharacterRecord | null;
+    editing: boolean;
+    isNewMode?: boolean;
+    formData?: Partial<CharacterRecord["data"]>;
+    onUpdate?: (data: Partial<CharacterRecord["data"]>) => void;
 }
 
 export default function ExampleDialogue({
     character,
     editing,
+    isNewMode = false,
+    formData,
+    onUpdate
 }: ExampleDialogueProps) {
     const [exampleMessages, setExampleMessages] = useState(
-        character.data.mes_example,
+        (isNewMode ? formData?.mes_example : character?.data.mes_example) ?? ""
     );
 
     const formattedExamples = extractExamples(exampleMessages).map(
-        (block, index) => formatExamples(block, index, character.data.name),
+        (block, index) =>
+            formatExamples(block, index, character?.data.name || "Character")
     );
 
     const save = async (value: string) => {
-        await db.characters
-            .where("id")
-            .equals(character.id)
-            .modify((record) => {
-                record.data.mes_example = value;
-            });
+        if (!character) return;
+        await CharacterManager.updateField(character.id, "mes_example", value);
         toast.success(`Example dialogue saved.`);
     };
 
@@ -72,10 +76,18 @@ export default function ExampleDialogue({
                     <Textarea
                         autoFocus
                         value={exampleMessages}
-                        onChange={(e) =>
-                            setExampleMessages(e.currentTarget.value)
-                        }
-                        onBlur={() => save(exampleMessages)}
+                        onChange={(e) => {
+                            setExampleMessages(e.currentTarget.value);
+                            if (isNewMode && onUpdate) {
+                                onUpdate({
+                                    mes_example: e.currentTarget.value
+                                });
+                            }
+                        }}
+                        onBlur={() => !isNewMode && save(exampleMessages)}
+                        minRows={8}
+                        placeholder={`<START>\n{{char}}: Hello!\n{{user}}: Hi!`}
+                        className="font-mono text-sm"
                     />
                 </CardContent>
             </Card>
@@ -95,9 +107,7 @@ export default function ExampleDialogue({
                         </Prose>
                     ))
                 ) : (
-                    <Prose>
-                        *No example dialogue… yet. Click to add some!*
-                    </Prose>
+                    <Prose>*No example dialogue… yet.*</Prose>
                 )}
             </CardContent>
         </Card>
