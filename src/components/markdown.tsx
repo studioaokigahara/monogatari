@@ -16,12 +16,12 @@ function parseMarkdown(markdown: string): string[] {
 
     if (markdown.startsWith(cache.current.source)) {
         const delta = markdown.slice(cache.current.source.length);
-        const prevTokens = [...cache.current.tokens];
-        const lastToken = prevTokens.pop() ?? "";
+        const oldTokens = [...cache.current.tokens];
+        const lastToken = oldTokens.pop() ?? "";
         const newTokens = marked
             .lexer(lastToken + delta)
             .map((token) => token.raw);
-        const merged = prevTokens.concat(newTokens);
+        const merged = oldTokens.concat(newTokens);
         cache.current = { source: markdown, tokens: merged };
         return merged;
     }
