@@ -129,6 +129,7 @@ export const CharacterCardV3 = z
     .strip();
 
 export type CharacterCardV3 = z.infer<typeof CharacterCardV3>;
+export type CharacterCardV3Data = z.infer<typeof CharacterCardV3Data>;
 
 export const AssetRecord = z.object({
     blob: z.instanceof(Blob),
