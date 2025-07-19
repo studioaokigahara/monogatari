@@ -144,10 +144,10 @@ const splashes = [
     "GPT-4.5 doesn't beat o1!\nTherefore, it's bad!",
     "ARC-AGI 2!",
     "hoi!!1!",
-    "Better than SillyTavern!",
+    "Also try SillyTavern!",
     "🎉 You clicked me!",
     "GPT-4.1 is newer than GPT-4.5!",
-    "Also try T3 Chat!",
+    "Also try T3 Chat!"
 ];
 
 interface SplashTextProps {
