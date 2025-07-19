@@ -165,7 +165,7 @@ export default function Search({
     );
 
     return (
-        <Card className="w-full -mb-2 py-4 z-1">
+        <Card className="w-full py-4 bg-transparent border-none shadow-none">
             <CardContent>
                 <form ref={formRef} onSubmit={handleSubmit}>
                     <Collapsible
