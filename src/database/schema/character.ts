@@ -19,10 +19,10 @@ export const TavernCardV2Data = TavernCard.extend({
     creator_notes: z.string(),
     system_prompt: z.string(),
     post_history_instructions: z.string(),
-    alternate_greetings: z.array(z.string().min(1)),
+    alternate_greetings: z.array(z.string()),
     character_book: CharacterBook.nullish(),
     tags: z.array(z.string()),
-    creator: z.string().min(1),
+    creator: z.string(),
     character_version: z.string(),
     extensions: z.record(z.any()).default({}),
 }).catchall(z.any());
