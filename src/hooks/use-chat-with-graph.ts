@@ -90,22 +90,25 @@ export function useChatWithGraph() {
 
         if (graphState.characterIDs.length === 0) {
             if (character) {
-                graphState.setCharacterIDs([character.id]);
+                graphState.setCharacterIDs((prev) =>
+                    prev.length === 0 ? [character.id] : prev
+                );
             } else {
                 setCharacter(undefined);
             }
             return;
         }
 
-        CharacterManager.get(graphState.characterIDs[0]).then((fetchedCharacter) => {
-            setCharacter(fetchedCharacter);
-        });
+        const newCharacter = graphState.characterIDs[0]
+        if (character?.id !== newCharacter) {
+            CharacterManager
+                .get(newCharacter)
+                .then(setCharacter);
+        }
     }, [
         graphState.loaded,
         graphState.characterIDs,
-        character,
-        graphState.setCharacterIDs,
-        setCharacter
+        character?.id
     ]);
 
     useEffect(() => {
