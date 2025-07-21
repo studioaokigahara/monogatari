@@ -21,7 +21,7 @@ export const SiblingNavigator = memo(
         goToNextSibling,
         disabled,
         className,
-        editing,
+        editing
     }: SiblingNavigatorProps) {
         if (total <= 1 || editing) return null;
 
@@ -32,7 +32,7 @@ export const SiblingNavigator = memo(
         };
 
         const handleNextClick: React.MouseEventHandler<HTMLButtonElement> = (
-            _event,
+            _event
         ) => {
             goToNextSibling();
         };
@@ -69,7 +69,7 @@ export const SiblingNavigator = memo(
         prev.disabled === next.disabled &&
         prev.className === next.className &&
         prev.goToPreviousSibling === next.goToPreviousSibling &&
-        prev.goToNextSibling === next.goToNextSibling,
+        prev.goToNextSibling === next.goToNextSibling
 );
 
 export interface Action {
@@ -87,7 +87,7 @@ export const ActionButtons = memo(
     function ActionButtons({
         actions,
         disabled,
-        className,
+        className
     }: ActionButtonProps) {
         return (
             <>
@@ -112,6 +112,6 @@ export const ActionButtons = memo(
         prev.actions.every(
             (a, i) =>
                 a.Icon === next.actions[i].Icon &&
-                a.onClick === next.actions[i].onClick,
-        ),
+                a.onClick === next.actions[i].onClick
+        )
 );
