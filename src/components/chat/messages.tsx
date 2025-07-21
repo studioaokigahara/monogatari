@@ -6,12 +6,14 @@ import {
 import { Prose } from "@/components/prose";
 import { useChatContext } from "@/contexts/chat-context";
 import { cn, nanoid } from "@/lib/utils";
+import { ConversationGraph } from "@/types/conversation-graph";
 import { UseChatHelpers } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import { Check, Copy, Dot, Pencil, RefreshCw, Trash2, X } from "lucide-react";
 import {
     memo,
     useCallback,
+    useEffect,
     useLayoutEffect,
     useMemo,
     useRef,
@@ -19,7 +21,6 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { Textarea } from "../ui/textarea";
-import { ConversationGraph } from "@/types/conversation-graph";
 
 function TypingIndicator() {
     return (
@@ -300,14 +301,37 @@ const ChatMessages = memo(function Chat() {
     const goToPreviousSibling = useChatContext(
         (context) => context.goToPreviousSibling
     );
+
+    const containerRef = useRef<HTMLDivElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const [autoScroll, setAutoScroll] = useState(true);
+
+    useEffect(() => {
+        const element = containerRef.current;
+        if (!element) return;
+
+        const onScroll = () => {
+            const { scrollTop, scrollHeight, clientHeight } = element;
+            const atBottom = scrollHeight - scrollTop - clientHeight < 50;
+            setAutoScroll(atBottom);
+        };
+
+        element.addEventListener("scroll", onScroll, { passive: true });
+
+        return () => element.removeEventListener("scroll", onScroll);
+    }, []);
 
     useLayoutEffect(() => {
-        scrollRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+        if (autoScroll) {
+            scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [messages, autoScroll]);
 
     return (
-        <div className="flex sm:w-2xl @min-[1025px]:w-3xl sm:mx-auto place-center">
+        <div
+            ref={containerRef}
+            className="flex sm:w-2xl @min-[1025px]:w-3xl sm:mx-auto place-center"
+        >
             <div className="w-full mt-4 mb-16">
                 {messages.map((m, i) => {
                     if (m.role === "system") return;
