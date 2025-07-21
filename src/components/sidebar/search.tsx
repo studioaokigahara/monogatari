@@ -1,16 +1,35 @@
 import { Search, SquarePen } from "lucide-react";
-
 import { Label } from "@/components/ui/label";
 import {
     SidebarGroup,
     SidebarInput,
     SidebarMenu,
     SidebarMenuButton,
-    SidebarMenuItem,
+    SidebarMenuItem
 } from "@/components/ui/sidebar";
 import { CommandMenu } from "../command-menu";
+import { useCharacterContext } from "@/contexts/character-context";
+import { useSettingsContext } from "@/contexts/settings-context";
+import { ChatManager } from "@/database/chats";
+import { router } from "@/router";
+import { useLiveQuery } from "dexie-react-hooks";
+import { PromptManager } from "@/database/prompts";
 
 export function SearchForm({ ...props }: React.ComponentProps<"form">) {
+    const { character, persona } = useCharacterContext();
+    const { settings } = useSettingsContext();
+
+    const preset = useLiveQuery(
+        () => PromptManager.get(settings.promptSet),
+        [settings.promptSet]
+    );
+
+    const startNewChat = async () => {
+        const graph = ChatManager.createChatGraph(character!, preset, persona);
+        await ChatManager.saveGraph(graph, [character!.id]);
+        router.navigate({ to: "/chat/$id", params: { id: graph.id } });
+    };
+
     return (
         <SidebarGroup className="py-0">
             <SidebarMenu>
@@ -36,7 +55,8 @@ export function SearchForm({ ...props }: React.ComponentProps<"form">) {
                     <SidebarMenuButton
                         asChild
                         tooltip="New Chat"
-                        className="basis-8"
+                        className="basis-8 hover:cursor-pointer"
+                        onClick={startNewChat}
                     >
                         <SquarePen className="shrink-0" />
                     </SidebarMenuButton>

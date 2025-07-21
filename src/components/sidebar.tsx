@@ -1,4 +1,3 @@
-import { NavFolders } from "@/components/sidebar/nav-folders";
 import { NavMain } from "@/components/sidebar/nav-main";
 import { PersonaSwitcher } from "@/components/sidebar/persona-switcher";
 import {
@@ -7,6 +6,7 @@ import {
     SidebarFooter,
     SidebarRail
 } from "@/components/ui/sidebar";
+import { useCharacterContext } from "@/contexts/character-context";
 import {
     BookOpenText,
     Cog,
@@ -121,13 +121,15 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+    const { character } = useCharacterContext();
+
     return (
         <Sidebar variant="floating" collapsible="icon" {...props}>
             <SidebarContent>
                 <NavMain items={data.navMain} />
-                <SearchForm />
+                {character && <SearchForm />}
                 {/* <NavFolders folders={data.folders} /> */}
-                <ChatHistory />
+                {character && <ChatHistory />}
             </SidebarContent>
             <SidebarFooter>
                 <PersonaSwitcher />
