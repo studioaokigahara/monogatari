@@ -4,7 +4,7 @@ import { Attachment } from "ai";
 import { ConversationGraph } from "@/types/conversation-graph";
 
 export interface ChatState {
-    messages: Message[];
+    messages: UseChatHelpers["messages"];
     error: UseChatHelpers["error"];
     input: UseChatHelpers["input"];
     status: UseChatHelpers["status"];

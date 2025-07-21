@@ -40,7 +40,6 @@ interface MessageItemProps {
     setMessages: UseChatHelpers["setMessages"];
     graph: ConversationGraph;
     vertexMap: Map<string, string>;
-    siblingIndex: Record<string, number>;
     branchFrom: (vertexID: string) => void;
     deleteVertex: (vertexID: string) => void;
     goToNextSibling: (vertexID: string) => void;
@@ -59,7 +58,6 @@ const MessageItem = memo(
         setMessages,
         vertexMap,
         deleteVertex,
-        siblingIndex,
         goToNextSibling,
         goToPreviousSibling
     }: MessageItemProps) {
@@ -281,7 +279,9 @@ const MessageItem = memo(
         prev.message.content === next.message.content &&
         prev.index === next.index &&
         prev.status === next.status &&
-        prev.vertexMap === next.vertexMap
+        prev.vertexMap === next.vertexMap &&
+        prev.goToPreviousSibling === next.goToPreviousSibling &&
+        prev.goToNextSibling === next.goToNextSibling
 );
 MessageItem.displayName = "Message";
 
@@ -294,7 +294,6 @@ const ChatMessages = memo(function Chat() {
     const setMessages = useChatContext((context) => context.setMessages);
     const vertexMap = useChatContext((context) => context.vertexMap);
     const deleteVertex = useChatContext((context) => context.deleteVertex);
-    const siblingIndex = useChatContext((context) => context.siblingIndex);
     const goToNextSibling = useChatContext(
         (context) => context.goToNextSibling
     );
@@ -320,12 +319,11 @@ const ChatMessages = memo(function Chat() {
                             messages={messages}
                             status={status}
                             reload={reload}
-                            graph={graph}
+                            graph={graph!}
                             branchFrom={branchFrom}
                             setMessages={setMessages}
                             vertexMap={vertexMap}
                             deleteVertex={deleteVertex}
-                            siblingIndex={siblingIndex}
                             goToNextSibling={goToNextSibling}
                             goToPreviousSibling={goToPreviousSibling}
                         />
