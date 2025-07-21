@@ -29,37 +29,31 @@ export function useChatSync({
     title,
     setTitle
 }: useChatSyncProps) {
-    const lastSavedIndex = useRef<number>(0);
     const workingVertex = useRef<string | null>(null);
     const titleGenerated = useRef<boolean>(false);
 
     useEffect(() => {
-        if (
-            !graph ||
-            !loaded ||
-            !chatID ||
-            status !== "ready" ||
-            !workingVertex.current
-        )
-            return;
+        const notReady = !graph || !loaded || !chatID || status !== "ready"
 
-        let sliceStart = lastSavedIndex.current;
-        sliceStart = messages.reduce((acc, message, index) => {
-            return vertexMap.get(message.id) === workingVertex.current
-                ? index + 1
-                : acc;
-        }, lastSavedIndex.current);
+        if (notReady) return;
+
+        let sliceStart = -1;
+        for (let i = messages.length - 1; i >= 0; i--) {
+            if (vertexMap.has(messages[i].id)) {
+                sliceStart = i + 1;
+                break;
+            }
+        }
+        if (sliceStart === -1) sliceStart = 0;
+
         const unsavedMessages = messages.slice(sliceStart);
-
-        if (unsavedMessages.length === 0) return;
+        if (unsavedMessages.length === 0 && !workingVertex.current) return;
 
         const persistUnsaved = async () => {
-            const newVertexMap = new Map(vertexMap);
-            lastSavedIndex.current = messages.length;
-
             let currentVertex = workingVertex.current ?? graph.activeVertex;
             workingVertex.current = null;
 
+            const newVertexMap = new Map(vertexMap);
             for (const message of unsavedMessages) {
                 const parsed = ChatMessage.parse(message);
                 currentVertex = graph.branchFrom(currentVertex, [parsed]);
@@ -78,7 +72,6 @@ export function useChatSync({
         loaded,
         chatID,
         vertexMap,
-        setVertexMap,
         saveGraph
     ]);
 
@@ -176,7 +169,7 @@ export function useChatSync({
 
             for (let i = 0; i < minLength; i++) {
                 if (currentPath[i].id !== targetPath[i].id) break;
-                commonAncestorIndex = 1;
+                commonAncestorIndex = i;
             }
 
             let divergentIndex = 0;
@@ -220,7 +213,7 @@ export function useChatSync({
                 setVertexMap(newVertexMap);
             }
         },
-        [getSibling, setMessages, setVertexMap]
+        [getSibling]
     );
 
     const goToPreviousSibling = useCallback(
@@ -232,7 +225,7 @@ export function useChatSync({
                 setVertexMap(newVertexMap);
             }
         },
-        [getSibling, setMessages, setVertexMap]
+        [getSibling]
     );
 
     return {
