@@ -10,7 +10,7 @@ import type { CharacterRecord } from "@/database/schema/character";
 import Layout from "@/layout";
 import CharacterList from "@/pages/characters/list";
 import CharacterProfile from "@/pages/characters/profile";
-import Chat from "@/pages/chat";
+import ChatLayout from "@/pages/chat";
 import ExploreLayout from "@/pages/explore/layout";
 import ApiSettings from "@/pages/settings/api";
 import FormatSettings from "@/pages/settings/format";
@@ -40,7 +40,7 @@ const rootRoute = createRootRouteWithContext<Context>()({
 export const chatRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "chat",
-    component: Chat,
+    component: ChatLayout,
     beforeLoad: () => ({
         breadcrumb: "Chat"
     })
@@ -49,7 +49,7 @@ export const chatRoute = createRoute({
 export const characterChatRoute = createRoute({
     getParentRoute: () => chatRoute,
     path: "$id",
-    component: Chat
+    component: ChatLayout
 });
 
 const charactersRoute = createRoute({
