@@ -280,9 +280,7 @@ const MessageItem = memo(
         prev.message.content === next.message.content &&
         prev.index === next.index &&
         prev.status === next.status &&
-        prev.vertexMap === next.vertexMap &&
-        prev.goToPreviousSibling === next.goToPreviousSibling &&
-        prev.goToNextSibling === next.goToNextSibling
+        prev.vertexMap === next.vertexMap
 );
 MessageItem.displayName = "Message";
 
