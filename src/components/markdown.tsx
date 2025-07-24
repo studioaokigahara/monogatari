@@ -1,35 +1,11 @@
 import { useCharacterContext } from "@/contexts/character-context";
+import { useChatContext } from "@/contexts/chat-context";
+import { useMarkdownParser } from "@/hooks/use-markdown-parser";
 import remarkCurlyBraces from "@/lib/remark-curly-braces";
-import { marked } from "marked";
-import { memo, useMemo, useRef } from "react";
+import { memo, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
-
-function parseMarkdown(markdown: string): string[] {
-    const cache = useRef<{ source: string; tokens: string[] }>({
-        source: "",
-        tokens: []
-    });
-
-    if (markdown === cache.current.source) return cache.current.tokens;
-
-    if (markdown.startsWith(cache.current.source)) {
-        const delta = markdown.slice(cache.current.source.length);
-        const oldTokens = [...cache.current.tokens];
-        const lastToken = oldTokens.pop() ?? "";
-        const newTokens = marked
-            .lexer(lastToken + delta)
-            .map((token) => token.raw);
-        const merged = oldTokens.concat(newTokens);
-        cache.current = { source: markdown, tokens: merged };
-        return merged;
-    }
-
-    const fresh = marked.lexer(markdown).map((token) => token.raw);
-    cache.current = { source: markdown, tokens: fresh };
-    return fresh;
-}
 
 interface MarkdownBlockProps {
     children: string;
@@ -84,7 +60,8 @@ export interface MarkdownProps {
 }
 
 export const Markdown = memo(({ children, id }: MarkdownProps) => {
-    const blocks = parseMarkdown(children);
+    const status = useChatContext((context) => context.status);
+    const blocks = useMarkdownParser(children, id, status);
 
     return (
         <>
