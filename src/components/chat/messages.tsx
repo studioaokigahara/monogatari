@@ -309,21 +309,26 @@ const ChatMessages = memo(function Chat() {
         if (!element) return;
 
         const onScroll = () => {
-            const { scrollTop, scrollHeight, clientHeight } = element;
-            const atBottom = scrollHeight - scrollTop - clientHeight < 50;
+            const { scrollHeight } = document.documentElement;
+            const { scrollY, innerHeight } = window;
+            const atBottom = scrollHeight - (scrollY + innerHeight) < 50;
             setAutoScroll(atBottom);
         };
 
-        element.addEventListener("scroll", onScroll, { passive: true });
-
-        return () => element.removeEventListener("scroll", onScroll);
+        window.addEventListener("scroll", onScroll, { passive: true });
+        return () => window.removeEventListener("scroll", onScroll);
     }, []);
 
     useLayoutEffect(() => {
-        if (autoScroll) {
-            scrollRef.current?.scrollIntoView({ behavior: "smooth" });
-        }
-    }, [messages, autoScroll]);
+        if (!autoScroll) return;
+
+        const options =
+            status === "streaming"
+                ? undefined
+                : ({ behavior: "smooth" } as const);
+
+        scrollRef.current?.scrollIntoView(options);
+    }, [messages, autoScroll, status]);
 
     return (
         <div
