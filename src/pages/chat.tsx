@@ -18,7 +18,7 @@ export default function ChatLayout() {
 
     return (
         <div className="flex flex-col relative">
-            <Header className="sticky top-0 z-1 border-b bg-background/33 backdrop-blur max-sm:-mx-4 max-sm:px-4 group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-16">
+            <Header className="sticky top-0 z-1 border-b bg-background/33 backdrop-blur max-sm:-mx-4 max-sm:px-4 group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-16 **:data-[slot='breadcrumb']:hidden">
                 {character && (
                     <div className="flex w-full justify-center items-center gap-2">
                         <img
