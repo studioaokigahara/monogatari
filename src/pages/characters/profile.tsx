@@ -37,12 +37,7 @@ export default function CharacterProfile() {
     const character: CharacterRecord =
         characterProfileRoute.useMatch().context.character!;
     const { setCharacter, persona } = useCharacterContext();
-    const { settings } = useSettingsContext();
 
-    const preset = useLiveQuery(
-        () => db.promptSets.get(settings.promptSet),
-        [settings.promptSet]
-    );
     const image =
         character.assets.find((asset) => asset.name === "main")?.blob ??
         character.assets[0].blob;
@@ -56,7 +51,7 @@ export default function CharacterProfile() {
     }, [character, setCharacter]);
 
     const startNewChat = async () => {
-        const graph = ChatManager.createChatGraph(character, preset, persona);
+        const graph = ChatManager.createChatGraph(character);
         await ChatManager.saveGraph(graph, [character.id]);
         router.navigate({ to: "/chat/$id", params: { id: graph.id } });
     };

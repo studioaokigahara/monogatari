@@ -43,7 +43,7 @@ export class PromptManager {
         const before = enabledMessages
             .filter((m) => m.position === "before")
             .map((m) => ({
-                id: nanoid(),
+                id: m.id ?? nanoid(),
                 role: m.role,
                 content: m.content,
                 createdAt: new Date()
@@ -51,11 +51,11 @@ export class PromptManager {
 
         enabledMessages
             .filter((m) => m.position === "after")
-            .sort((a, b) => a.depth - b.depth)
+            .sort((a, b) => b.depth - a.depth)
             .forEach((m) => {
                 const position = Math.max(history.length - m.depth, 0);
                 const msg = {
-                    id: nanoid(),
+                    id: m.id ?? nanoid(),
                     role: m.role,
                     content: m.content,
                     createdAt: new Date()

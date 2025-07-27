@@ -16,16 +16,10 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { PromptManager } from "@/database/prompts";
 
 export function SearchForm({ ...props }: React.ComponentProps<"form">) {
-    const { character, persona } = useCharacterContext();
-    const { settings } = useSettingsContext();
-
-    const preset = useLiveQuery(
-        () => PromptManager.get(settings.promptSet),
-        [settings.promptSet]
-    );
+    const { character } = useCharacterContext();
 
     const startNewChat = async () => {
-        const graph = ChatManager.createChatGraph(character!, preset, persona);
+        const graph = ChatManager.createChatGraph(character!);
         await ChatManager.saveGraph(graph, [character!.id]);
         router.navigate({ to: "/chat/$id", params: { id: graph.id } });
     };

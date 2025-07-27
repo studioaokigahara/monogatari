@@ -1,14 +1,18 @@
 import { useCharacterContext } from "@/contexts/character-context";
 import { useSettingsContext } from "@/contexts/settings-context";
 import { CharacterManager } from "@/database/characters";
+import { ChatManager } from "@/database/chats";
+import { PromptManager } from "@/database/prompts";
+import { useChatSync } from "@/hooks/use-chat-sync";
 import { useGraph } from "@/hooks/use-graph";
 import { nanoid } from "@/lib/utils";
 import { chatStore } from "@/stores/chat-store";
 import { useChat } from "@ai-sdk/react";
 import { useParams } from "@tanstack/react-router";
+import { UIMessage } from "ai";
+import { useLiveQuery } from "dexie-react-hooks";
 import { useCallback, useEffect, useMemo } from "react";
 import useEvent from "react-use-event-hook";
-import { useChatSync } from "./use-chat-sync";
 
 /**
  * Integrates the Vercel ai-sdk useChat hook with a custom directed acyclic graph (DAG) of messages.
@@ -23,13 +27,14 @@ import { useChatSync } from "./use-chat-sync";
  *  - useChat: local linear chat state and streaming API
  *  - useChatSync: diff-based synchronization between linear messages and the graph
  *
- * "Why so many useEffects?" - It's a hack to rerun the associated code when the data changes
+ * "Why so many useEffects?" - To rerun the associated code when the data changes
  */
 export function useChatWithGraph() {
     const { id } = useParams({ strict: false });
     const chatID = id ?? nanoid();
     const { settings } = useSettingsContext();
-    const { character, setCharacter } = useCharacterContext();
+    const { character, setCharacter, persona } = useCharacterContext();
+    const preset = useLiveQuery(() => PromptManager.get(settings.promptSet), [settings.promptSet])
 
     const graphState = useGraph({ chatID });
 
@@ -43,7 +48,9 @@ export function useChatWithGraph() {
         api: settings.streaming ? "/api/chat" : "/api/chat/completion",
         id: chatID,
         generateId: useCallback(() => nanoid(), [nanoid]),
-        initialMessages: initialMessages
+        initialMessages: initialMessages,
+        experimental_prepareRequestBody: useCallback(({ messages }: { messages: UIMessage[] }) => ChatManager.buildRequestBody(messages, character!, persona!, preset!)
+        , [character, persona, preset])
     });
 
     const handleInputChange = useEvent((event) =>

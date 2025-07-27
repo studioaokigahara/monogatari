@@ -37,14 +37,13 @@ export function useChatSync({
 
         if (notReady) return;
 
-        let sliceStart = -1;
+        let sliceStart = messages.length;
         for (let i = messages.length - 1; i >= 0; i--) {
             if (vertexMap.has(messages[i].id)) {
                 sliceStart = i + 1;
                 break;
             }
         }
-        if (sliceStart === -1) sliceStart = 0;
 
         const unsavedMessages = messages.slice(sliceStart);
         if (unsavedMessages.length === 0 && !workingVertex.current) return;
