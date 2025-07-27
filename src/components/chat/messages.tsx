@@ -220,7 +220,18 @@ const MessageItem = memo(
             }
 
             return actions;
-        }, [isEditing, message.role, index, messages.length]);
+        }, [
+            isEditing,
+            message.role,
+            index,
+            messages.length,
+            handleSaveEdit,
+            handleCancelEdit,
+            handleReload,
+            handleCopy,
+            handleEdit,
+            handleDelete
+        ]);
 
         const userClasses =
             "relative message-tail-path dark:group-data-[role=user]:[--tw-prose-body:--tw-prose-invert-headings] group-data-[role=user]:bg-blue-500 group-data-[role=user]:before:bg-blue-500 group-data-[role=user]:mr-[12.25px] group-data-[role=user]:rounded-3xl group-data-[role=user]:max-w-4/5 group-data-[role=user]:px-3 group-data-[role=user]:py-2";
