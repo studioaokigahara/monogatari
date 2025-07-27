@@ -1,9 +1,13 @@
 import { GraphLoader } from "@/components/graph/graph-loader";
 import {
     Dialog,
+    DialogClose,
     DialogContent,
     DialogDescription,
-    DialogTitle
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
 } from "@/components/ui/dialog";
 import {
     DropdownMenu,
@@ -27,7 +31,7 @@ import { useChatContext } from "@/contexts/chat-context";
 import { db } from "@/database/database";
 import { ChatRecord } from "@/database/schema/chat";
 import { getTimeGroup, sortByTimeGroupLabel } from "@/lib/time";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
     ChartNetwork,
@@ -37,7 +41,22 @@ import {
     Trash2
 } from "lucide-react";
 import { DateTime } from "luxon";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { Button } from "../ui/button";
+import { Label } from "../ui/label";
+import { Input } from "../ui/input";
+import {
+    AlertDialog,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger
+} from "../ui/alert-dialog";
+import { ChatManager } from "@/database/chats";
+import { toast } from "sonner";
 
 interface ChatHistoryItem {
     chat: ChatRecord;
@@ -48,6 +67,34 @@ interface ChatHistoryItem {
 
 const ChatHistoryItem = memo(
     ({ chat, isActive, isMobile, setGraphID }: ChatHistoryItem) => {
+        const [dialogOpen, setDialogOpen] = useState(false);
+        const [alertOpen, setAlertOpen] = useState(false);
+        const navigate = useNavigate();
+
+        const titleRef = useRef<HTMLInputElement>(null);
+
+        const handleRename = useCallback(async () => {
+            const title = titleRef.current?.value.trim() ?? "";
+
+            if (title && title !== chat.title) {
+                await ChatManager.updateGraph(chat.id, title);
+            }
+
+            setDialogOpen(false);
+        }, [chat.id, chat.title]);
+
+        const handleDelete = useCallback(async () => {
+            await ChatManager.deleteChat(chat.id);
+            setAlertOpen(false);
+
+            if (isActive) {
+                navigate({ to: "/chat" });
+                toast.warning(
+                    "You were navigated here to prevent bugs. Pick another chat!"
+                );
+            }
+        }, [chat.id, isActive, navigate]);
+
         return (
             <SidebarMenuItem>
                 <SidebarMenuButton asChild data-active={isActive}>
@@ -60,45 +107,103 @@ const ChatHistoryItem = memo(
                         </span>
                     </Link>
                 </SidebarMenuButton>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <SidebarMenuAction showOnHover>
-                            <MoreHorizontal />
-                            <span className="sr-only">More</span>
-                        </SidebarMenuAction>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                        className="w-48 rounded-lg"
-                        side={isMobile ? "bottom" : "right"}
-                        align={isMobile ? "end" : "start"}
-                    >
-                        <DropdownMenuLabel>
-                            <span>
-                                {chat.title ||
-                                    DateTime.fromJSDate(
-                                        chat.updatedAt
-                                    ).toFormat("MMM d, HH:mm")}
-                            </span>
-                        </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem>
-                            <PencilLine className="text-muted-foreground" />
-                            <span>Rename</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setGraphID(chat.id)}>
-                            <ChartNetwork className="text-muted-foreground" />
-                            <span>View Graph</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                            <FileDown className="text-muted-foreground" />
-                            <span>Export</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem variant="destructive">
-                            <Trash2 className="text-muted-foreground" />
-                            <span>Delete</span>
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                    <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <SidebarMenuAction showOnHover>
+                                    <MoreHorizontal />
+                                    <span className="sr-only">More</span>
+                                </SidebarMenuAction>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                className="w-48 rounded-lg"
+                                side={isMobile ? "bottom" : "right"}
+                                align={isMobile ? "end" : "start"}
+                            >
+                                <DropdownMenuLabel>
+                                    <span>
+                                        {chat.title ||
+                                            DateTime.fromJSDate(
+                                                chat.updatedAt
+                                            ).toFormat("MMM d, HH:mm")}
+                                    </span>
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DialogTrigger asChild>
+                                    <DropdownMenuItem>
+                                        <PencilLine className="text-muted-foreground" />
+                                        <span>Rename</span>
+                                    </DropdownMenuItem>
+                                </DialogTrigger>
+                                <DropdownMenuItem
+                                    onSelect={() => setGraphID(chat.id)}
+                                >
+                                    <ChartNetwork className="text-muted-foreground" />
+                                    <span>View Graph</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                    <FileDown className="text-muted-foreground" />
+                                    <span>Export</span>
+                                </DropdownMenuItem>
+                                <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem variant="destructive">
+                                        <Trash2 className="text-muted-foreground" />
+                                        <span>Delete</span>
+                                    </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Rename Chat</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-3">
+                                <Label htmlFor="title-input">Title</Label>
+                                <Input
+                                    id="title-input"
+                                    name="title"
+                                    defaultValue={chat.title}
+                                    ref={titleRef}
+                                />
+                            </div>
+                            <DialogFooter>
+                                <DialogClose asChild>
+                                    <Button type="button" variant="outline">
+                                        Close
+                                    </Button>
+                                </DialogClose>
+                                <Button onClick={handleRename}>
+                                    Save changes
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                    Are you sure?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This will permanently delete this chat.
+                                    Export your data first!
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel asChild>
+                                    <Button type="button" variant="outline">
+                                        Cancel
+                                    </Button>
+                                </AlertDialogCancel>
+                                <Button
+                                    variant="destructive"
+                                    onClick={handleDelete}
+                                >
+                                    Delete!
+                                </Button>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </Dialog>
             </SidebarMenuItem>
         );
     },

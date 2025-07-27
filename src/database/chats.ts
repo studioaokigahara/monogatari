@@ -234,6 +234,15 @@ export class ChatManager {
     }
 
     /**
+    * Deletes a chat and its associated data from the database.
+    *
+    * @param id - The ID of the chat to delete
+    */
+    static async deleteChat(id: string) {
+        await db.chats.delete(id);
+    }
+
+    /**
      * Lists all chats in the database, ordered by most recently updated first.
      *
      * @returns Array of chat records sorted by update time (newest first)
