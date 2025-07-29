@@ -14,11 +14,15 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCharacterContext } from "@/contexts/character-context";
-import { CharacterFormProvider } from "@/contexts/character-form-context";
+import {
+    CharacterFormProvider,
+    useCharacterForm
+} from "@/contexts/character-form-context";
 import { useImageURL } from "@/contexts/image-context";
 import { CharacterManager } from "@/database/characters";
 import { CharacterRecord } from "@/database/schema/character";
 import { useFileDialog } from "@/hooks/use-file-dialog";
+import { cn } from "@/lib/utils";
 import { characterProfileRoute } from "@/router";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -34,6 +38,7 @@ import { toast } from "sonner";
 
 function CharacterProfile({ character }: { character: CharacterRecord }) {
     const { setCharacter } = useCharacterContext();
+    const { editing } = useCharacterForm();
 
     const image =
         character.assets.find((asset) => asset.name === "main")?.blob ??
@@ -80,7 +85,10 @@ function CharacterProfile({ character }: { character: CharacterRecord }) {
                                 imageURL={imageURL}
                                 alt={character.data?.name}
                                 size="md:max-w-1/6 h-full"
-                                className="object-cover rounded-xl cursor-pointer"
+                                className={cn(
+                                    "object-cover rounded-xl cursor-pointer",
+                                    editing && "self-center"
+                                )}
                             />
                         </DialogTrigger>
                         <DialogContent>
