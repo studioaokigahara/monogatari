@@ -11,8 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useImageURL } from "@/contexts/image-context";
-import { addAssets, CharacterManager } from "@/database/characters";
-import { db } from "@/database/database";
+import { CharacterManager } from "@/database/characters";
 import { AssetRecord, CharacterRecord } from "@/database/schema/character";
 import { useFileDialog } from "@/hooks/use-file-dialog";
 import { ImageUp, Trash2 } from "lucide-react";

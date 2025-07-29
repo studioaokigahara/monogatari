@@ -14,177 +14,188 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useCharacterForm } from "@/contexts/character-form-context";
 import { CharacterManager } from "@/database/characters";
-import { db } from "@/database/database";
+import { ChatManager } from "@/database/chats";
 import { CharacterRecord } from "@/database/schema/character";
 import { router } from "@/router";
 import { Edit, MessageSquare, Trash2 } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
 
 interface InfoProps {
-    character: CharacterRecord | null;
-    editing: boolean;
-    setEditing: React.Dispatch<React.SetStateAction<boolean>>;
-    newChat: () => void;
-    isNewMode?: boolean;
-    formData?: Partial<CharacterRecord["data"]>;
-    onUpdate?: (data: Partial<CharacterRecord["data"]>) => void;
+    character?: CharacterRecord | null;
 }
 
-export default function ProfileInfo({
-    character,
-    editing,
-    setEditing,
-    newChat,
-    isNewMode = false,
-    formData,
-    onUpdate
-}: InfoProps) {
-    const getInitialValue = (field: keyof CharacterRecord["data"]) => {
-        if (isNewMode && formData) {
-            return formData[field];
-        }
-        if (character) {
-            return character.data[field];
-        }
-        return "";
+export default function ProfileInfo({ character }: InfoProps) {
+    const { form, editing, setEditing } = useCharacterForm();
+
+    const startNewChat = async () => {
+        const graph = ChatManager.createChatGraph(character!);
+        await ChatManager.saveGraph(graph, [character!.id]);
+        router.navigate({ to: "/chat/$id", params: { id: graph.id } });
     };
 
-    const [name, setName] = useState(getInitialValue("name"));
-    const [nickname, setNickname] = useState(getInitialValue("nickname"));
-    const [creator, setCreator] = useState(getInitialValue("creator"));
-    const [creatorNotes, setCreatorNotes] = useState(
-        getInitialValue("creator_notes")
-    );
-
-    const save = async () => {
-        if (isNewMode && onUpdate) {
-            onUpdate({
-                name,
-                nickname,
-                creator,
-                creator_notes: creatorNotes
-            });
-            setEditing(false);
-            return;
-        }
-
-        if (!character) return;
-        await db.characters
-            .where("id")
-            .equals(character.id)
-            .modify((record) => {
-                record.data.name = name;
-                record.data.nickname = nickname;
-                record.data.creator = creator;
-                record.data.creator_notes = creatorNotes;
-            });
-        toast.success("Info saved.");
-        setEditing(false);
-    };
-
-    const cancel = () => {
-        setName(getInitialValue("name"));
-        setNickname(getInitialValue("nickname"));
-        setCreator(getInitialValue("creator"));
-        setCreatorNotes(getInitialValue("creator_notes"));
-        setEditing(false);
-    };
-
-    if (editing) {
+    if (editing)
         return (
             <div className="flex flex-col w-full gap-4 p-4 rounded-xl">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-muted-foreground">
-                            Name
-                        </label>
-                        <Input
-                            value={name}
-                            onChange={(e) => {
-                                setName(e.currentTarget.value);
-                                if (isNewMode && onUpdate) {
-                                    onUpdate({ name: e.currentTarget.value });
-                                }
-                            }}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-muted-foreground">
-                            Nickname
-                        </label>
-                        <Input
-                            value={nickname}
-                            onChange={(e) => {
-                                setNickname(e.currentTarget.value);
-                                if (isNewMode && onUpdate) {
-                                    onUpdate({
-                                        nickname: e.currentTarget.value
-                                    });
-                                }
-                            }}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-muted-foreground">
-                            Creator
-                        </label>
-                        <Input
-                            value={creator}
-                            onChange={(e) => {
-                                setCreator(e.currentTarget.value);
-                                if (isNewMode && onUpdate) {
-                                    onUpdate({
-                                        creator: e.currentTarget.value
-                                    });
-                                }
-                            }}
-                        />
-                    </div>
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-muted-foreground">
-                            Tagline
-                        </label>
-                        <Textarea
-                            value={creatorNotes}
-                            onChange={(e) => {
-                                setCreatorNotes(e.currentTarget.value);
-                                if (isNewMode && onUpdate) {
-                                    onUpdate({
-                                        creator_notes: e.currentTarget.value
-                                    });
-                                }
-                            }}
-                        />
-                    </div>
+                    <form.Field
+                        name="name"
+                        children={(field) => (
+                            <div>
+                                <label
+                                    htmlFor={field.name}
+                                    className="block text-sm font-medium text-muted-foreground"
+                                >
+                                    Name
+                                </label>
+                                <Input
+                                    id={field.name}
+                                    name={field.name}
+                                    value={field.state.value}
+                                    onChange={(e) =>
+                                        field.handleChange(e.target.value)
+                                    }
+                                    onBlur={field.handleBlur}
+                                />
+                                {field.state.meta.errors && (
+                                    <em className="text-destructive">
+                                        {field.state.meta.errors
+                                            .map((err) => err.message)
+                                            .join(",")}
+                                    </em>
+                                )}
+                            </div>
+                        )}
+                    />
+                    <form.Field
+                        name="nickname"
+                        children={(field) => (
+                            <div>
+                                <label
+                                    htmlFor={field.name}
+                                    className="block text-sm font-medium text-muted-foreground"
+                                >
+                                    Nickname
+                                </label>
+                                <Input
+                                    id={field.name}
+                                    name={field.name}
+                                    value={field.state.value}
+                                    onChange={(e) =>
+                                        field.handleChange(e.target.value)
+                                    }
+                                    onBlur={field.handleBlur}
+                                />
+                            </div>
+                        )}
+                    />
+                    <form.Field
+                        name="creator"
+                        children={(field) => (
+                            <div>
+                                <label
+                                    htmlFor={field.name}
+                                    className="block text-sm font-medium text-muted-foreground"
+                                >
+                                    Creator
+                                </label>
+                                <Input
+                                    id={field.name}
+                                    name={field.name}
+                                    value={field.state.value}
+                                    onChange={(e) =>
+                                        field.handleChange(e.target.value)
+                                    }
+                                    onBlur={field.handleBlur}
+                                />
+                                {field.state.meta.errors && (
+                                    <em className="text-destructive">
+                                        {field.state.meta.errors
+                                            .map((err) => err.message)
+                                            .join(",")}
+                                    </em>
+                                )}
+                            </div>
+                        )}
+                    />
+                    <form.Field
+                        name="creator_notes"
+                        children={(field) => (
+                            <div className="md:col-span-2">
+                                <label
+                                    htmlFor={field.name}
+                                    className="block text-sm font-medium text-muted-foreground"
+                                >
+                                    Creator Notes
+                                </label>
+                                <Textarea
+                                    id={field.name}
+                                    name={field.name}
+                                    value={field.state.value}
+                                    onChange={(e) =>
+                                        field.handleChange(e.target.value)
+                                    }
+                                    onBlur={field.handleBlur}
+                                />
+                            </div>
+                        )}
+                    />
                 </div>
 
-                {!isNewMode && (
-                    <div className="flex gap-2 justify-end">
-                        <Button variant="secondary" onClick={cancel}>
-                            Cancel
-                        </Button>
-                        <Button onClick={save}>Save</Button>
-                    </div>
-                )}
+                <div className="flex gap-2 justify-end">
+                    <Button
+                        variant="secondary"
+                        onClick={() => {
+                            form.reset();
+                            setEditing(false);
+                        }}
+                    >
+                        Cancel
+                    </Button>
+                    <form.Subscribe
+                        selector={(state) => [
+                            state.canSubmit,
+                            state.isSubmitting
+                        ]}
+                        children={([canSubmit, isSubmitting]) => (
+                            <Button
+                                type="submit"
+                                disabled={!canSubmit}
+                                onClick={() => {
+                                    form.handleSubmit();
+                                    console.log(form.getAllErrors());
+                                    setEditing(false);
+                                }}
+                            >
+                                {isSubmitting ? "Saving..." : "Save"}
+                            </Button>
+                        )}
+                    />
+                </div>
             </div>
         );
-    }
 
     return (
         <div className="flex flex-col md:flex-row w-full justify-between items-start md:items-end gap-4 rounded-xl">
             <div className="grow">
-                <p className="text-2xl md:text-3xl font-bold">{name}</p>
-                <p className="text-xl text-muted-foreground">{nickname}</p>
+                <p className="text-2xl md:text-3xl font-bold">
+                    {character?.data.name}
+                </p>
+                <p className="text-xl text-muted-foreground">
+                    {character?.data.nickname}
+                </p>
                 <div className="flex gap-2">
                     <p className="text-muted-foreground text-sm">
-                        by <span className="font-medium">{creator}</span>
+                        by{" "}
+                        <span className="font-medium">
+                            {character?.data.creator}
+                        </span>
                     </p>
                     <StatusBadge />
                 </div>
                 <p className="text-muted-foreground text-sm m-[revert]">
-                    {creatorNotes}
+                    {character?.data.creator_notes}
                 </p>
                 <TagList
                     variant="outline"
@@ -195,8 +206,8 @@ export default function ProfileInfo({
             <div className="flex flex-row gap-2">
                 <Button
                     size="icon"
-                    className="w-9 rounded-full cursor-pointer"
-                    onClick={newChat}
+                    className="w-9 rounded-full"
+                    onClick={startNewChat}
                 >
                     <MessageSquare />
                 </Button>
@@ -204,7 +215,7 @@ export default function ProfileInfo({
                 <Button
                     size="icon"
                     variant="outline"
-                    className="w-9 rounded-full cursor-pointer"
+                    className="w-9 rounded-full"
                     onClick={() => setEditing(true)}
                 >
                     <Edit />
@@ -214,7 +225,7 @@ export default function ProfileInfo({
                         <Button
                             size="icon"
                             variant="destructive"
-                            className="w-9 rounded-full cursor-pointer"
+                            className="w-9 rounded-full"
                         >
                             <Trash2 />
                         </Button>

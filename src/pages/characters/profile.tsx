@@ -32,11 +32,14 @@ import {
     Upload
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import {
+    CharacterFormProvider,
+    useCharacterForm
+} from "@/contexts/character-form-context";
+import { toast } from "sonner";
 
-export default function CharacterProfile() {
-    const character: CharacterRecord =
-        characterProfileRoute.useMatch().context.character!;
-    const { setCharacter, persona } = useCharacterContext();
+function CharacterProfile({ character }: { character: CharacterRecord }) {
+    const { setCharacter } = useCharacterContext();
 
     const image =
         character.assets.find((asset) => asset.name === "main")?.blob ??
@@ -44,17 +47,9 @@ export default function CharacterProfile() {
     const [currentImage, setCurrentImage] = useState(image);
     const imageURL = useImageURL(currentImage);
 
-    const [editing, setEditing] = useState(false);
-
     useEffect(() => {
         setCharacter(character);
     }, [character, setCharacter]);
-
-    const startNewChat = async () => {
-        const graph = ChatManager.createChatGraph(character);
-        await ChatManager.saveGraph(graph, [character.id]);
-        router.navigate({ to: "/chat/$id", params: { id: graph.id } });
-    };
 
     const handleImageUpload = async (
         event: React.ChangeEvent<HTMLInputElement>
@@ -80,92 +75,94 @@ export default function CharacterProfile() {
     });
 
     return (
-        <>
-            <div className="flex flex-col w-full">
-                <Header />
-                <div className="flex flex-col w-full md:max-w-5xl mx-auto px-4">
-                    {/* Cover Image and Profile Section */}
-                    <div className="flex flex-col md:flex-row gap-4 md:items-end mb-4">
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <LazyImage
-                                    imageURL={imageURL}
-                                    alt={character.data?.name}
-                                    size="md:max-w-1/6 h-full"
-                                    className="object-cover rounded-xl cursor-pointer"
-                                />
-                            </DialogTrigger>
-                            <DialogContent>
-                                <img
-                                    src={imageURL}
-                                    alt={character.data?.name}
-                                    className="max-h-[80dvh] rounded-xl mx-auto"
-                                />
-                                <DialogFooter>
-                                    <Button className="w-1/2" onClick={browse}>
-                                        {input}
-                                        <Upload />
-                                        Replace
-                                    </Button>
-                                    <Button className="w-1/2">
-                                        <Edit />
-                                        Edit
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                        <ProfileInfo
-                            character={character}
-                            editing={editing}
-                            setEditing={setEditing}
-                            newChat={startNewChat}
-                        />
-                    </div>
-
-                    {/* Main Content */}
-                    <Tabs defaultValue="description" className="gap-4 mb-4">
-                        <TabsList className="w-full bg-muted/50 rounded-full *:rounded-full *:cursor-pointer">
-                            <TabsTrigger value="description">
-                                <Text />
-                                Description
-                            </TabsTrigger>
-                            <TabsTrigger value="greetings">
-                                <MessageSquareText />
-                                Greetings
-                            </TabsTrigger>
-                            <TabsTrigger value="example">
-                                <MessagesSquare />
-                                Example Dialogue
-                            </TabsTrigger>
-                            <TabsTrigger value="gallery">
-                                <Images />
-                                Gallery
-                            </TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="description">
-                            <Description
-                                character={character}
-                                editing={editing}
+        <div className="flex flex-col w-full">
+            <Header />
+            <div className="flex flex-col w-full md:max-w-5xl mx-auto px-4">
+                {/* Cover Image and Profile Section */}
+                <div className="flex flex-col md:flex-row gap-4 md:items-end mb-4">
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <LazyImage
+                                imageURL={imageURL}
+                                alt={character.data?.name}
+                                size="md:max-w-1/6 h-full"
+                                className="object-cover rounded-xl cursor-pointer"
                             />
-                        </TabsContent>
-                        <TabsContent value="greetings">
-                            <Greetings
-                                character={character}
-                                editing={editing}
+                        </DialogTrigger>
+                        <DialogContent>
+                            <img
+                                src={imageURL}
+                                alt={character.data?.name}
+                                className="max-h-[80dvh] rounded-xl mx-auto"
                             />
-                        </TabsContent>
-                        <TabsContent value="example">
-                            <ExampleDialogue
-                                character={character}
-                                editing={editing}
-                            />
-                        </TabsContent>
-                        <TabsContent value="gallery">
-                            <Gallery character={character} />
-                        </TabsContent>
-                    </Tabs>
+                            <DialogFooter>
+                                <Button className="w-1/2" onClick={browse}>
+                                    {input}
+                                    <Upload />
+                                    Replace
+                                </Button>
+                                <Button className="w-1/2">
+                                    <Edit />
+                                    Edit
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                    <ProfileInfo character={character} />
                 </div>
+
+                {/* Main Content */}
+                <Tabs defaultValue="description" className="gap-4 mb-4">
+                    <TabsList className="w-full bg-muted/50 rounded-full *:rounded-full">
+                        <TabsTrigger value="description">
+                            <Text />
+                            Description
+                        </TabsTrigger>
+                        <TabsTrigger value="greetings">
+                            <MessageSquareText />
+                            Greetings
+                        </TabsTrigger>
+                        <TabsTrigger value="example">
+                            <MessagesSquare />
+                            Example Dialogue
+                        </TabsTrigger>
+                        <TabsTrigger value="gallery">
+                            <Images />
+                            Gallery
+                        </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="description">
+                        <Description character={character} />
+                    </TabsContent>
+                    <TabsContent value="greetings">
+                        <Greetings character={character} />
+                    </TabsContent>
+                    <TabsContent value="example">
+                        <ExampleDialogue character={character} />
+                    </TabsContent>
+                    <TabsContent value="gallery">
+                        <Gallery character={character} />
+                    </TabsContent>
+                </Tabs>
             </div>
-        </>
+        </div>
+    );
+}
+
+export default function CharacterProfileLayout() {
+    const character: CharacterRecord =
+        characterProfileRoute.useMatch().context.character!;
+
+    return (
+        <CharacterFormProvider
+            mode="edit"
+            initialValues={character.data}
+            onSubmit={async (values) => {
+                await CharacterManager.update(character.id, values);
+                toast.success(`${character.data.name} saved.`);
+            }}
+        >
+            <CharacterProfile character={character} />
+        </CharacterFormProvider>
     );
 }

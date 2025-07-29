@@ -1,10 +1,8 @@
 import { Prose } from "@/components/prose";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { CharacterManager } from "@/database/characters";
+import { useCharacterForm } from "@/contexts/character-form-context";
 import { CharacterRecord } from "@/database/schema/character";
-import { useState } from "react";
-import { toast } from "sonner";
 
 function extractExamples(raw: string): string[] {
     return Array.from(
@@ -40,59 +38,43 @@ function formatExamples(
 }
 
 interface ExampleDialogueProps {
-    character: CharacterRecord | null;
-    editing: boolean;
-    isNewMode?: boolean;
-    formData?: Partial<CharacterRecord["data"]>;
-    onUpdate?: (data: Partial<CharacterRecord["data"]>) => void;
+    character?: CharacterRecord | null;
 }
 
-export default function ExampleDialogue({
-    character,
-    editing,
-    isNewMode = false,
-    formData,
-    onUpdate
-}: ExampleDialogueProps) {
-    const [exampleMessages, setExampleMessages] = useState(
-        (isNewMode ? formData?.mes_example : character?.data.mes_example) ?? ""
+export default function ExampleDialogue({ character }: ExampleDialogueProps) {
+    const { form, editing } = useCharacterForm();
+
+    const formattedExamples = extractExamples(
+        character?.data.mes_example ?? ""
+    ).map((block, index) =>
+        formatExamples(block, index, character?.data.name || "Character")
     );
 
-    const formattedExamples = extractExamples(exampleMessages).map(
-        (block, index) =>
-            formatExamples(block, index, character?.data.name || "Character")
-    );
-
-    const save = async (value: string) => {
-        if (!character) return;
-        await CharacterManager.updateField(character.id, "mes_example", value);
-        toast.success(`Example dialogue saved.`);
-    };
-
-    if (editing) {
+    if (editing)
         return (
             <Card>
                 <CardContent>
-                    <Textarea
-                        autoFocus
-                        value={exampleMessages}
-                        onChange={(e) => {
-                            setExampleMessages(e.currentTarget.value);
-                            if (isNewMode && onUpdate) {
-                                onUpdate({
-                                    mes_example: e.currentTarget.value
-                                });
-                            }
-                        }}
-                        onBlur={() => !isNewMode && save(exampleMessages)}
-                        minRows={8}
-                        placeholder={`<START>\n{{char}}: Hello!\n{{user}}: Hi!`}
-                        className="font-mono text-sm"
+                    <form.Field
+                        name="mes_example"
+                        children={(field) => (
+                            <Textarea
+                                id={field.name}
+                                name={field.name}
+                                value={field.state.value}
+                                onChange={(e) =>
+                                    field.handleChange(e.target.value)
+                                }
+                                onBlur={field.handleBlur}
+                                minRows={8}
+                                placeholder={`<START>\n{{char}}: Hello!\n{{user}}: Hi!`}
+                                className="font-mono text-sm"
+                                autoFocus
+                            />
+                        )}
                     />
                 </CardContent>
             </Card>
         );
-    }
 
     return (
         <Card className="py-4">
@@ -107,7 +89,7 @@ export default function ExampleDialogue({
                         </Prose>
                     ))
                 ) : (
-                    <Prose>*No example dialogue… yet.*</Prose>
+                    <Prose>*No example dialogue... yet.*</Prose>
                 )}
             </CardContent>
         </Card>

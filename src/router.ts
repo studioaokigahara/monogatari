@@ -9,7 +9,7 @@ import {
 import type { CharacterRecord } from "@/database/schema/character";
 import Layout from "@/layout";
 import CharacterList from "@/pages/characters/list";
-import CharacterProfile from "@/pages/characters/profile";
+import CharacterProfileLayout from "@/pages/characters/profile";
 import ChatLayout from "@/pages/chat";
 import ExploreLayout from "@/pages/explore/layout";
 import ApiSettings from "@/pages/settings/api";
@@ -19,7 +19,7 @@ import SettingsLayout from "@/pages/settings/layout";
 import LorebookSettings from "@/pages/settings/lorebook";
 import PromptSettings from "@/pages/settings/prompts";
 import PersonaEditor from "./pages/persona";
-import CharacterCreator from "./pages/characters/new";
+import CharacterCreatorLayout from "./pages/characters/new";
 import { CharacterManager } from "./database/characters";
 
 interface Context {
@@ -72,7 +72,7 @@ const characterListRoute = createRoute({
 export const newCharacterRoute = createRoute({
     getParentRoute: () => charactersRoute,
     path: "new",
-    component: CharacterCreator,
+    component: CharacterCreatorLayout,
     beforeLoad: () => ({
         breadcrumb: "New Character"
     })
@@ -81,7 +81,7 @@ export const newCharacterRoute = createRoute({
 export const characterProfileRoute = createRoute({
     getParentRoute: () => charactersRoute,
     path: "$id",
-    component: CharacterProfile,
+    component: CharacterProfileLayout,
     beforeLoad: async ({ params }) => {
         const { id } = params;
 

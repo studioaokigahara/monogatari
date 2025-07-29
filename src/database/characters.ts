@@ -26,6 +26,13 @@ export class CharacterManager {
         return db.characters.add(record);
     }
 
+    static async update(id: string, data: Partial<CharacterRecord["data"]>) {
+        await db.characters.where("id").equals(id).modify((record)=>{
+            Object.assign(record.data, data);
+            record.data.modification_date = new Date();
+        })
+    }
+
     static async get(id: string) {
         const character = await db.characters.get(id);
         if (!character) throw new Error(`Character ID ${id} not found`);
