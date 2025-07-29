@@ -20,6 +20,7 @@ const CharacterFormSchema = CharacterCardV3Data.extend({
                 ["image/png", "image/jpeg", "image.webp"].includes(blob.type),
             "Must be PNG, JPEG, or WebP"
         )
+        .optional()
 });
 
 export type CharacterFormValues = z.infer<typeof CharacterFormSchema>;
@@ -70,11 +71,19 @@ export function CharacterFormProvider({
 }: CharacterFormProps) {
     const [editing, setEditing] = useState(mode === "create");
 
+    const Schema = CharacterFormSchema.refine(
+        (data) => (mode === "create" ? !!data.image : true),
+        {
+            path: ["image"],
+            message: "You must upload an image."
+        }
+    );
+
     const form = useForm({
         defaultValues: initialValues,
         validators: {
-            onMount: CharacterFormSchema,
-            onChange: CharacterFormSchema
+            onMount: Schema,
+            onChange: Schema
         },
         onSubmit: ({ value }) => onSubmit(value)
     });

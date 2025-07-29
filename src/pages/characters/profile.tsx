@@ -14,14 +14,12 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCharacterContext } from "@/contexts/character-context";
-import { useSettingsContext } from "@/contexts/settings-context";
+import { CharacterFormProvider } from "@/contexts/character-form-context";
 import { useImageURL } from "@/contexts/image-context";
 import { CharacterManager } from "@/database/characters";
-import { ChatManager } from "@/database/chats";
 import { CharacterRecord } from "@/database/schema/character";
 import { useFileDialog } from "@/hooks/use-file-dialog";
-import { characterProfileRoute, router } from "@/router";
-import { db } from "@/database/database";
+import { characterProfileRoute } from "@/router";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
     Edit,
@@ -32,10 +30,6 @@ import {
     Upload
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import {
-    CharacterFormProvider,
-    useCharacterForm
-} from "@/contexts/character-form-context";
 import { toast } from "sonner";
 
 function CharacterProfile({ character }: { character: CharacterRecord }) {
@@ -150,8 +144,14 @@ function CharacterProfile({ character }: { character: CharacterRecord }) {
 }
 
 export default function CharacterProfileLayout() {
-    const character: CharacterRecord =
-        characterProfileRoute.useMatch().context.character!;
+    const { id } = characterProfileRoute.useParams();
+    const fallback = characterProfileRoute.useMatch().context.character;
+
+    const character = useLiveQuery(
+        () => CharacterManager.get(id),
+        [id],
+        fallback
+    );
 
     return (
         <CharacterFormProvider

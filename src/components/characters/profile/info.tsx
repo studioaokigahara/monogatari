@@ -18,7 +18,7 @@ import { useCharacterForm } from "@/contexts/character-form-context";
 import { CharacterManager } from "@/database/characters";
 import { ChatManager } from "@/database/chats";
 import { CharacterRecord } from "@/database/schema/character";
-import { router } from "@/router";
+import { useNavigate } from "@tanstack/react-router";
 import { Edit, MessageSquare, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,12 +27,27 @@ interface InfoProps {
 }
 
 export default function ProfileInfo({ character }: InfoProps) {
-    const { form, editing, setEditing } = useCharacterForm();
+    const { form, mode, editing, setEditing } = useCharacterForm();
+    const navigate = useNavigate();
 
     const startNewChat = async () => {
         const graph = ChatManager.createChatGraph(character!);
         await ChatManager.saveGraph(graph, [character!.id]);
-        router.navigate({ to: "/chat/$id", params: { id: graph.id } });
+        navigate({ to: "/chat/$id", params: { id: graph.id } });
+    };
+
+    const handleCancel = () => {
+        switch (mode) {
+            case "create": {
+                navigate({ to: "/characters" });
+                break;
+            }
+            case "edit": {
+                form.reset();
+                setEditing(false);
+                break;
+            }
+        }
     };
 
     if (editing)
@@ -144,13 +159,7 @@ export default function ProfileInfo({ character }: InfoProps) {
                 </div>
 
                 <div className="flex gap-2 justify-end">
-                    <Button
-                        variant="secondary"
-                        onClick={() => {
-                            form.reset();
-                            setEditing(false);
-                        }}
-                    >
+                    <Button variant="secondary" onClick={handleCancel}>
                         Cancel
                     </Button>
                     <form.Subscribe
@@ -164,7 +173,6 @@ export default function ProfileInfo({ character }: InfoProps) {
                                 disabled={!canSubmit}
                                 onClick={() => {
                                     form.handleSubmit();
-                                    console.log(form.getAllErrors());
                                     setEditing(false);
                                 }}
                             >
@@ -247,7 +255,7 @@ export default function ProfileInfo({ character }: InfoProps) {
                                     await CharacterManager.delete(
                                         character!.id
                                     );
-                                    router.navigate({
+                                    navigate({
                                         to: "/characters"
                                     });
                                     toast.success(
