@@ -1,4 +1,6 @@
+import Password from "@/components/password-input";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -6,15 +8,13 @@ import {
     SelectContent,
     SelectItem,
     SelectTrigger,
-    SelectValue,
+    SelectValue
 } from "@/components/ui/select";
 import { useSettingsContext } from "@/contexts/settings-context";
 import { nanoid } from "@/lib/utils";
-import type { ProxyProfile } from "@/types/settings";
-import { Eye, EyeOff, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import React from "react";
-import Password from "../password-input";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import type { ProxyProfile } from "@/types/settings";
 
 export function ProxySettings() {
     const { settings, updateSettings } = useSettingsContext();
@@ -26,13 +26,13 @@ export function ProxySettings() {
             id: nanoid(),
             name: "New proxy",
             baseURL: "",
-            password: "",
+            password: ""
         };
         updateSettings({
             proxies: {
                 profiles: [...profiles, newProfile],
-                selected,
-            },
+                selected: { ...selected, [provider]: newProfile.id }
+            }
         });
     };
 
@@ -40,10 +40,10 @@ export function ProxySettings() {
         updateSettings({
             proxies: {
                 profiles: profiles.map((p) =>
-                    p.id === id ? { ...p, ...changes } : p,
+                    p.id === id ? { ...p, ...changes } : p
                 ),
-                selected,
-            },
+                selected
+            }
         });
     };
 
@@ -55,9 +55,9 @@ export function ProxySettings() {
                 profiles: newProfiles,
                 selected: {
                     ...rest,
-                    ...(removed ? { [provider]: "" } : {}),
-                },
-            },
+                    ...(removed ? { [provider]: "" } : {})
+                }
+            }
         });
     };
 
@@ -65,8 +65,8 @@ export function ProxySettings() {
         updateSettings({
             proxies: {
                 profiles,
-                selected: { ...selected, [provider]: id },
-            },
+                selected: { ...selected, [provider]: id }
+            }
         });
     };
 
@@ -117,7 +117,7 @@ export function ProxySettings() {
                                     value={profile.name}
                                     onChange={(e) =>
                                         updateProfile(profile.id, {
-                                            name: e.target.value,
+                                            name: e.target.value
                                         })
                                     }
                                 />
@@ -126,7 +126,7 @@ export function ProxySettings() {
                                     value={profile.baseURL}
                                     onChange={(e) =>
                                         updateProfile(profile.id, {
-                                            baseURL: e.target.value,
+                                            baseURL: e.target.value
                                         })
                                     }
                                 />
@@ -134,7 +134,7 @@ export function ProxySettings() {
                                     value={profile.password}
                                     onChange={(e) =>
                                         updateProfile(profile.id, {
-                                            password: e.target.value,
+                                            password: e.target.value
                                         })
                                     }
                                 />

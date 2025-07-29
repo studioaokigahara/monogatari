@@ -9,6 +9,8 @@ const ProxyProfile = z.object({
     routes: z.record(ProviderSchema, z.string()).optional()
 });
 
+export type ProxyProfile = z.infer<typeof ProxyProfile>;
+
 const ProxySettings = z
     .object({
         profiles: z.array(ProxyProfile).default([]),
