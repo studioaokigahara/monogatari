@@ -25,17 +25,17 @@ function CharacterCard({ character }: CharacterCardProps) {
     const imageURL = useImageURL(image);
 
     return (
-        <Card className="max-w-2xl w-full max-h-48 h-full flex flex-0 flex-row p-2 gap-4 border rounded-lg shadow-sm overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-gray-500/50">
+        <Card className="max-w-2xl w-full max-h-48 h-full flex flex-0 flex-row p-2 gap-3 border rounded-lg shadow-sm overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-gray-500/50">
             <Link
                 to="/characters/$id"
                 params={{ id: character.id }}
-                className="w-1/4 shrink-0"
+                className="aspect-2/3 shrink-0"
             >
                 <LazyImage
                     imageURL={imageURL}
                     alt={character.data.name}
-                    size="w-full"
-                    className="aspect-2/3 rounded-md object-cover"
+                    size="w-full h-full"
+                    className="rounded-md object-cover"
                 />
             </Link>
             <div className="w-full flex flex-col overflow-hidden">
