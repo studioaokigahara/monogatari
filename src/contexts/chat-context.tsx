@@ -11,7 +11,7 @@ import { Chat } from "@ai-sdk/react";
 import type { Message } from "@/types/message";
 import { DefaultChatTransport } from "ai";
 import { useLiveQuery } from "dexie-react-hooks";
-import { getRouteApi } from "@tanstack/react-router";
+import { useParams } from "@tanstack/react-router";
 import { useCharacterContext } from "./character-context";
 import { useSettingsContext } from "./settings-context";
 import { Character } from "@/database/schema/character";
@@ -73,8 +73,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     const [chatState, setChatState] = useState<ChatContextValue>();
 
-    const route = getRouteApi("/chat/$id");
-    const { id } = route.useParams();
+    const { id } = useParams({ from: "/chat/$id" });
 
     useEffect(() => {
         const abortController = new AbortController();
