@@ -22,6 +22,7 @@ import { Preset } from "@/database/schema/preset";
 import { buildContext } from "@/lib/build-context";
 import { Spinner } from "@/components/ui/spinner";
 import { db } from "@/database/database";
+import { toast } from "sonner";
 
 interface Dependencies {
     settings: Settings;
@@ -111,6 +112,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                 messages: graphSync.getInitialMessages(),
                 onFinish: async ({ message }) => {
                     await graphSync.commitOnFinish(message);
+                },
+                onError: (error: Error) => {
+                    toast.error("Failed to stream message", {
+                        description: error.message
+                    });
                 }
             });
 
