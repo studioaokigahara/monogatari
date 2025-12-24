@@ -18,8 +18,9 @@ const SettingsContext = createContext<SettingsContextType | null>(null);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const [settings, setSettings] = useState<Settings>(() => {
-        const stored = localStorage.getItem("settings");
-        const parsed: Partial<Settings> = stored ? JSON.parse(stored) : {};
+        const settingsString = localStorage.getItem("settings");
+        const settingsJSON = settingsString ? JSON.parse(settingsString) : {};
+        const parsed: Partial<Settings> = Settings.parse(settingsJSON);
         return merge({}, DEFAULT_SETTINGS, parsed);
     });
 

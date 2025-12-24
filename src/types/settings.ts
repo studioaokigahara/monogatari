@@ -37,7 +37,7 @@ const Samplers = z
     })
     .prefault({});
 
-export const SettingsSchema = z.object({
+export const Settings = z.object({
     provider: ProviderSchema.default("openai"),
     apiKeys: z
         .record(z.union([ProviderSchema, z.literal("chub")]), z.string())
@@ -71,6 +71,6 @@ export const SettingsSchema = z.object({
         .prefault({}),
     cacheDepth: z.int().nonnegative().multipleOf(2).default(2)
 });
-export type Settings = z.infer<typeof SettingsSchema>;
+export type Settings = z.infer<typeof Settings>;
 
-export const DEFAULT_SETTINGS = SettingsSchema.parse({});
+export const DEFAULT_SETTINGS = Settings.parse({});
