@@ -5,7 +5,7 @@ import { SillyTavernLorebookConverter } from "./lorebook/sillytavern";
 
 const CharacterBookEntry = z.object({
     keys: z.array(z.string()).default([]),
-    content: z.string(),
+    content: z.string().default(""),
     extensions: z.record(z.string(), z.any()).default({}),
     enabled: z.boolean().default(true),
     insertion_order: z.number().min(0).default(0),
@@ -83,44 +83,21 @@ const ChubCharacterBookTransform = CharacterBook.transform((book) => {
     };
 });
 
-export const LorebookEntry = z.object({
-    ...CharacterBookEntry.shape,
-    use_regex: z.boolean().default(false),
-    id: z.union([z.number(), z.string()]).optional().default(generateCuid2)
-});
+export const LorebookEntry = z
+    .object({
+        ...CharacterBookEntry.shape,
+        use_regex: z.boolean().default(false),
+        id: z.union([z.number(), z.string()]).optional().default(generateCuid2)
+    })
+    .prefault({});
 export type LorebookEntry = z.infer<typeof LorebookEntry>;
-
-const defaultLorebookData = {
-    scan_depth: -1,
-    token_budget: -1,
-    extensions: {},
-    entries: [
-        {
-            id: generateCuid2(),
-            name: "",
-            comment: "",
-            keys: [""],
-            secondary_keys: undefined,
-            position: "before_char" as const,
-            priority: 0,
-            content: "",
-            enabled: true,
-            case_sensitive: false,
-            use_regex: false,
-            constant: false,
-            selective: false,
-            extensions: {},
-            insertion_order: 0
-        }
-    ]
-};
 
 export const LorebookData = z
     .object({
         ...CharacterBook.shape,
-        entries: z.array(LorebookEntry)
+        entries: z.array(LorebookEntry).default([])
     })
-    .default(defaultLorebookData);
+    .prefault({});
 export type LorebookData = z.infer<typeof LorebookData>;
 
 const ChubLorebookTransform = LorebookData.transform((book) => {
@@ -170,16 +147,18 @@ export const LorebookV3 = z.object({
 });
 export type LorebookV3 = z.infer<typeof LorebookV3>;
 
-const LorebookRecord = z.object({
-    id: z.cuid2().default(generateCuid2),
-    data: LorebookData,
-    enabled: z.coerce.number<boolean>().default(1),
-    global: z.coerce.number<boolean>().default(0),
-    linkedCharacterIDs: z.array(z.string()).default([]),
-    embeddedCharacterID: z.string().optional(),
-    createdAt: z.date().default(() => new Date()),
-    updatedAt: z.date().default(() => new Date())
-});
+const LorebookRecord = z
+    .object({
+        id: z.cuid2().default(generateCuid2),
+        data: LorebookData,
+        enabled: z.coerce.number<boolean>().default(1),
+        global: z.coerce.number<boolean>().default(0),
+        embeddedCharacterID: z.string().optional(),
+        linkedCharacterIDs: z.array(z.string()).default([]),
+        createdAt: z.date().default(() => new Date()),
+        updatedAt: z.date().default(() => new Date())
+    })
+    .prefault({});
 type LorebookRecord = z.infer<typeof LorebookRecord>;
 
 export class Lorebook implements LorebookRecord {
@@ -187,13 +166,13 @@ export class Lorebook implements LorebookRecord {
     data: LorebookData;
     enabled: number;
     global: number;
-    linkedCharacterIDs: string[];
     embeddedCharacterID?: string;
+    linkedCharacterIDs: string[];
     createdAt: Date;
     updatedAt: Date;
 
-    constructor(data: Partial<Lorebook> = {}) {
-        const record = LorebookRecord.parse({ data });
+    constructor(data?: Partial<Lorebook>) {
+        const record = LorebookRecord.parse(data);
         this.id = record.id;
         this.data = record.data;
         this.enabled = record.enabled;

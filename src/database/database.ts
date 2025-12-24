@@ -22,7 +22,7 @@ class MonogatariDB extends Dexie {
             chats: "&id, *characterIDs, updatedAt",
             presets: "&id, name, updatedAt",
             lorebooks:
-                "&id, enabled, global, *linkedCharacterIDs, embeddedCharacterID, createdAt, updatedAt",
+                "&id, enabled, global, embeddedCharacterID, *linkedCharacterIDs, createdAt, updatedAt",
             assets: "&id, category, parentID, file.name, [category+parentID], &[parentID+file.name], createdAt"
         });
         this.characters.mapToClass(Character);
