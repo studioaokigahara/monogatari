@@ -191,6 +191,8 @@ export default function AnchorholdList({
 
             const record = await importCharacter(json, arrayBuffer);
 
+            if (!record) return { post, isUpdate };
+
             await scanGallery(record).catch((error: Error) => {
                 console.error("Gallery scan failed:", error);
                 toast.error("Gallery scan failed", {
@@ -232,7 +234,6 @@ export default function AnchorholdList({
         count: posts.length,
         estimateSize: () => 384,
         overscan: 4,
-        getItemKey: (index) => posts[index].id,
         scrollMargin: listRef.current?.offsetTop ?? 0,
         gap: 8
     });
