@@ -241,11 +241,11 @@ export default function Gallery({ character }: GalleryProps) {
                         className="max-h-[50dvh] rounded-lg cursor-pointer"
                     />
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-fit">
+                <DialogContent className="sm:max-w-[80dvw] w-max">
                     <img
                         src={imageURLs[index]}
                         alt={asset.name}
-                        className="max-h-[80dvh] h-full rounded-xl mx-auto"
+                        className="max-h-[80dvh] rounded-xl mx-auto"
                     />
                     {index !== 0 && (
                         <DialogFooter>
