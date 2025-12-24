@@ -9,10 +9,10 @@ import { SearchIcon } from "lucide-react";
 import { SelectExploreProvider } from "../select-provider";
 
 interface Props {
-    updateSearch: (query: string) => void;
+    search: React.ChangeEventHandler<HTMLInputElement>;
 }
 
-export function AnchorholdSearch({ updateSearch }: Props) {
+export function AnchorholdSearch({ search }: Props) {
     return (
         <Card className="w-full py-4 bg-transparent border-none shadow-none">
             <CardContent>
@@ -22,7 +22,7 @@ export function AnchorholdSearch({ updateSearch }: Props) {
                         <InputGroup>
                             <InputGroupInput
                                 placeholder="Search..."
-                                onChange={(e) => updateSearch(e.target.value)}
+                                onChange={search}
                             />
                             <InputGroupAddon>
                                 <SearchIcon />

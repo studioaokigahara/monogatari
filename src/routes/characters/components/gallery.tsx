@@ -31,11 +31,7 @@ import { scanGallery } from "@/lib/character/scanner";
 import { db } from "@/database/database";
 import { Asset } from "@/database/schema/asset";
 
-interface GalleryScannerProps {
-    character: Character;
-}
-
-function GalleryScanner({ character }: GalleryScannerProps) {
+function GalleryScanner({ character }: { character: Character }) {
     const [open, setOpen] = useState(false);
     const [current, setCurrent] = useState(0);
     const [total, setTotal] = useState(0);
@@ -121,11 +117,7 @@ function GalleryScanner({ character }: GalleryScannerProps) {
     );
 }
 
-interface GalleryProps {
-    character: Character;
-}
-
-export default function Gallery({ character }: GalleryProps) {
+export default function Gallery({ character }: { character: Character }) {
     const [openIndex, setOpenIndex] = useState<number>();
 
     const imageURLs = useImageURL(

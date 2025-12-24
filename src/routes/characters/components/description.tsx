@@ -8,11 +8,7 @@ import {
     withCharacterForm
 } from "@/hooks/use-character-form";
 
-interface DescriptionProps {
-    character: Character;
-}
-
-export function Description({ character }: DescriptionProps) {
+export function Description({ character }: { character: Character }) {
     return (
         <Card>
             <CardContent className="space-y-4">

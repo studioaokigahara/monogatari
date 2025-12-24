@@ -28,11 +28,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Edit, Trash2, Heart, MessageCirclePlus } from "lucide-react";
 import { toast } from "sonner";
 
-interface Props {
-    character: Character;
-}
-
-export function Header({ character }: Props) {
+export function Header({ character }: { character: Character }) {
     const { setEditing } = useCharacterFormContext();
     const navigate = useNavigate();
 

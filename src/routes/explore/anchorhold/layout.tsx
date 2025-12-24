@@ -7,9 +7,14 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import AnchorholdList from "./list";
 import { AnchorholdSearch } from "@/routes/explore/components/anchorhold/search";
+import useEvent from "react-use-event-hook";
 
 export default function AnchorholdLayout() {
     const [searchTerm, setSearchTerm] = useState("");
+
+    const search = useEvent((event: React.ChangeEvent<HTMLInputElement>) =>
+        setSearchTerm(event.target.value)
+    );
 
     const { data: config, isLoading } = useQuery({
         queryKey: ["anchorhold", "config"],
@@ -40,7 +45,7 @@ export default function AnchorholdLayout() {
             <Header className="bg-background -mb-1" />
             <div className="sticky top-0 z-50">
                 <div className="bg-background/66 backdrop-blur border rounded-xl mt-2">
-                    <AnchorholdSearch updateSearch={setSearchTerm} />
+                    <AnchorholdSearch search={search} />
                 </div>
             </div>
             <AnchorholdList

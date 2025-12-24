@@ -161,7 +161,7 @@ function CharacterProfile({ character }: { character: Character }) {
                         </DialogHeader>
                         <img
                             src={imageURL}
-                            alt={character.data?.name}
+                            alt={character.data.name}
                             className="max-h-[80dvh] rounded-xl mx-auto"
                         />
                         <DialogFooter>
@@ -186,8 +186,7 @@ function CharacterProfile({ character }: { character: Character }) {
 
             {/* Main Content */}
             <Tabs
-                defaultValue="description"
-                value={tab}
+                value={tab ?? "description"}
                 onValueChange={setTab}
                 className="gap-4 mb-2"
             >

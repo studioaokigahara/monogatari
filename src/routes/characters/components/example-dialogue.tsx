@@ -50,11 +50,7 @@ function formatExamples(
     return [first, nested].filter(Boolean).join("\n");
 }
 
-interface ExampleDialogueProps {
-    character: Character;
-}
-
-export function ExampleDialogue({ character }: ExampleDialogueProps) {
+export function ExampleDialogue({ character }: { character: Character }) {
     const formattedExamples = extractExamples(character.data.mes_example).map(
         (block, index) => formatExamples(block, index, character.data.name)
     );

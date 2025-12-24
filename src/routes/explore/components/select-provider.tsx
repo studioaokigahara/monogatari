@@ -17,13 +17,14 @@ const ExploreProviders = [
 export function SelectExploreProvider() {
     const { settings, updateSettings } = useSettingsContext();
 
-    const changeExploreProvider = (value: string) =>
+    const changeExploreProvider = (value: string) => {
         updateSettings({
             explore: {
                 ...settings.explore,
                 provider: value as "chub" | "anchorhold" | "charchive"
             }
         });
+    };
 
     const selectItems = ExploreProviders.map((provider) => (
         <SelectItem key={provider.value} value={provider.value}>

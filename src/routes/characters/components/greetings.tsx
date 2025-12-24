@@ -13,11 +13,7 @@ import {
     withCharacterForm
 } from "@/hooks/use-character-form";
 
-interface GreetingsProps {
-    character: Character;
-}
-
-export function Greetings({ character }: GreetingsProps) {
+export function Greetings({ character }: { character: Character }) {
     const greetings = [
         character.data.first_mes,
         ...(character.data.alternate_greetings ?? [])
