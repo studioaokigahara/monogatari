@@ -2,10 +2,10 @@ import { useChatContext } from "@/contexts/chat-context";
 import { type Message as MessageType } from "@/types/message";
 import { useChat } from "@ai-sdk/react";
 import { Message } from "./message";
-import { Ref } from "react";
+import { ForwardedRef } from "react";
 
 interface Props {
-    scrollRef: Ref<HTMLDivElement>;
+    scrollRef: ForwardedRef<HTMLDivElement>;
 }
 
 export default function MessageThread({ scrollRef }: Props) {

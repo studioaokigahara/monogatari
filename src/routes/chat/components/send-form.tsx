@@ -24,7 +24,7 @@ import {
     useMemo,
     useEffect,
     useLayoutEffect,
-    Ref
+    RefObject
 } from "react";
 import { useChat } from "@ai-sdk/react";
 import { type Message } from "@/types/message";
@@ -46,7 +46,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 interface Props {
-    scrollRef: Ref<HTMLDivElement>;
+    scrollRef: RefObject<HTMLDivElement | null>;
 }
 
 export function SendForm({ scrollRef: scrollAnchorRef }: Props) {
@@ -150,7 +150,7 @@ export function SendForm({ scrollRef: scrollAnchorRef }: Props) {
                 : ({ behavior: "smooth" } as const);
 
         scrollAnchor.scrollIntoView(options);
-    }, [messages, autoScroll, status]);
+    }, [autoScroll, status, messages]); // oxlint-disable-line
 
     const scrollToBottom = () => {
         scrollAnchorRef.current?.scrollIntoView({
