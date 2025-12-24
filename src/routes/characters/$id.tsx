@@ -114,7 +114,8 @@ function CharacterProfile({ character }: { character: Character }) {
                     | "example"
                     | "gallery"
             },
-            mask: { search: undefined }
+            mask: { search: undefined },
+            replace: true
         });
     };
 
