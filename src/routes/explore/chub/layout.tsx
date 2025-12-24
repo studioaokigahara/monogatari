@@ -127,10 +127,17 @@ export default function ChubLayout() {
             const arrayBuffer = await imageBlob.arrayBuffer();
             const characterData = readCharacterImage(arrayBuffer);
             const json = JSON.parse(characterData);
+
+            json.data.extensions.chub = {
+                ...json.data.extensions.chub,
+                full_path: job.fullPath
+            };
+
             json.data.extensions.monogatari = {
                 ...json.data.extensions.monogatari,
                 tagline: job.tagline
             };
+
             const record = await importCharacter(json, arrayBuffer);
 
             if (!record) return { job, isUpdate };
