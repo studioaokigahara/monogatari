@@ -18,7 +18,7 @@ export class Asset implements AssetRecord {
     file: File;
     createdAt: Date;
 
-    constructor(data: Partial<Asset>) {
+    constructor(data: Omit<Asset, "id" | "createdAt">) {
         const record = AssetRecord.parse(data);
         this.id = record.id;
         this.category = record.category;
