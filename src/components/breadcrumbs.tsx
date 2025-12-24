@@ -21,34 +21,31 @@ export function Breadcrumbs() {
             {
                 label,
                 to: match.pathname,
-                params: match.params,
-                search: match.search
+                params: match.params
             }
         ];
     });
 
-    const breadcrumbs = breadcrumbData.map(
-        ({ label, to, params, search }, index) => {
-            const last = index === breadcrumbData.length - 1;
-            const key = `${to}-${index}`;
-            return (
-                <Fragment key={key}>
-                    <BreadcrumbItem>
-                        {last ? (
-                            <BreadcrumbPage>{label}</BreadcrumbPage>
-                        ) : (
-                            <BreadcrumbLink asChild>
-                                <Link to={to} params={params} search={search}>
-                                    {label}
-                                </Link>
-                            </BreadcrumbLink>
-                        )}
-                    </BreadcrumbItem>
-                    {!last && <BreadcrumbSeparator />}
-                </Fragment>
-            );
-        }
-    );
+    const breadcrumbs = breadcrumbData.map(({ label, to, params }, index) => {
+        const last = index === breadcrumbData.length - 1;
+        const key = `${to}-${index}`;
+        return (
+            <Fragment key={key}>
+                <BreadcrumbItem>
+                    {last ? (
+                        <BreadcrumbPage>{label}</BreadcrumbPage>
+                    ) : (
+                        <BreadcrumbLink asChild>
+                            <Link to={to} params={params}>
+                                {label}
+                            </Link>
+                        </BreadcrumbLink>
+                    )}
+                </BreadcrumbItem>
+                {!last && <BreadcrumbSeparator />}
+            </Fragment>
+        );
+    });
 
     if (breadcrumbs.length === 0) return null;
 
