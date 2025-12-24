@@ -74,7 +74,7 @@ export type CharacterCardV3Asset = z.infer<typeof CharacterCardV3Asset>;
 
 export const CharacterCardV3Data = z.looseObject({
     ...TavernCardV2Data.shape,
-    character_book: LorebookData.nullish(),
+    character_book: LorebookData.optional(),
     assets: z.array(CharacterCardV3Asset).default([
         {
             type: "icon",

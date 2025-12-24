@@ -34,8 +34,8 @@ type CharacterBookEntry = z.infer<typeof CharacterBookEntry>;
 export const CharacterBook = z.object({
     name: z.string().optional(),
     description: z.string().optional(),
-    scan_depth: z.number().optional().default(Infinity),
-    token_budget: z.number().optional().default(Infinity),
+    scan_depth: z.number().optional().default(-1),
+    token_budget: z.number().optional().default(-1),
     recursive_scanning: z.boolean().optional().default(false),
     extensions: z.record(z.string(), z.any()).default({}),
     entries: z.array(CharacterBookEntry)
@@ -92,12 +92,10 @@ export const LorebookEntry = z
     .prefault({});
 export type LorebookEntry = z.infer<typeof LorebookEntry>;
 
-export const LorebookData = z
-    .object({
-        ...CharacterBook.shape,
-        entries: z.array(LorebookEntry).default([])
-    })
-    .prefault({});
+export const LorebookData = z.object({
+    ...CharacterBook.shape,
+    entries: z.array(LorebookEntry).default([])
+});
 export type LorebookData = z.infer<typeof LorebookData>;
 
 const ChubLorebookTransform = LorebookData.transform((book) => {
@@ -150,7 +148,7 @@ export type LorebookV3 = z.infer<typeof LorebookV3>;
 const LorebookRecord = z
     .object({
         id: z.cuid2().default(generateCuid2),
-        data: LorebookData,
+        data: LorebookData.prefault({}),
         enabled: z.coerce.number<boolean>().default(1),
         global: z.coerce.number<boolean>().default(0),
         embeddedCharacterID: z.string().optional(),
