@@ -142,11 +142,12 @@ export default function ChubLayout() {
 
             if (!record) return { job, isUpdate };
 
-            try {
-                await scanGallery(record);
-            } catch (error) {
+            await scanGallery(record).catch((error: Error) => {
                 console.error("Gallery scan failed:", error);
-            }
+                toast.error("Gallery scan failed", {
+                    description: error.message
+                });
+            });
 
             return { job, isUpdate };
         },
