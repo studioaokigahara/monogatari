@@ -6,6 +6,7 @@ import {
 import { TextareaAutosize as Textarea } from "@/components/ui/textarea-autosize";
 import { useChatContext } from "@/contexts/chat-context";
 import {
+    ArrowDown,
     ArrowUp,
     Link,
     Paperclip,
@@ -20,7 +21,10 @@ import {
     KeyboardEvent,
     useState,
     FormEvent,
-    useMemo
+    useMemo,
+    useEffect,
+    useLayoutEffect,
+    Ref
 } from "react";
 import { useChat } from "@ai-sdk/react";
 import { type Message } from "@/types/message";
@@ -38,12 +42,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useFileDialog } from "@/hooks/use-file-dialog";
 import { FileUIPart } from "ai";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
-export function SendForm() {
+interface Props {
+    scrollRef: Ref<HTMLDivElement>;
+}
+
+export function SendForm({ scrollRef: scrollAnchorRef }: Props) {
     const { chat } = useChatContext();
-    const { sendMessage, status, regenerate, stop } = useChat<Message>({
-        chat
-    });
+    const { messages, sendMessage, status, regenerate, stop } =
+        useChat<Message>({
+            chat
+        });
 
     const [input, setInput] = useState("");
     const [files, setFiles] = useState<FileList | FileUIPart[]>();
@@ -100,8 +111,66 @@ export function SendForm() {
         }
     };
 
+    const [autoScroll, setAutoScroll] = useState(true);
+
+    useEffect(() => {
+        let checking = false;
+        const checkScrollPosition = () => {
+            const { scrollHeight, scrollTop, clientHeight } =
+                document.scrollingElement || document.documentElement;
+            const distanceFromBottom =
+                scrollHeight - (scrollTop + clientHeight);
+            const atBottom = distanceFromBottom < 50;
+            setAutoScroll(atBottom);
+            checking = false;
+        };
+
+        const onScroll = () => {
+            if (checking) return;
+            checking = true;
+            requestAnimationFrame(checkScrollPosition);
+        };
+
+        window.addEventListener("scroll", onScroll, { passive: true });
+        window.addEventListener("resize", onScroll, { passive: true });
+
+        return () => {
+            window.removeEventListener("scroll", onScroll);
+            window.removeEventListener("resize", onScroll);
+        };
+    }, []);
+
+    useLayoutEffect(() => {
+        const scrollAnchor = scrollAnchorRef.current;
+        if (!scrollAnchor || !autoScroll) return;
+
+        const options =
+            status === "streaming"
+                ? undefined
+                : ({ behavior: "smooth" } as const);
+
+        scrollAnchor.scrollIntoView(options);
+    }, [messages, autoScroll, status]);
+
+    const scrollToBottom = () => {
+        scrollAnchorRef.current?.scrollIntoView({
+            behavior: "smooth"
+        });
+    };
+
     return (
         <div className="sticky bottom-2 sm:w-2xl @min-[1025px]:w-3xl sm:mx-auto">
+            <Button
+                variant="outline"
+                className={cn(
+                    "flex mx-auto -mt-9 mb-2 dark:bg-sidebar/50 backdrop-blur rounded-full transition opacity-0",
+                    !autoScroll ? "opacity-100" : "pointer-events-none"
+                )}
+                onClick={scrollToBottom}
+            >
+                Scroll to Bottom
+                <ArrowDown />
+            </Button>
             <form onSubmit={submit}>
                 <InputGroup className="rounded-3xl border-input! ring-0! dark:bg-sidebar/50 backdrop-blur">
                     <Textarea
