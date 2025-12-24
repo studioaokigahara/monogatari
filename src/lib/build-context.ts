@@ -96,14 +96,17 @@ async function buildLorebookContext(messages: Message[], character: Character) {
             lorebook.data.scan_depth >= 0
                 ? lorebook.data.scan_depth
                 : Infinity;
+
         const entries = lorebook.data.entries;
         const context = {
             ...baseContext,
             previousMatches: new Set<string>()
         };
+
         const results = lorebook.data.recursive_scanning
             ? LorebookMatcher.recursiveScan(entries, context, scanDepth)
             : LorebookMatcher.scan(entries, context, scanDepth);
+
         matches.push(...results);
     }
 
@@ -187,6 +190,7 @@ export async function buildContext(
     const firstNonSystemIndex = prompt.findIndex(
         (message) => message.role !== "system"
     );
+
     const systemCount =
         firstNonSystemIndex === -1 ? prompt.length : firstNonSystemIndex;
 
@@ -206,14 +210,13 @@ export async function buildContext(
 
     const combinedParts: (typeof systemMessages)[number]["parts"] = [];
     const combinedText = textParts.join("\n\n").trim();
-    if (combinedText) {
-        combinedParts.push({ type: "text", text: combinedText });
-    }
+    if (combinedText) combinedParts.push({ type: "text", text: combinedText });
     combinedParts.push(...otherParts);
 
     const creationTimes = systemMessages.map((message) =>
         new Date(message.metadata?.createdAt ?? Date.now()).getTime()
     );
+
     const minCreatedAt = new Date(Math.min(...creationTimes));
 
     const squashedSystemMessage: Message = {

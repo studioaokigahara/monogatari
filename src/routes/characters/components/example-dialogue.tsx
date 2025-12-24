@@ -30,7 +30,6 @@ function formatExamples(
             if (match) {
                 const [_, role, textRaw] = match;
                 const text = textRaw.trim();
-
                 const speaker = role === "char" ? characterName : "(You)";
                 return otherSpeakers ? `**${speaker}:** ${text}` : text;
             }
@@ -56,10 +55,8 @@ interface ExampleDialogueProps {
 }
 
 export function ExampleDialogue({ character }: ExampleDialogueProps) {
-    const formattedExamples = extractExamples(
-        character.data.mes_example ?? ""
-    ).map((block, index) =>
-        formatExamples(block, index, character?.data.name || "Character")
+    const formattedExamples = extractExamples(character.data.mes_example).map(
+        (block, index) => formatExamples(block, index, character.data.name)
     );
 
     const exampleDialogue = formattedExamples.map((example, index) => (

@@ -24,14 +24,7 @@ export function Description({ character }: DescriptionProps) {
                         {character.data.description ??
                             "No description provided."}
                     </Prose>
-                    {/*<MarkdownEditor
-                        text={
-                            character?.data.description ||
-                            "No description provided."
-                        }
-                    />*/}
                 </div>
-
                 {character.data.personality && (
                     <div>
                         <h4 className="font-medium mb-2">Personality</h4>
@@ -40,7 +33,6 @@ export function Description({ character }: DescriptionProps) {
                         </Prose>
                     </div>
                 )}
-
                 {character.data.scenario && (
                     <div>
                         <h4 className="font-medium mb-2">Scenario</h4>
@@ -49,7 +41,6 @@ export function Description({ character }: DescriptionProps) {
                         </Prose>
                     </div>
                 )}
-
                 {!character.data.description &&
                     !character.data.personality &&
                     !character.data.scenario && (

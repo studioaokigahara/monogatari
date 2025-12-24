@@ -44,9 +44,9 @@ function pick(values: string[], key: string): string {
 function roll(arg: string): string {
     let number: number;
     if (/^d(\d+)$/i.test(arg)) {
-        number = Number.parseInt(arg.slice(1), 10);
+        number = parseInt(arg.slice(1), 10);
     } else {
-        number = Number.parseInt(arg, 10);
+        number = parseInt(arg, 10);
     }
     if (isNaN(number) || number < 1) return "0";
     return String(Math.floor(Math.random() * number) + 1);
