@@ -312,7 +312,7 @@ function Personas() {
 export const Route = createFileRoute("/personas")({
     component: Personas,
     head: () => ({
-        meta: [{ title: "Personas — Monogatari" }]
+        meta: [{ title: "Personas - Monogatari" }]
     }),
     beforeLoad: () => ({
         breadcrumb: "Personas"

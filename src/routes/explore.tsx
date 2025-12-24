@@ -20,7 +20,7 @@ function ExploreLayout() {
 export const Route = createFileRoute("/explore")({
     component: ExploreLayout,
     head: () => ({
-        meta: [{ title: "Explore — Monogatari" }]
+        meta: [{ title: "Explore - Monogatari" }]
     }),
     beforeLoad: () => ({
         breadcrumb: "Explore"

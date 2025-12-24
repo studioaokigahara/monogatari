@@ -268,11 +268,11 @@ export const Route = createFileRoute("/characters/$id")({
             .enum(["description", "greetings", "example", "gallery"])
             .optional()
     }),
-    head: ({ match }) => ({
-        meta: [{ title: `${match.context.breadcrumb} — Monogatari` }]
-    }),
     beforeLoad: async ({ params: { id } }) => {
         const character = await Character.load(id);
         return { character, breadcrumb: character.data.name };
-    }
+    },
+    head: ({ match }) => ({
+        meta: [{ title: `${match.context.breadcrumb} - Monogatari` }]
+    })
 });

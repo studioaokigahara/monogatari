@@ -84,7 +84,7 @@ function LorebookSettings() {
 export const Route = createFileRoute("/settings/lorebooks")({
     component: LorebookSettings,
     head: () => ({
-        meta: [{ title: "Lorebooks — Monogatari" }]
+        meta: [{ title: "Lorebooks - Monogatari" }]
     }),
     beforeLoad: () => ({
         breadcrumb: "Lorebooks"

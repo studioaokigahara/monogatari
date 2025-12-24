@@ -49,7 +49,7 @@ function ApiSettings() {
 export const Route = createFileRoute("/settings/api")({
     component: ApiSettings,
     head: () => ({
-        meta: [{ title: "API — Monogatari" }]
+        meta: [{ title: "API - Monogatari" }]
     }),
     beforeLoad: () => ({
         breadcrumb: "API"

@@ -88,7 +88,7 @@ function PresetSettings() {
 export const Route = createFileRoute("/settings/presets")({
     component: PresetSettings,
     head: () => ({
-        meta: [{ title: "Presets — Monogatari" }]
+        meta: [{ title: "Presets - Monogatari" }]
     }),
     beforeLoad: () => ({
         breadcrumb: "Presets"

@@ -14,7 +14,7 @@ function SettingsLayout() {
 export const Route = createFileRoute("/settings")({
     component: SettingsLayout,
     head: () => ({
-        meta: [{ title: "Settings — Monogatari" }]
+        meta: [{ title: "Settings - Monogatari" }]
     }),
     beforeLoad: () => ({
         breadcrumb: "Settings"
