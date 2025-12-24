@@ -1,28 +1,20 @@
-import { db } from "@/database/database";
-import type { CharacterRecord } from "@/database/schema/character";
-import { PersonaRecord } from "@/database/schema/persona";
+import { Character } from "@/database/schema/character";
+import { Persona } from "@/database/schema/persona";
 import {
     ReactNode,
     createContext,
-    useCallback,
     useContext,
     useEffect,
-    useMemo,
     useState
 } from "react";
-import { useImageContext } from "./image-context";
 import { useSettingsContext } from "./settings-context";
-import { defaultUrlTransform } from "react-markdown";
+import { db } from "@/database/database";
 
 interface CharacterContextType {
-    character?: CharacterRecord;
-    setCharacter: (rec?: CharacterRecord) => void;
-    clearCharacter: () => void;
-    persona?: PersonaRecord;
-    setPersona: (rec?: PersonaRecord) => void;
-    clearPersona: () => void;
-    clearAll: () => void;
-    urlTransform: (url: string) => string;
+    character?: Character;
+    setCharacter: (character: Character) => void;
+    persona?: Persona;
+    setPersona: (persona: Persona) => void;
 }
 
 const CharacterContext = createContext<CharacterContextType | undefined>(
@@ -31,68 +23,24 @@ const CharacterContext = createContext<CharacterContextType | undefined>(
 
 export function CharacterProvider({ children }: { children: ReactNode }) {
     const { settings, updateSettings } = useSettingsContext();
-    const { getURL } = useImageContext();
-    const [character, setCharacter] = useState<CharacterRecord | undefined>(
-        undefined
-    );
-    const [persona, setPersona] = useState<PersonaRecord | undefined>(
-        undefined
-    );
-
-    const clearCharacter = () => setCharacter(undefined);
-    const clearPersona = () => setPersona(undefined);
-    const clearAll = () => {
-        clearCharacter();
-        clearPersona();
-    };
+    const [character, setCharacter] = useState<Character>();
+    const [persona, setPersona] = useState<Persona>();
 
     useEffect(() => {
-        const fetch = async () => {
-            const def = await db.personas.get(settings.persona);
-            setPersona(def);
-        };
-        fetch();
-    }, []);
+        db.personas.get(settings.persona).then(setPersona);
+    }, [settings.persona]);
 
     useEffect(() => {
         updateSettings({ persona: persona?.id });
-    }, [persona?.id]);
-
-    const urlMap = useMemo(() => {
-        const map = new Map<string, string>();
-        const assets = character?.assets
-            ? character.assets.map((asset) => asset)
-            : [];
-        for (const asset of assets) {
-            const key = `${asset.name}.${asset.ext}`;
-            const url = getURL(asset.blob);
-            map.set(key, url);
-        }
-        return map;
-    }, [character]);
-
-    const urlTransform = useCallback(
-        (url: string) => {
-            if (url.startsWith("embedded://")) {
-                const key = url.replace("embedded://", "");
-                return urlMap.get(key) || "";
-            }
-            return defaultUrlTransform(url);
-        },
-        [urlMap]
-    );
+    }, [updateSettings, persona?.id]);
 
     return (
         <CharacterContext.Provider
             value={{
                 character,
                 setCharacter,
-                clearCharacter,
                 persona,
-                setPersona,
-                clearPersona,
-                clearAll,
-                urlTransform
+                setPersona
             }}
         >
             {children}
@@ -101,10 +49,11 @@ export function CharacterProvider({ children }: { children: ReactNode }) {
 }
 
 export function useCharacterContext(): CharacterContextType {
-    const ctx = useContext(CharacterContext);
-    if (!ctx)
+    const context = useContext(CharacterContext);
+    if (!context) {
         throw new Error(
-            "useCharacterContext must be used inside CharacterProvider"
+            "useCharacterContext must be used within CharacterProvider."
         );
-    return ctx;
+    }
+    return context;
 }

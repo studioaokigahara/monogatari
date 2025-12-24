@@ -1,24 +1,37 @@
-import type { CharacterRecord } from "@/database/schema/character";
-import type { ChatRecord } from "@/database/schema/chat";
-import type { PersonaRecord } from "@/database/schema/persona";
-import type { PromptSet } from "@/database/schema/prompt-set";
 import Dexie, { type EntityTable } from "dexie";
+import { Character } from "@/database/schema/character";
+import { Chat } from "@/database/schema/chat";
+import { Persona } from "@/database/schema/persona";
+import { Preset } from "@/database/schema/preset";
+import { Lorebook } from "@/database/schema/lorebook";
+import { Asset } from "@/database/schema/asset";
 
-class monogatariDatabase extends Dexie {
-    characters!: EntityTable<CharacterRecord, "id">;
-    personas!: EntityTable<PersonaRecord, "id">;
-    chats!: EntityTable<ChatRecord, "id">;
-    promptSets!: EntityTable<PromptSet, "id">;
+class MonogatariDB extends Dexie {
+    characters!: EntityTable<Character, "id">;
+    personas!: EntityTable<Persona, "id">;
+    chats!: EntityTable<Chat, "id">;
+    presets!: EntityTable<Preset, "id">;
+    lorebooks!: EntityTable<Lorebook, "id">;
+    assets!: EntityTable<Asset, "id">;
 
     constructor() {
         super("monogatari");
-        this.version(0.2).stores({
-            characters: "&id, data.name, createdAt, favorite",
+        this.version(0.3).stores({
+            characters: "&id, data.name, favorite, createdAt, updatedAt",
+            personas: "&id, name, createdAt, updatedAt",
             chats: "&id, *characterIDs, updatedAt",
-            promptSets: "&id, name, updatedAt",
-            personas: "&id, name, createdAt, updatedAt"
+            presets: "&id, name, updatedAt",
+            lorebooks:
+                "&id, enabled, global, *linkedCharacterIDs, embeddedCharacterID, createdAt, updatedAt",
+            assets: "&id, category, parentID, file.name, [category+parentID], &[parentID+file.name], createdAt"
         });
+        this.characters.mapToClass(Character);
+        this.personas.mapToClass(Persona);
+        this.chats.mapToClass(Chat);
+        this.presets.mapToClass(Preset);
+        this.lorebooks.mapToClass(Lorebook);
+        this.assets.mapToClass(Asset);
     }
 }
 
-export const db = new monogatariDatabase();
+export const db = new MonogatariDB();

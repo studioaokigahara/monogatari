@@ -16,22 +16,26 @@ import {
 } from "@/components/ui/sidebar";
 import { useCharacterContext } from "@/contexts/character-context";
 import { db } from "@/database/database";
-import { useImageURL } from "@/contexts/image-context";
+import { useImageURL } from "@/hooks/use-image-url";
 import { Link } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronsUpDown, UserPen } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { ChevronsUpDown, UserPen, UserPlus } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export function PersonaSwitcher() {
+    const [open, setOpen] = useState(false);
+
     const { persona, setPersona } = useCharacterContext();
-    const personas = useLiveQuery(() => db.personas.toArray(), []) ?? [];
     const { isMobile } = useSidebar();
 
-    const personaBlobs = useMemo(
-        () => personas.map((personaItem) => personaItem.blob),
-        [personas]
+    const personas = useLiveQuery(() => db.personas.toArray(), [], []);
+
+    const imageURLs = useImageURL(
+        personas?.map((persona) => ({
+            category: "persona" as const,
+            id: persona.id
+        }))
     );
-    const imageURLs = useImageURL(personaBlobs);
 
     useEffect(() => {
         if (personas.length > 0) {
@@ -41,31 +45,97 @@ export function PersonaSwitcher() {
         }
     }, [personas, persona, setPersona]);
 
-    if (personas.length === 0 || !persona) {
-        return null;
-    }
-
-    const activeIndex = personas.findIndex((p) => p.id === persona.id);
+    const activeIndex = personas.findIndex((p) => p.id === persona?.id);
     const activeImageURL =
         activeIndex !== -1 && Array.isArray(imageURLs)
             ? imageURLs[activeIndex]
             : "";
 
+    useEffect(() => {
+        const down = (e: KeyboardEvent) => {
+            if (!open) return;
+            if (e.metaKey && /^([0-9])$/.test(e.key)) {
+                let index = parseInt(e.key, 10) - 1;
+                if (e.key === "0") index = 9;
+                if (index >= 0 && index < personas.length) {
+                    e.preventDefault();
+                    setPersona(personas[index]);
+                    setOpen(false);
+                }
+            }
+            if (e.key === "Escape") {
+                e.preventDefault();
+                setOpen(false);
+            }
+        };
+        document.addEventListener("keydown", down);
+        return () => document.removeEventListener("keydown", down);
+    }, [open, personas, setPersona]);
+
+    const personaDropdownItems = personas.map((persona, index) => (
+        <DropdownMenuItem
+            key={persona.id}
+            onClick={() => setPersona(persona)}
+            className="gap-2 p-2"
+        >
+            <div className="flex size-6 items-center justify-center rounded-md border">
+                <Avatar className="size-8 rounded-4xl">
+                    <AvatarImage
+                        src={Array.isArray(imageURLs) ? imageURLs[index] : ""}
+                        alt={persona.name}
+                        className="object-cover"
+                    />
+                    <AvatarFallback className="rounded-4xl">
+                        {persona.name.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                </Avatar>
+            </div>
+            {persona.name}
+            <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
+        </DropdownMenuItem>
+    ));
+
+    if (personas.length === 0 || !persona) {
+        return (
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <Link to="/personas">
+                        <SidebarMenuButton
+                            size="lg"
+                            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                        >
+                            <Avatar>
+                                <AvatarFallback>?</AvatarFallback>
+                            </Avatar>
+                            <div className="grid flex-1 text-left text-sm leading-tight">
+                                <span className="truncate font-medium">
+                                    I AM ERROR.
+                                </span>
+                            </div>
+                            <UserPlus className="ml-auto" />
+                        </SidebarMenuButton>
+                    </Link>
+                </SidebarMenuItem>
+            </SidebarMenu>
+        );
+    }
+
     return (
         <SidebarMenu>
             <SidebarMenuItem>
-                <DropdownMenu>
+                <DropdownMenu open={open} onOpenChange={setOpen}>
                     <DropdownMenuTrigger asChild>
                         <SidebarMenuButton
                             size="lg"
                             className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                         >
-                            <Avatar className="size-8 rounded-4xl">
+                            <Avatar className="size-8">
                                 <AvatarImage
                                     src={activeImageURL}
                                     alt={persona.name}
+                                    className="object-cover"
                                 />
-                                <AvatarFallback className="rounded-4xl">
+                                <AvatarFallback>
                                     {persona.name.slice(0, 2).toUpperCase()}
                                 </AvatarFallback>
                             </Avatar>
@@ -86,33 +156,7 @@ export function PersonaSwitcher() {
                         <DropdownMenuLabel className="text-muted-foreground text-xs">
                             Personas
                         </DropdownMenuLabel>
-                        {personas.map((p, index) => (
-                            <DropdownMenuItem
-                                key={p.id}
-                                onClick={() => setPersona(p)}
-                                className="gap-2 p-2"
-                            >
-                                <div className="flex size-6 items-center justify-center rounded-md border">
-                                    <Avatar className="size-8 rounded-4xl">
-                                        <AvatarImage
-                                            src={
-                                                Array.isArray(imageURLs)
-                                                    ? imageURLs[index]
-                                                    : ""
-                                            }
-                                            alt={p.name}
-                                        />
-                                        <AvatarFallback className="rounded-4xl">
-                                            {p.name.slice(0, 2).toUpperCase()}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                </div>
-                                {p.name}
-                                <DropdownMenuShortcut>
-                                    ⌘{index + 1}
-                                </DropdownMenuShortcut>
-                            </DropdownMenuItem>
-                        ))}
+                        {personaDropdownItems}
                         <DropdownMenuSeparator />
                         <Link to="/personas">
                             <DropdownMenuItem className="gap-2 p-2 cursor-pointer">

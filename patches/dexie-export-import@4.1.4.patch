@@ -1,0 +1,169 @@
+diff --git a/node_modules/dexie-export-import/.bun-tag-15cfbb7f7ebe468b b/.bun-tag-15cfbb7f7ebe468b
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/node_modules/dexie-export-import/.bun-tag-264a4101e368125d b/.bun-tag-264a4101e368125d
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/node_modules/dexie-export-import/.bun-tag-663af34dabc0a18 b/.bun-tag-663af34dabc0a18
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/node_modules/dexie-export-import/.bun-tag-b7721082827ae373 b/.bun-tag-b7721082827ae373
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/dist/dexie-export-import.js b/dist/dexie-export-import.js
+index 709d61fc0838cbca29679976a6ddac4c7036648f..c979dce9c1f211d19de7cd37cbb5862a28da6434 100644
+--- a/dist/dexie-export-import.js
++++ b/dist/dexie-export-import.js
+@@ -1,4 +1,4 @@
+-/* ========================================================================== 
++/* ==========================================================================
+  *                           dexie-export-import.js
+  * ==========================================================================
+  *
+@@ -13,7 +13,7 @@
+  * https://dexie.org
+  *
+  * Apache License Version 2.0, January 2004, http://www.apache.org/licenses/
+- * 
++ *
+  */
+ 
+ (function (global, factory) {
+@@ -2158,7 +2158,7 @@
+                                                     //     ...
+                                                     //     data: [
+                                                     // 123456<---- here
+-                                                    //     ] 
++                                                    //     ]
+                                                     //   ]
+                                                     // }
+                                                     emptyTableExportJson = emptyTableExportJson.split('\n').join('\n    ');
+@@ -2454,7 +2454,7 @@
+ 
+         a                   : 0x61,     // a
+         b                   : 0x62,     // b
+-        e                   : 0x65,     // e 
++        e                   : 0x65,     // e
+         f                   : 0x66,     // f
+         l                   : 0x6C,     // l
+         n                   : 0x6E,     // n
+@@ -3336,7 +3336,7 @@
+                                 _i++;
+                                 return [3 /*break*/, 1];
+                             case 4:
+-                                // Avoid unnescessary loops in "for (const tableExport of dbExport.data)" 
++                                // Avoid unnescessary loops in "for (const tableExport of dbExport.data)"
+                                 while (dbExport.data.length > 0 && dbExport.data[0].rows && !dbExport.data[0].rows.incomplete) {
+                                     // We've already imported all rows from the first table. Delete its occurrence
+                                     dbExport.data.splice(0, 1);
+diff --git a/dist/dexie-export-import.mjs b/dist/dexie-export-import.mjs
+index 0d582e401bdc00ef14fe35617d649f38a84948fe..ae84eedf2fffb31585d5ea7216fd8ff8688ed259 100644
+--- a/dist/dexie-export-import.mjs
++++ b/dist/dexie-export-import.mjs
+@@ -1,4 +1,4 @@
+-/* ========================================================================== 
++/* ==========================================================================
+  *                           dexie-export-import.js
+  * ==========================================================================
+  *
+@@ -13,7 +13,7 @@
+  * https://dexie.org
+  *
+  * Apache License Version 2.0, January 2004, http://www.apache.org/licenses/
+- * 
++ *
+  */
+ 
+ import Dexie from 'dexie';
+@@ -2032,6 +2032,51 @@ var blobsToAwaitPos = 0;
+ TSON.register([
+     arrayBuffer,
+     exportObj, {
++        // Monogatari stores File instances in Dexie, but blob2 does not cover
++        // instances of File and typeson's File handler has the same encapsulation/revival
++        // bugs as their Blob handler, so we copy + paste blob2 with minimal changes.
++        file2: {
++            test: function (x) { return typeson.toStringTag(x) === 'File'; },
++            replace: function (f) {
++                if (f.isClosed) {
++                    throw new Error('The File is closed');
++                }
++                if (readBlobsSynchronously) {
++                    var data = readBlobSync(f, 'binary'); // File extends Blob
++                    var base64 = encode(data, 0, data.byteLength);
++                    return {
++                        name: f.name,
++                        type: f.type,
++                        lastModified: f.lastModified,
++                        data: base64
++                    };
++                }
++                else {
++                    blobsToAwait.push(f); // reuse the same queue as blob2
++                    var result = {
++                        name: f.name,
++                        type: f.type,
++                        lastModified: f.lastModified,
++                        data: { start: blobsToAwaitPos, end: blobsToAwaitPos + f.size }
++                    };
++                    blobsToAwaitPos += f.size;
++                    return result;
++                }
++            },
++            finalize: function (f, ba) {
++                f.data = encode(ba, 0, ba.byteLength);
++            },
++            revive: function (_a) {
++                var name = _a.name, type = _a.type, lastModified = _a.lastModified, data = _a.data;
++                // If File ctor is missing in some worker/runtime, fall back to Blob:
++                try {
++                    return new File([decode(data)], name, { type: type, lastModified: lastModified });
++                }
++                catch (e) {
++                    return new Blob([decode(data)], { type: type });
++                }
++            }
++        },
+         blob2: {
+             test: function (x) { return typeson.toStringTag(x) === 'Blob'; },
+             replace: function (b) {
+@@ -2150,7 +2195,7 @@ function exportDB(db, options) {
+                                                 //     ...
+                                                 //     data: [
+                                                 // 123456<---- here
+-                                                //     ] 
++                                                //     ]
+                                                 //   ]
+                                                 // }
+                                                 emptyTableExportJson = emptyTableExportJson.split('\n').join('\n    ');
+@@ -2362,7 +2407,11 @@ var clarinet_1 = createCommonjsModule(function (module, exports) {
+   clarinet.CParser           = CParser;
+   clarinet.CStream           = CStream;
+   clarinet.createStream      = createStream;
+-  clarinet.MAX_BUFFER_LENGTH = 10 * 1024 * 1024;
++  // 1GB max buffer size; originally the limit was 10MB (10 * 1024^2) but
++  // Monogatari stores images as `File` instances in Dexie, which creates
++  // massive exports. On top of this, our chat graphs can reach 10MB+ alone
++  // once serialized to JSON, so we bump this to 1GB (1024^3) to be safe.
++  clarinet.MAX_BUFFER_LENGTH = 1024 * 1024 * 1024;
+   clarinet.DEBUG             = (env.CDEBUG==='debug');
+   clarinet.INFO              = (env.CDEBUG==='debug' || env.CDEBUG==='info');
+   clarinet.EVENTS            =
+@@ -2446,7 +2495,7 @@ var clarinet_1 = createCommonjsModule(function (module, exports) {
+ 
+     a                   : 0x61,     // a
+     b                   : 0x62,     // b
+-    e                   : 0x65,     // e 
++    e                   : 0x65,     // e
+     f                   : 0x66,     // f
+     l                   : 0x6C,     // l
+     n                   : 0x6E,     // n
+@@ -3328,7 +3377,7 @@ function importInto(db, exportedData, options) {
+                             _i++;
+                             return [3 /*break*/, 1];
+                         case 4:
+-                            // Avoid unnescessary loops in "for (const tableExport of dbExport.data)" 
++                            // Avoid unnescessary loops in "for (const tableExport of dbExport.data)"
+                             while (dbExport.data.length > 0 && dbExport.data[0].rows && !dbExport.data[0].rows.incomplete) {
+                                 // We've already imported all rows from the first table. Delete its occurrence
+                                 dbExport.data.splice(0, 1);

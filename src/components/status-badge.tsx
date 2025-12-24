@@ -32,7 +32,7 @@ import {
     Tv,
     Utensils,
     Wrench,
-    Zap,
+    Zap
 } from "lucide-react";
 
 // --- Helper Function ---
@@ -65,7 +65,7 @@ const games = [
     "Nier: Automata",
     "Final Fantasy VII Rebirth",
     "Helldivers 2",
-    "Lethal Company",
+    "Lethal Company"
 ];
 const rpgs = [
     // Can have overlapping or specific lists
@@ -75,7 +75,7 @@ const rpgs = [
     "The Witcher 3",
     "Final Fantasy XIV",
     "Diablo IV",
-    "Path of Exile",
+    "Path of Exile"
 ];
 const artists = [
     "Playboi Carti – MUSIC",
@@ -92,7 +92,7 @@ const artists = [
     "King Gizzard & The Lizard Wizard",
     "Mac DeMarco",
     "Gorillaz",
-    "Björk",
+    "Björk"
 ];
 // const albums = [
 //     // Optional: for more specific music status
@@ -119,7 +119,7 @@ const movies = [
     "Inception",
     "Oppenheimer",
     "Barbie",
-    "Poor Things",
+    "Poor Things"
 ];
 const series = [
     "Breaking Bad",
@@ -133,7 +133,7 @@ const series = [
     "Fleabag",
     "Chernobyl",
     "Shōgun",
-    "Fallout",
+    "Fallout"
 ];
 const youtubers = [
     "Marques Brownlee (MKBHD)",
@@ -145,7 +145,7 @@ const youtubers = [
     "Kurzgesagt",
     "NileRed",
     "Summoning Salt",
-    "penguinz0",
+    "penguinz0"
 ];
 const podcasts = [
     "The Joe Rogan Experience",
@@ -155,7 +155,7 @@ const podcasts = [
     "My Brother, My Brother and Me",
     "Huberman Lab",
     "Critical Role",
-    "Darknet Diaries",
+    "Darknet Diaries"
 ];
 const books = [
     "Dune",
@@ -166,7 +166,7 @@ const books = [
     "Mistborn",
     "1984",
     "Brave New World",
-    "Klara and the Sun",
+    "Klara and the Sun"
 ];
 const topics = [
     // For learning
@@ -179,7 +179,7 @@ const topics = [
     "History",
     "Graphic Design",
     "Blender",
-    "Japanese",
+    "Japanese"
 ];
 const activities = [
     // For general/misc
@@ -191,7 +191,7 @@ const activities = [
     "doing chores",
     "working out",
     "meditating",
-    "snacking",
+    "snacking"
 ];
 const codeTasks = [
     "coding a new feature",
@@ -200,7 +200,7 @@ const codeTasks = [
     "optimizing queries",
     "setting up CI/CD",
     "reviewing a PR",
-    "learning a new framework",
+    "learning a new framework"
 ];
 
 // --- Status Categories with Generator Functions ---
@@ -217,8 +217,8 @@ const statusCategories = [
             () => `Grinding in ${getRandomItem(rpgs) || "an RPG"}`,
             "In a competitive match",
             "Exploring a vast world",
-            "Trying a new indie gem",
-        ] as StatusItem[], // Type assertion for mixed array
+            "Trying a new indie gem"
+        ] as StatusItem[] // Type assertion for mixed array
     },
     {
         name: "Music",
@@ -228,8 +228,8 @@ const statusCategories = [
             () => `Enjoying the ${getRandomItem(podcasts) || "a podcast"}`,
             "Discovering new artists",
             "Listening to Lo-fi beats",
-            "Tuning into a radio show",
-        ] as StatusItem[],
+            "Tuning into a radio show"
+        ] as StatusItem[]
     },
     {
         name: "Watching",
@@ -239,8 +239,8 @@ const statusCategories = [
             () => `Binge-watching ${getRandomItem(series) || "a series"}`,
             () => `Watching ${getRandomItem(youtubers) || "YouTube"}`,
             "Watching Twitch streams",
-            "Catching up on anime",
-        ] as StatusItem[],
+            "Catching up on anime"
+        ] as StatusItem[]
     },
     {
         name: "Coding & Development",
@@ -251,8 +251,8 @@ const statusCategories = [
             "Fixing bugs",
             "Stuck on a problem",
             () =>
-                `Learning ${getRandomItem(topics)?.split(" ")[0] || "something new"}`, // e.g., Learning React
-        ] as StatusItem[],
+                `Learning ${getRandomItem(topics)?.split(" ")[0] || "something new"}` // e.g., Learning React
+        ] as StatusItem[]
     },
     {
         name: "Reading & Learning",
@@ -263,8 +263,8 @@ const statusCategories = [
                 `Learning about ${getRandomItem(topics) || "something interesting"}`,
             "Reading documentation",
             "Studying",
-            "Browsing the news",
-        ] as StatusItem[],
+            "Browsing the news"
+        ] as StatusItem[]
     },
     {
         name: "General / Misc",
@@ -279,7 +279,7 @@ const statusCategories = [
             MapPin,
             Building,
             Zap,
-            Brain,
+            Brain
         ], // Keep a broad pool
         statuses: [
             () => `Currently ${getRandomItem(activities) || "chilling"}`, // Use the activities list
@@ -288,9 +288,9 @@ const statusCategories = [
             "Thinking...",
             "Taking a break",
             "Online",
-            "Offline", // Could have Moon/Sun icon logic tied to this later if desired
-        ] as StatusItem[],
-    },
+            "Offline" // Could have Moon/Sun icon logic tied to this later if desired
+        ] as StatusItem[]
+    }
 ];
 
 // --- Color Themes (remains the same) ---
@@ -299,68 +299,68 @@ const colorThemes = [
         name: "green",
         bg: "bg-green-500/10",
         text: "text-green-500",
-        border: "border-green-500/20",
+        border: "border-green-500/20"
     },
     {
         name: "blue",
         bg: "bg-blue-500/10",
         text: "text-blue-500",
-        border: "border-blue-500/20",
+        border: "border-blue-500/20"
     },
     {
         name: "red",
         bg: "bg-red-500/10",
         text: "text-red-500",
-        border: "border-red-500/20",
+        border: "border-red-500/20"
     },
     {
         name: "yellow",
         bg: "bg-yellow-500/10",
         text: "text-yellow-500",
-        border: "border-yellow-500/20",
+        border: "border-yellow-500/20"
     },
     {
         name: "purple",
         bg: "bg-purple-500/10",
         text: "text-purple-500",
-        border: "border-purple-500/20",
+        border: "border-purple-500/20"
     },
     {
         name: "pink",
         bg: "bg-pink-500/10",
         text: "text-pink-500",
-        border: "border-pink-500/20",
+        border: "border-pink-500/20"
     },
     {
         name: "indigo",
         bg: "bg-indigo-500/10",
         text: "text-indigo-500",
-        border: "border-indigo-500/20",
+        border: "border-indigo-500/20"
     },
     {
         name: "gray",
         bg: "bg-gray-500/10",
         text: "text-gray-500",
-        border: "border-gray-500/20",
+        border: "border-gray-500/20"
     },
     {
         name: "orange",
         bg: "bg-orange-500/10",
         text: "text-orange-500",
-        border: "border-orange-500/20",
+        border: "border-orange-500/20"
     },
     {
         name: "teal",
         bg: "bg-teal-500/10",
         text: "text-teal-500",
-        border: "border-teal-500/20",
+        border: "border-teal-500/20"
     },
     {
         name: "cyan",
         bg: "bg-cyan-500/10",
         text: "text-cyan-500",
-        border: "border-cyan-500/20",
-    },
+        border: "border-cyan-500/20"
+    }
 ];
 
 // --- The Component ---
@@ -398,7 +398,7 @@ function RandomStatusBadge() {
         "flex items-center whitespace-nowrap",
         theme.bg,
         theme.text,
-        theme.border,
+        theme.border
     );
 
     return (
@@ -413,20 +413,3 @@ function RandomStatusBadge() {
 }
 
 export const StatusBadge = React.memo(RandomStatusBadge);
-
-// --- Example Usage ---
-
-// import { RandomStatusBadge } from './RandomStatusBadge'; // Adjust path
-//
-// export default function MyComponent() {
-//   return (
-//     <div className="flex flex-col gap-2 items-start p-4">
-//       <p>Current Vibes:</p>
-//       <RandomStatusBadge />
-//       <RandomStatusBadge />
-//       <RandomStatusBadge />
-//       <RandomStatusBadge />
-//       <RandomStatusBadge />
-//     </div>
-//   );
-// }

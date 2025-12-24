@@ -1,15 +1,17 @@
 import { cn } from "@/lib/utils";
-import { memo, useId as useID } from "react";
+import { useId as useID } from "react";
 import { Markdown } from "./markdown";
 
 interface ProseProps extends React.HTMLAttributes<HTMLDivElement> {
-    children: string;
     id?: string;
+    children: string;
+    streaming?: boolean;
 }
 
-export const Prose = memo(function Prose({
-    children,
+export function Prose({
     id,
+    children,
+    streaming = false,
     className,
     ...props
 }: ProseProps) {
@@ -24,10 +26,7 @@ export const Prose = memo(function Prose({
             )}
             {...props}
         >
-            <Markdown
-                id={memoID}
-                children={children.replace(/"\s*;\s*/g, '" ').trim()}
-            />
+            <Markdown id={memoID} content={children} streaming={streaming} />
         </article>
     );
-});
+}

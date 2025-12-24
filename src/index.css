@@ -121,29 +121,6 @@
     }
 }
 
-@layer utilities {
-    .line-clamp-1 {
-        overflow: hidden;
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 1;
-    }
-
-    .line-clamp-2 {
-        overflow: hidden;
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-    }
-
-    .line-clamp-3 {
-        overflow: hidden;
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 3;
-    }
-}
-
 @theme {
     --animate-splash-bounce: splash-bounce 0.25s infinite alternate;
 
@@ -154,6 +131,16 @@
 
         100% {
             transform: rotate(-10deg) scale(1);
+        }
+    }
+
+    --animate-icon-bounce: icon-bounce 0.25s ease-in-out;
+    @keyframes icon-bounce {
+        33% {
+            transform: scale(1.33);
+        }
+        66% {
+            transform: scale(1);
         }
     }
 }

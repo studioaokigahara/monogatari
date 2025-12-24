@@ -1,0 +1,202 @@
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger
+} from "@/components/ui/tooltip";
+import { TextareaAutosize as Textarea } from "@/components/ui/textarea-autosize";
+import { useChatContext } from "@/contexts/chat-context";
+import {
+    ArrowUp,
+    Link,
+    Paperclip,
+    Plus,
+    Square,
+    TriangleAlert
+} from "lucide-react";
+import {
+    MouseEvent,
+    ChangeEvent,
+    ClipboardEvent,
+    KeyboardEvent,
+    useState,
+    FormEvent,
+    useMemo
+} from "react";
+import { useChat } from "@ai-sdk/react";
+import { type Message } from "@/types/message";
+import useEvent from "react-use-event-hook";
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton
+} from "@/components/ui/input-group";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { useFileDialog } from "@/hooks/use-file-dialog";
+import { FileUIPart } from "ai";
+
+export function SendForm() {
+    const { chat } = useChatContext();
+    const { sendMessage, status, regenerate, stop } = useChat<Message>({
+        chat
+    });
+
+    const [input, setInput] = useState("");
+    const [files, setFiles] = useState<FileList | FileUIPart[]>();
+
+    const handleInput = useEvent((event: ChangeEvent<HTMLTextAreaElement>) => {
+        setInput(event.target.value);
+    });
+
+    const { input: fileInput, browse } = useFileDialog({
+        accept: "image/*, text/*",
+        onChange: (event: ChangeEvent<HTMLInputElement>) => {
+            if (event.target.files) setFiles(event.target.files);
+        },
+        multiple: true
+    });
+
+    const submit = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!input.trim()) return;
+        if (files) sendMessage({ text: input, files });
+        else sendMessage({ text: input });
+        setInput("");
+        setFiles(undefined);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            if (event.nativeEvent?.isComposing) return;
+            event.currentTarget.form?.requestSubmit();
+        }
+    };
+
+    const handleButtonClick = (event: MouseEvent<HTMLButtonElement>) => {
+        if (status === "streaming" || status === "submitted") {
+            event.preventDefault();
+            stop();
+        } else if (status === "error") {
+            event.preventDefault();
+            regenerate();
+        }
+    };
+
+    const placeholder = useMemo(() => {
+        const options = ["Type something...", "What would you like to say?"];
+        return options[Math.floor(Math.random() * options.length)];
+    }, []);
+
+    const pasteFiles = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+        const files = event.clipboardData.files;
+        if (files.length > 0) {
+            event.preventDefault();
+            setFiles(files);
+        }
+    };
+
+    return (
+        <div className="sticky bottom-2 sm:w-2xl @min-[1025px]:w-3xl sm:mx-auto">
+            <form onSubmit={submit}>
+                <InputGroup className="rounded-3xl border-input! ring-0! dark:bg-sidebar/50 backdrop-blur">
+                    <Textarea
+                        data-slot="input-group-control"
+                        onKeyDown={handleKeyDown}
+                        onChange={handleInput}
+                        onPaste={pasteFiles}
+                        value={input}
+                        placeholder={placeholder}
+                        className="min-h-0 py-3 dark:bg-transparent resize-none border-none shadow-none focus-visible:ring-0"
+                    />
+                    <InputGroupAddon align="block-end">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <InputGroupButton
+                                    variant="outline"
+                                    size="icon-sm"
+                                    className="rounded-full"
+                                >
+                                    <Plus />
+                                </InputGroupButton>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                <DropdownMenuItem onClick={browse}>
+                                    {fileInput}
+                                    <Paperclip />
+                                    Attach Files...
+                                </DropdownMenuItem>
+                                <DropdownMenuItem disabled>
+                                    <Link />
+                                    Import from URL
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <Tooltip>
+                            <TooltipTrigger asChild></TooltipTrigger>
+                            <TooltipContent>Attach file</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <InputGroupButton
+                                    variant="default"
+                                    size="icon-sm"
+                                    type={
+                                        status === "ready" ? "submit" : "button"
+                                    }
+                                    className="ml-auto rounded-full"
+                                    disabled={
+                                        status === "ready" && !input.trim()
+                                    }
+                                    onClick={handleButtonClick}
+                                >
+                                    {status === "ready" && (
+                                        <ArrowUp className="size-6" />
+                                    )}
+                                    {(status === "streaming" ||
+                                        status === "submitted") && (
+                                        <Square fill="currentColor" />
+                                    )}
+                                    {status === "error" && (
+                                        <TriangleAlert className="size-6" />
+                                    )}
+                                </InputGroupButton>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {status === "ready" && "Submit"}
+                                {(status === "streaming" ||
+                                    status === "submitted") &&
+                                    "Stop"}
+                                {status === "error" && "Retry"}
+                            </TooltipContent>
+                        </Tooltip>
+                    </InputGroupAddon>
+                </InputGroup>
+                {/* {attachments.length > 0 && (
+                        <div className="flex items-center gap-1">
+                            <File size={16} />
+                            <div className="text-xs text-muted-foreground">
+                                {attachments.length} file(s) attached
+                            </div>
+                        </div>
+                    )} */}
+
+                {/* <input
+            type="file"
+            ref={fileInputRef}
+            // onChange={handleFiles}
+            className="hidden"
+            multiple
+          /> */}
+                {/* / <div */}
+                {/* // className={`${messages.length > 0 ? "flex -mt-24 mb-4 z-1" : "flex grow"} w-auto h-auto `}
+        // </div>
+        // > */}
+            </form>
+        </div>
+    );
+}

@@ -5,7 +5,7 @@ import React, {
     useCallback,
     useContext,
     useEffect,
-    useState,
+    useState
 } from "react";
 
 interface SettingsContextType {
@@ -27,25 +27,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         (update: Partial<Settings>) => {
             setSettings((settings: Settings) => ({ ...settings, ...update }));
         },
-        [setSettings],
+        [setSettings]
     );
 
     useEffect(() => {
         localStorage.setItem("settings", JSON.stringify(settings));
-    }, [settings]);
-
-    useEffect(() => {
-        if (!("serviceWorker" in navigator)) return;
-        if (navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({
-                type: "SETTINGS",
-                settings,
-            });
-        } else {
-            navigator.serviceWorker.ready.then((reg) => {
-                reg.active?.postMessage({ type: "SETTINGS", settings });
-            });
-        }
     }, [settings]);
 
     return (
@@ -58,9 +44,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useSettingsContext() {
-    const ctx = useContext(SettingsContext);
-    if (!ctx) {
-        throw new Error("useSettings must be under SettingsProvider");
+    const context = useContext(SettingsContext);
+    if (!context) {
+        throw new Error("useSettings must be within SettingsProvider.");
     }
-    return ctx;
+    return context;
 }

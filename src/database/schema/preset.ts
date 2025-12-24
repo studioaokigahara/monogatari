@@ -1,0 +1,125 @@
+import { z } from "zod";
+import { generateCuid2 } from "@/lib/utils";
+import { db } from "../database";
+import { SillyTavernPresetConverter } from "./preset/sillytavern";
+
+export const Prompt = z
+    .object({
+        id: z.cuid2().default(generateCuid2),
+        name: z.string().default(""),
+        role: z.enum(["system", "user", "assistant"]).default("system"),
+        content: z.string().default(""),
+        enabled: z.boolean().default(true),
+        position: z.enum(["before", "after"]).default("before"),
+        depth: z.number().int().nonnegative().default(0)
+    })
+    .prefault({});
+export type Prompt = z.infer<typeof Prompt>;
+
+const defaultPrompts = [
+    {
+        name: "System Prompt (Card)",
+        content: "{{char.system_prompt}}"
+    },
+    {
+        name: "Lorebook (Before)",
+        content: "{{lorebook.before}}"
+    },
+    {
+        name: "Persona",
+        content: "{{user.description}}"
+    },
+    {
+        name: "Card Description",
+        content: "{{char.description}}"
+    },
+    {
+        name: "Card Personality",
+        content: "{{char.personality}}"
+    },
+    {
+        name: "Scenario",
+        content: "{{char.scenario}}"
+    },
+    {
+        name: "Lorebook (After)",
+        content: "{{lorebook.after}}"
+    },
+    {
+        name: "Example Dialogue",
+        content: "{{char.mes_example}}"
+    },
+    {
+        name: "Post-History Instructions (Card)",
+        content: "{{char.post_history_instructions}}",
+        position: "after"
+    }
+];
+
+const PresetRecord = z
+    .object({
+        id: z.cuid2().default(generateCuid2),
+        name: z.string().default("New Preset"),
+        description: z.string().default("readme.md"),
+        prompts: z
+            .array(Prompt)
+            .default(defaultPrompts.map((prompt) => Prompt.parse(prompt))),
+        createdAt: z.date().default(new Date()),
+        updatedAt: z.date().default(new Date())
+    })
+    .prefault({});
+type PresetRecord = z.infer<typeof PresetRecord>;
+
+export class Preset implements PresetRecord {
+    id: string;
+    name: string;
+    description: string;
+    prompts: Prompt[];
+    createdAt: Date;
+    updatedAt: Date;
+
+    constructor(data?: Partial<Preset>) {
+        const record = PresetRecord.parse(data);
+        this.id = record.id;
+        this.name = record.name;
+        this.description = record.description;
+        this.prompts = record.prompts;
+        this.createdAt = record.createdAt;
+        this.updatedAt = record.updatedAt;
+    }
+
+    async save() {
+        const record = PresetRecord.parse(this);
+        Object.assign(this, record);
+        await db.presets.put(this);
+    }
+
+    static async load(id: string) {
+        return db.presets.get(id);
+    }
+
+    static validate(data: Partial<Preset>) {
+        const result = PresetRecord.safeParse(data);
+        return result.success ? undefined : result.error;
+    }
+
+    async update(data: Partial<Preset>) {
+        const record = PresetRecord.parse({ ...this, ...data });
+        record.updatedAt = new Date();
+        Object.assign(this, record);
+        await db.presets.put(this);
+    }
+
+    static async import(file: File) {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+        const converted = SillyTavernPresetConverter.parse(parsed);
+        converted.name = file.name.split(".json")[0];
+        const preset = new Preset(converted);
+        await preset.save();
+    }
+
+    async delete() {
+        await db.presets.delete(this.id);
+    }
+}

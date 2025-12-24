@@ -1,39 +1,169 @@
-import {
-    ChatMessage,
-    // ConversationGraph,
-    Vertex,
-} from "@/types/conversation-graph";
+import { ChatGraph, GraphSnapshot, Vertex } from "@/lib/graph";
 import { z } from "zod";
+import { Character } from "./character";
+import { type Message } from "@/types/message";
+import { generateCuid2 } from "@/lib/utils";
+import { db } from "../database";
 
-export const VertexRecord = z.object({
-    id: z.string(),
-    chatID: z.string(),
-    messages: z.array(ChatMessage),
-    metadata: z.record(z.any()).optional(),
-});
-
-export type VertexRecord = z.infer<typeof VertexRecord>;
-
-export const EdgeRecord = z.object({
-    parentID: z.string(),
-    childID: z.string(),
-});
-
-export type EdgeRecord = z.infer<typeof EdgeRecord>;
-
-export const ChatRecord = z.object({
+const ChatRecord = z.object({
     /** the graph’s root ID (also the PK) */
-    id: z.string(),
+    id: z.string().default(generateCuid2),
     characterIDs: z.array(z.string()),
     /** all vertices */
     vertices: z.array(Vertex),
-    /** the current head turn IDs */
-    terminalVertices: z.array(z.string()),
     activeVertex: z.string(),
+    activeTerminalVertices: z.record(z.string(), z.string()),
+    createdAt: z.date().default(() => new Date()),
+    updatedAt: z.date().default(() => new Date()),
     // optional metadata
     title: z.string().optional(),
-    createdAt: z.date(),
-    updatedAt: z.date(),
+    fork: z.string().optional()
 });
+type ChatRecord = z.infer<typeof ChatRecord>;
 
-export type ChatRecord = z.infer<typeof ChatRecord>;
+export class Chat implements ChatRecord {
+    id: string;
+    characterIDs: string[];
+    vertices: Vertex[];
+    activeVertex: string;
+    activeTerminalVertices: Record<string, string>;
+    createdAt: Date;
+    updatedAt: Date;
+    title?: string;
+    fork?: string;
+
+    constructor(character: Character) {
+        const graph = new ChatGraph();
+        const now = new Date();
+
+        const greetings = [
+            character.data.first_mes,
+            ...character.data.alternate_greetings
+        ];
+
+        for (let i = 0; i < greetings.length; i++) {
+            const message: Message = {
+                id: `greeting-${i + 1}-${generateCuid2()}`,
+                role: "assistant",
+                parts: [{ type: "text", text: greetings[i] }],
+                metadata: {
+                    createdAt: now
+                }
+            };
+            graph.createVertex(graph.id, [message]);
+        }
+
+        const root = graph.getVertex(graph.id);
+        if (root && root.children.length >= 0) {
+            graph.activeVertex = root.children[0];
+        }
+
+        const snapshot = graph.save();
+
+        this.id = snapshot.id;
+        this.characterIDs = [character.id];
+        this.vertices = snapshot.vertices;
+        this.activeTerminalVertices = snapshot.activeTerminalVertices;
+        this.activeVertex = snapshot.activeVertex;
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    async save() {
+        const record = await ChatRecord.parseAsync(this);
+        Object.assign(this, record);
+        await db.chats.put(this);
+    }
+
+    static async saveGraph(
+        graph: ChatGraph,
+        characterIDs: string[],
+        title?: string
+    ) {
+        const now = new Date();
+        const snapshot = graph.save();
+        const existing = await db.chats.get(snapshot.id);
+
+        const record = await ChatRecord.parseAsync({
+            id: snapshot.id,
+            characterIDs,
+            vertices: snapshot.vertices,
+            activeTerminalVertices: snapshot.activeTerminalVertices,
+            activeVertex: snapshot.activeVertex,
+            title: title ?? existing?.title,
+            fork: existing?.fork,
+            createdAt: existing?.createdAt ?? now,
+            updatedAt: now
+        });
+
+        await db.chats.put(record);
+    }
+
+    static async load(id: string) {
+        const record = await db.chats.get(id);
+        if (!record) {
+            throw new Error(`Unable to load chat ${id}: ID invalid.`);
+        }
+
+        const snapshot: GraphSnapshot = {
+            id: record.id,
+            vertices: record.vertices,
+            activeTerminalVertices: record.activeTerminalVertices,
+            activeVertex: record.activeVertex,
+            metadata: {
+                title: record.title,
+                createdAt: record.createdAt,
+                updatedAt: record.updatedAt
+            }
+        };
+
+        const graph = ChatGraph.load(snapshot);
+
+        return { record, graph };
+    }
+
+    static async fork(
+        graph: ChatGraph,
+        characterIDs: string[],
+        title?: string,
+        vertexToDelete?: string
+    ) {
+        const snapshot = graph.save();
+
+        const record = await ChatRecord.parseAsync({
+            characterIDs,
+            vertices: snapshot.vertices,
+            activeTerminalVertices: snapshot.activeTerminalVertices,
+            activeVertex: snapshot.activeVertex,
+            title,
+            fork: graph.id
+        });
+
+        await db.chats.put(record);
+
+        if (vertexToDelete) {
+            const { graph: newGraph, record: newRecord } = await this.load(
+                record.id
+            );
+            newGraph.deleteVertex(vertexToDelete);
+            await this.saveGraph(
+                newGraph,
+                newRecord.characterIDs,
+                newRecord.title
+            );
+        }
+
+        return record.id;
+    }
+
+    async updateTitle(title: string) {
+        this.title = title;
+        const record = await ChatRecord.parseAsync(this);
+        Object.assign(this, record);
+        await db.chats.put(this);
+    }
+
+    async delete() {
+        await db.chats.delete(this.id);
+    }
+}

@@ -1,4 +1,4 @@
-import { NavMain } from "@/components/sidebar/nav-main";
+import { Navigation } from "@/components/sidebar/navigation";
 import { PersonaSwitcher } from "@/components/sidebar/persona-switcher";
 import {
     Sidebar,
@@ -6,47 +6,25 @@ import {
     SidebarFooter,
     SidebarRail
 } from "@/components/ui/sidebar";
-import { useCharacterContext } from "@/contexts/character-context";
 import {
-    BookOpenText,
+    BookMarked,
     Cog,
-    Frame,
-    Map,
-    PieChart,
+    FileText,
+    // Frame,
+    // Map,
+    // PieChart,
     Plug,
-    RemoveFormatting,
     Shapes,
     SlidersHorizontal,
     // Sparkles,
-    Terminal,
-    Users,
-    Wrench
+    // Terminal,
+    Users
 } from "lucide-react";
 import * as React from "react";
 import { ChatHistory } from "./sidebar/chat-history";
-import { SearchForm } from "./sidebar/search";
+import { CommandMenu } from "./command-menu";
 
-// This is sample data.
 const data = {
-    user: {
-        name: "shadcn",
-        email: "m@example.com",
-        avatar: "/avatars/shadcn.jpg"
-    },
-    personas: [
-        {
-            name: "Acme Inc",
-            avatar: "/avatars/shadcn.jpg"
-        },
-        {
-            name: "Acme Corp.",
-            avatar: "/avatars/shadcn.jpg"
-        },
-        {
-            name: "Evil Corp.",
-            avatar: "/avatars/shadcn.jpg"
-        }
-    ],
     navMain: [
         // {
         //     title: "Assistants",
@@ -56,80 +34,78 @@ const data = {
         {
             title: "Characters",
             url: "/characters",
-            icon: Users,
+            icon: <Users />,
             isActive: true
         },
         {
             title: "Explore",
             url: "/explore",
-            icon: Shapes
+            icon: <Shapes />
         },
         {
             title: "Settings",
-            icon: SlidersHorizontal,
+            icon: <Cog />,
             items: [
                 {
                     title: "General",
                     url: "/settings",
-                    icon: Cog
+                    icon: <SlidersHorizontal />
                 },
                 {
                     title: "API",
                     url: "/settings/api",
-                    icon: Plug
+                    icon: <Plug />
                 },
                 {
-                    title: "Prompts",
-                    url: "/settings/prompts",
-                    icon: Terminal
-                },
-                {
-                    title: "Tools",
-                    url: "/settings/tools",
-                    icon: Wrench
+                    title: "Presets",
+                    url: "/settings/presets",
+                    icon: <FileText />
                 },
                 {
                     title: "Lorebooks",
                     url: "/settings/lorebooks",
-                    icon: BookOpenText
-                },
-                {
-                    title: "Formatting",
-                    url: "/settings/formatting",
-                    icon: RemoveFormatting
+                    icon: <BookMarked />
                 }
+                // {
+                //     title: "Formatting",
+                //     url: "/settings/formatting",
+                //     icon: RemoveFormatting
+                // },
+                // {
+                //     title: "Tools",
+                //     url: "/settings/tools",
+                //     icon: Wrench
+                // }
             ]
         }
-    ],
-    folders: [
-        {
-            name: "Design Engineering",
-            url: "#",
-            icon: Frame
-        },
-        {
-            name: "Sales & Marketing",
-            url: "#",
-            icon: PieChart
-        },
-        {
-            name: "Travel",
-            url: "#",
-            icon: Map
-        }
     ]
+    // folders: [
+    //     {
+    //         name: "Design Engineering",
+    //         url: "#",
+    //         icon: Frame
+    //     },
+    //     {
+    //         name: "Sales & Marketing",
+    //         url: "#",
+    //         icon: PieChart
+    //     },
+    //     {
+    //         name: "Travel",
+    //         url: "#",
+    //         icon: Map
+    //     }
+    // ]
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-    const { character } = useCharacterContext();
-
     return (
         <Sidebar variant="floating" collapsible="icon" {...props}>
+            <CommandMenu />
             <SidebarContent>
-                <NavMain items={data.navMain} />
-                {character && <SearchForm />}
+                <Navigation items={data.navMain} />
                 {/* <NavFolders folders={data.folders} /> */}
-                {character && <ChatHistory />}
+                <ChatHistory />
             </SidebarContent>
             <SidebarFooter>
                 <PersonaSwitcher />

@@ -1,4 +1,4 @@
-import { ModelsSchema, ProviderSchema } from "@/types/registry";
+import { ModelSchema, ProviderSchema } from "@/types/registry";
 import { z } from "zod";
 
 const ProxyProfile = z.object({
@@ -14,48 +14,63 @@ export type ProxyProfile = z.infer<typeof ProxyProfile>;
 const ProxySettings = z
     .object({
         profiles: z.array(ProxyProfile).default([]),
-        selected: z.record(ProviderSchema, z.string()).default({})
-    })
-    .default({});
-
-const Settings = z.object({
-    provider: z.string().default("openai"),
-    temperature: z.number().default(1),
-    maxOutputTokens: z.number().default(512),
-    top_p: z.number().default(1),
-    streaming: z.boolean().default(true),
-    chub: z
-        .object({
-            apiKey: z.string().default("")
+        selected: z.record(ProviderSchema, z.string()).default({
+            openai: "",
+            anthropic: "",
+            google: "",
+            deepseek: "",
+            openrouter: ""
         })
-        .default({}),
-    models: ModelsSchema,
+    })
+    .prefault({});
+
+const Samplers = z
+    .object({
+        temperature: z.number().min(0).max(2).default(1),
+        frequencyPenalty: z.number().min(-2).max(2).default(0),
+        presencePenalty: z.number().min(-2).max(2).default(0),
+        topK: z.int().nonnegative().default(0),
+        topP: z.number().min(0).max(1).default(1),
+        repetitionPenalty: z.number().min(0).max(2).default(1),
+        minP: z.number().min(0).max(1).default(1),
+        topA: z.number().min(0).max(1).default(1)
+    })
+    .prefault({});
+
+export const SettingsSchema = z.object({
+    provider: ProviderSchema.default("openai"),
+    apiKeys: z
+        .record(z.union([ProviderSchema, z.literal("chub")]), z.string())
+        .default({
+            openai: "",
+            anthropic: "",
+            google: "",
+            deepseek: "",
+            openrouter: "",
+            chub: ""
+        }),
+    samplers: Samplers,
+    maxOutputTokens: z.number().default(512),
+    streaming: z.boolean().default(true),
+    models: ModelSchema.default({
+        openai: "gpt-5-chat-latest",
+        anthropic: "claude-sonnet-4-5-20250929",
+        google: "gemini-2.5-pro",
+        deepseek: "deepseek-chat",
+        openrouter: "anthropic/claude-sonnet-4.5"
+    }),
     proxies: ProxySettings,
     persona: z.string().default(""),
-    promptSet: z.string().default("")
+    preset: z.string().default(""),
+    explore: z
+        .object({
+            provider: z
+                .enum(["chub", "anchorhold", "charchive"])
+                .default("chub")
+        })
+        .prefault({}),
+    cacheDepth: z.int().nonnegative().multipleOf(2).default(2)
 });
-
-const OpenAISettings = Settings.extend({
-    provider: z.literal("openai"),
-    openaiKey: z.string().optional()
-});
-
-const AnthropicSettings = Settings.extend({
-    provider: z.literal("anthropic"),
-    anthropicKey: z.string().optional()
-});
-
-const GoogleSettings = Settings.extend({
-    provider: z.literal("google"),
-    googleKey: z.string().optional()
-});
-
-export const SettingsSchema = z.discriminatedUnion("provider", [
-    OpenAISettings,
-    AnthropicSettings,
-    GoogleSettings
-]);
-
 export type Settings = z.infer<typeof SettingsSchema>;
 
-export const DEFAULT_SETTINGS = SettingsSchema.parse({ provider: "openai" });
+export const DEFAULT_SETTINGS = SettingsSchema.parse({});

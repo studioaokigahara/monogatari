@@ -13,8 +13,8 @@ export default function Header({ children, className, ...props }: HeaderProps) {
     return (
         <header
             className={cn(
-                "flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-in-out group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12",
-                className,
+                "flex h-16 shrink-0 items-center transition-[width,height] ease-in-out group-has-data-[collapsible=icon]/sidebar-wrapper:h-12",
+                className
             )}
             {...props}
         >

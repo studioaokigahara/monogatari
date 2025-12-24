@@ -1,10 +1,12 @@
 import {
-    Calculator,
-    Calendar,
-    CreditCard,
-    Settings,
-    Smile,
+    BookMarked,
+    FileText,
+    Heart,
+    Plug,
+    Shapes,
+    SlidersHorizontal,
     User,
+    Users
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
@@ -15,11 +17,19 @@ import {
     CommandItem,
     CommandList,
     CommandSeparator,
-    CommandShortcut,
+    CommandShortcut
 } from "./ui/command";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "@/database/database";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { useImageURL } from "@/hooks/use-image-url";
+import { useCharacterContext } from "@/contexts/character-context";
+import { useNavigate } from "@tanstack/react-router";
+import { Character } from "@/database/schema/character";
 
 export function CommandMenu() {
     const [open, setOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState<string>("");
 
     useEffect(() => {
         const down = (e: KeyboardEvent) => {
@@ -32,46 +42,166 @@ export function CommandMenu() {
         return () => document.removeEventListener("keydown", down);
     }, []);
 
+    const navigate = useNavigate();
+
+    const navigateToPage = (pathname: string) => {
+        navigate({ to: pathname });
+        setOpen(false);
+    };
+
+    const characters = useLiveQuery(
+        () =>
+            db.characters
+                .orderBy("data.name")
+                .filter((character: Character) =>
+                    character.data.name
+                        .toLowerCase()
+                        .includes(searchTerm.toLowerCase())
+                )
+                .toArray(),
+        [searchTerm]
+    );
+
+    const characterImages = useImageURL(
+        characters?.map((character) => ({
+            category: "character" as const,
+            id: character.id,
+            assets: character.data.assets
+        }))
+    );
+
+    const selectCharacter = (characterName: string) => {
+        const character = characters?.find(
+            (character) => character.data.name === characterName
+        );
+        if (character) navigateToPage(`/characters/${character.id}`);
+    };
+
+    const characterItems = characters?.map((character, index) => (
+        <CommandItem key={character.id} onSelect={selectCharacter}>
+            <Avatar>
+                <AvatarImage
+                    src={characterImages?.[index]}
+                    alt={character.data.name}
+                    className="object-cover"
+                />
+                <AvatarFallback>
+                    {character.data.name.slice(0, 2)}
+                </AvatarFallback>
+            </Avatar>
+            <span>{character.data.name}</span>
+            {character.favorite === 1 && (
+                <Heart fill="currentColor" className="text-pink-400" />
+            )}
+        </CommandItem>
+    ));
+
+    const personas = useLiveQuery(
+        () =>
+            db.personas
+                .filter((persona) =>
+                    persona.name
+                        .toLowerCase()
+                        .includes(searchTerm.toLowerCase())
+                )
+                .toArray(),
+        [searchTerm]
+    );
+
+    const personaImages = useImageURL(
+        personas?.map((persona) => ({
+            category: "persona" as const,
+            id: persona.id
+        }))
+    );
+
+    const { setPersona } = useCharacterContext();
+    const selectPersona = (personaName: string) => {
+        const persona = personas?.find(
+            (persona) => persona.name === personaName
+        );
+        if (persona) {
+            setPersona(persona);
+            setOpen(false);
+        }
+    };
+
+    const personaItems = personas?.map((persona, index) => (
+        <CommandItem key={persona.id} onSelect={selectPersona}>
+            <Avatar>
+                <AvatarImage
+                    src={personaImages?.[index]}
+                    alt={persona.name}
+                    className="object-cover"
+                />
+                <AvatarFallback>{persona.name.slice(0, 2)}</AvatarFallback>
+            </Avatar>
+            <span>{persona.name}</span>
+        </CommandItem>
+    ));
+
     return (
-        <>
-            <CommandDialog open={open} onOpenChange={setOpen}>
-                <CommandInput placeholder="Type a command or search..." />
-                <CommandList>
-                    <CommandEmpty>No results found.</CommandEmpty>
-                    <CommandGroup heading="Suggestions">
-                        <CommandItem>
-                            <Calendar />
-                            <span>Calendar</span>
-                        </CommandItem>
-                        <CommandItem>
-                            <Smile />
-                            <span>Search Emoji</span>
-                        </CommandItem>
-                        <CommandItem>
-                            <Calculator />
-                            <span>Calculator</span>
-                        </CommandItem>
-                    </CommandGroup>
-                    <CommandSeparator />
-                    <CommandGroup heading="Settings">
-                        <CommandItem>
-                            <User />
-                            <span>Profile</span>
-                            <CommandShortcut>⌘P</CommandShortcut>
-                        </CommandItem>
-                        <CommandItem>
-                            <CreditCard />
-                            <span>Billing</span>
-                            <CommandShortcut>⌘B</CommandShortcut>
-                        </CommandItem>
-                        <CommandItem>
-                            <Settings />
-                            <span>Settings</span>
-                            <CommandShortcut>⌘S</CommandShortcut>
-                        </CommandItem>
-                    </CommandGroup>
-                </CommandList>
-            </CommandDialog>
-        </>
+        <CommandDialog open={open} onOpenChange={setOpen}>
+            <CommandInput
+                placeholder="Type a command or search..."
+                value={searchTerm}
+                onValueChange={setSearchTerm}
+            />
+            <CommandList>
+                <CommandEmpty>No results found.</CommandEmpty>
+                <CommandGroup heading="Suggestions">
+                    <CommandItem value="/characters" onSelect={navigateToPage}>
+                        <Users />
+                        <span>Characters</span>
+                    </CommandItem>
+                    <CommandItem value="/explore" onSelect={navigateToPage}>
+                        <Shapes />
+                        <span>Explore</span>
+                    </CommandItem>
+                    <CommandItem value="/personas" onSelect={navigateToPage}>
+                        <User />
+                        <span>Personas</span>
+                    </CommandItem>
+                </CommandGroup>
+                <CommandSeparator />
+                <CommandGroup heading="Settings">
+                    <CommandItem value="/settings" onSelect={navigateToPage}>
+                        <SlidersHorizontal />
+                        <span>General</span>
+                        <CommandShortcut>⌘S</CommandShortcut>
+                    </CommandItem>
+                    <CommandItem
+                        value="/settings/api"
+                        onSelect={navigateToPage}
+                    >
+                        <Plug />
+                        <span>API</span>
+                        <CommandShortcut>⌘A</CommandShortcut>
+                    </CommandItem>
+                    <CommandItem
+                        value="/settings/presets"
+                        onSelect={navigateToPage}
+                    >
+                        <FileText />
+                        <span>Presets</span>
+                        <CommandShortcut>⌘P</CommandShortcut>
+                    </CommandItem>
+                    <CommandItem
+                        value="/settings/lorebooks"
+                        onSelect={navigateToPage}
+                    >
+                        <BookMarked />
+                        <span>Lorebooks</span>
+                        <CommandShortcut>⌘L</CommandShortcut>
+                    </CommandItem>
+                </CommandGroup>
+                <CommandSeparator />
+                <CommandGroup heading="Characters">
+                    {characterItems}
+                </CommandGroup>
+                <CommandSeparator />
+                <CommandGroup heading="Personas">{personaItems}</CommandGroup>
+            </CommandList>
+        </CommandDialog>
     );
 }

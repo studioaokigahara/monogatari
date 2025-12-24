@@ -1,4 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useRef,
+    useState
+} from "react";
 
 const splashes = [
     "desu~",
@@ -162,7 +168,7 @@ export default function SplashText({ ref }: SplashTextProps) {
     const [text, setText] = useState(() => getRandomSplash());
     const wrapperRef = useRef<HTMLDivElement>(null);
 
-    const moveSplash = () => {
+    const moveSplash = useCallback(() => {
         const wel = ref.current;
         const wrap = wrapperRef.current;
         if (!wel || !wrap) return;
@@ -172,7 +178,7 @@ export default function SplashText({ ref }: SplashTextProps) {
 
         wrap.style.top = `${top + 10}px`;
         wrap.style.left = `${left}px`;
-    };
+    }, [ref]);
 
     useLayoutEffect(() => {
         moveSplash();
@@ -195,7 +201,7 @@ export default function SplashText({ ref }: SplashTextProps) {
     return (
         <div
             ref={wrapperRef}
-            className="max-w-64 w-max absolute transform-[translateX(-50%)]"
+            className="max-w-64 w-max absolute translate-full"
         >
             <span
                 className="inline-block relative items-center text-lg font-mono text-yellow-300 text-shadow-lg shadow-current animate-splash-bounce"
