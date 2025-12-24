@@ -21,43 +21,6 @@ import {
 import { Asset } from "@/database/schema/asset";
 
 function CharacterCreator() {
-    const form = useCharacterForm({
-        ...characterFormOptions,
-        onSubmit: async ({ value }) => {
-            const uploadedImage = imageBlob;
-            if (!uploadedImage) {
-                toast.error("Please upload an image.");
-                return;
-            }
-
-            try {
-                const data = {
-                    ...value,
-                    creation_date: new Date(),
-                    modification_date: new Date()
-                };
-
-                const character = new Character({ data });
-                await character.save();
-                const asset = new Asset({
-                    category: "character",
-                    parentID: character.id,
-                    file: new File(
-                        [uploadedImage],
-                        `main.${uploadedImage?.type.split("/")[1] ?? "png"}`,
-                        { type: uploadedImage.type }
-                    )
-                });
-                await asset.save();
-                toast.success(`${value.name} has been created successfully!`);
-                router.navigate({ to: `/characters/${character.id}` });
-            } catch (error) {
-                console.error("Failed to save character:", error);
-                toast.error("Failed to save character. Please try again.");
-            }
-        }
-    });
-
     const [imageBlob, setImageBlob] = useState<Blob>();
     const [imageURL, setImageURL] = useState("");
 
@@ -82,19 +45,52 @@ function CharacterCreator() {
         }
     });
 
+    const form = useCharacterForm({
+        ...characterFormOptions,
+        onSubmit: async ({ value }) => {
+            if (!imageBlob) {
+                toast.error("Please upload an image.");
+                return;
+            }
+
+            try {
+                const data = {
+                    ...value,
+                    creation_date: new Date(),
+                    modification_date: new Date()
+                };
+
+                const character = new Character({ data });
+                await character.save();
+
+                const asset = new Asset({
+                    category: "character",
+                    parentID: character.id,
+                    file: new File(
+                        [imageBlob],
+                        `main.${imageBlob?.type.split("/")[1] ?? "png"}`,
+                        { type: imageBlob.type }
+                    )
+                });
+
+                await asset.save();
+
+                toast.success(`${value.name} has been created successfully!`);
+                router.navigate({
+                    to: "/characters/$id",
+                    params: { id: character.id }
+                });
+            } catch (error) {
+                console.error("Failed to save character:", error);
+                toast.error("Failed to save character. Please try again.");
+            }
+        }
+    });
+
     return (
         <div className="flex flex-col w-full">
             <Header />
             <div className="flex flex-col w-full md:max-w-5xl mx-auto px-4">
-                <div className="flex items-center justify-between mb-6">
-                    <div>
-                        <h1 className="text-2xl font-bold">
-                            Create New Character
-                        </h1>
-                    </div>
-                </div>
-
-                {/* Cover Image and Profile Section */}
                 <div className="flex flex-col md:flex-row gap-4 md:items-end mb-4">
                     {imageBlob ? (
                         <>
@@ -127,8 +123,6 @@ function CharacterCreator() {
                     )}
                     <HeaderFields form={form} />
                 </div>
-
-                {/* Main Content */}
                 <Tabs defaultValue="description" className="gap-4 mb-4">
                     <TabsList className="w-full bg-muted/50">
                         <TabsTrigger value="description">
