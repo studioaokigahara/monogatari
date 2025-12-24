@@ -49,7 +49,7 @@ interface Props {
     scrollRef: RefObject<HTMLDivElement | null>;
 }
 
-export function SendForm({ scrollRef: scrollAnchorRef }: Props) {
+export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
     const { chat } = useChatContext();
     const { messages, sendMessage, status, regenerate, stop } =
         useChat<Message>({
