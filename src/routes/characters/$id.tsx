@@ -44,6 +44,7 @@ import { useImageURL } from "@/hooks/use-image-url";
 import { cn } from "@/lib/utils";
 import {
     createFileRoute,
+    useNavigate,
     useParams,
     useRouteContext
 } from "@tanstack/react-router";
@@ -58,6 +59,8 @@ import {
 } from "lucide-react";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { useSearch } from "@tanstack/react-router";
+import z from "zod";
 
 function CharacterProfile({ character }: { character: Character }) {
     const { setCharacter } = useCharacterContext();
@@ -98,6 +101,22 @@ function CharacterProfile({ character }: { character: Character }) {
             toast.success(`${character.data.name} saved.`);
         }
     });
+
+    const { tab } = useSearch({ from: "/characters/$id" });
+    const navigate = useNavigate({ from: "/characters/$id" });
+
+    const setTab = (value: string) => {
+        navigate({
+            search: {
+                tab: value as
+                    | "description"
+                    | "greetings"
+                    | "example"
+                    | "gallery"
+            },
+            mask: { search: undefined }
+        });
+    };
 
     return (
         <form
@@ -165,7 +184,12 @@ function CharacterProfile({ character }: { character: Character }) {
             </div>
 
             {/* Main Content */}
-            <Tabs defaultValue="description" className="gap-4 mb-2">
+            <Tabs
+                defaultValue="description"
+                value={tab}
+                onValueChange={setTab}
+                className="gap-4 mb-2"
+            >
                 <TabsList className="sticky top-1 w-full">
                     <TabsTrigger value="description">
                         <Text />
@@ -239,6 +263,11 @@ function CharacterProfileLayout() {
 
 export const Route = createFileRoute("/characters/$id")({
     component: CharacterProfileLayout,
+    validateSearch: z.object({
+        tab: z
+            .enum(["description", "greetings", "example", "gallery"])
+            .optional()
+    }),
     head: ({ match }) => ({
         meta: [{ title: `${match.context.breadcrumb} — Monogatari` }]
     }),
