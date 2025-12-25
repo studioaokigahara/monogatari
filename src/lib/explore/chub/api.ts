@@ -83,6 +83,21 @@ export async function fetchCharacterImage(
     return blob;
 }
 
+export async function fetchCharacterJSON(character: ChubCharacter) {
+    const response = await fetch(
+        `https://gateway.chub.ai/api/v4/projects/${character.id}/repository/files/card.json/raw?ref=main&response_type=blob`
+    );
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch JSON for ${character.id}: ${(response.status, response.statusText)}`
+        );
+    }
+
+    const json = await response.json();
+    return json;
+}
+
 export async function fetchCharacters(
     searchOptions: SearchOptions
 ): Promise<ChubCharacter[]> {

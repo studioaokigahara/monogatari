@@ -1,8 +1,12 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { db } from "@/database/database";
-import { importCharacter, readCharacterImage } from "@/lib/character/io";
-import { fetchCharacterImage, fetchCharacters } from "@/lib/explore/chub/api";
+import { importCharacter } from "@/lib/character/io";
+import {
+    fetchCharacterImage,
+    fetchCharacters,
+    fetchCharacterJSON
+} from "@/lib/explore/chub/api";
 import {
     ButtonState,
     type ChubCharacter,
@@ -128,8 +132,10 @@ export default function ChubLayout() {
 
             const imageBlob = await fetchCharacterImage(job);
             const arrayBuffer = await imageBlob.arrayBuffer();
-            const characterData = readCharacterImage(arrayBuffer);
-            const json = JSON.parse(characterData);
+            // we dont bother reading the image, chub stores latest JSON seperately
+            // from the card and doesnt update the card itself until who knows when.
+            // fetch the json and just use the image as main.png
+            const json = await fetchCharacterJSON(job);
 
             json.data.extensions.chub = {
                 ...json.data.extensions.chub,
@@ -142,10 +148,6 @@ export default function ChubLayout() {
             };
 
             const record = await importCharacter(json, arrayBuffer);
-
-            if (!record) {
-                throw new Error("Failed to parse character card.");
-            }
 
             toast.promise(scanGallery(record), {
                 loading: `Scanning ${job.name} for images...`,

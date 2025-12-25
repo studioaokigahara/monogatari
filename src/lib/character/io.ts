@@ -265,10 +265,9 @@ export async function importCharacter(
         const v2 = TavernCardV2Importer.parse(parsedJSON).data;
         data = CharacterCardV3Data.parse(v2);
     } else {
-        toast.error(
-            "Uploaded card does not conform to either the V2 or V3 schema."
+        throw new Error(
+            "Uploaded card does not conform to either the Character Card V2 or V3 schema."
         );
-        return;
     }
 
     const character = new Character({ data });
