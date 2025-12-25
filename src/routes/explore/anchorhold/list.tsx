@@ -11,6 +11,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { AlertTriangle } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { fetchCharacterJSON } from "@/lib/explore/chub/api";
 
 interface Props {
     posts: AnchorholdPost[];
@@ -95,6 +97,8 @@ export default function AnchorholdList({
         return ButtonState.READY_DOWNLOAD;
     };
 
+    const navigate = useNavigate();
+
     const downloadMutation = useMutation({
         mutationFn: async (post: AnchorholdPost) => {
             const fullPath = chubCharacters.get(post.id);
@@ -174,15 +178,16 @@ export default function AnchorholdList({
             }
 
             const arrayBuffer = await imageBlob.arrayBuffer();
-            const characterData = readCharacterImage(arrayBuffer);
-            const json = JSON.parse(characterData);
+            const json = characterInfo
+                ? fetchCharacterJSON(characterInfo.node)
+                : JSON.parse(readCharacterImage(arrayBuffer));
 
             json.data.extensions.anchorhold = {
                 ...json.data.extensions.anchorhold,
                 id: post.id
             };
 
-            if (characterInfo && characterInfo.node.tagline) {
+            if (characterInfo) {
                 json.data.extensions.monogatari = {
                     ...json.data.extensions.monogatari,
                     tagline: characterInfo.node.tagline
@@ -191,24 +196,38 @@ export default function AnchorholdList({
 
             const record = await importCharacter(json, arrayBuffer);
 
-            if (!record) return { post, isUpdate };
-
-            await scanGallery(record).catch((error: Error) => {
-                console.error("Gallery scan failed:", error);
-                toast.error("Gallery scan failed", {
-                    description: error.message
-                });
+            toast.promise(scanGallery(record), {
+                loading: `Scanning ${record.data.name} for images...`,
+                success: ({ total, replaced }) => ({
+                    message: "Scan completed successfully!",
+                    description: `Downloaded ${total} images, and replaced ${replaced} URLs with embedded images.`
+                }),
+                error: (error: Error) => {
+                    console.error("Scan failed:", error);
+                    return error.message;
+                }
             });
 
-            return { post, isUpdate };
+            return { post, isUpdate, record };
         },
         onMutate: (post) => {
             updateButtonState(post.id, ButtonState.DOWNLOADING);
         },
-        onSuccess: ({ post, isUpdate }) => {
+        onSuccess: ({ post, isUpdate, record }) => {
             updateButtonState(post.id, ButtonState.DONE);
             toast.success(
-                isUpdate ? "Updated character" : "Downloaded character"
+                `${isUpdate ? "Updated" : "Downloaded"} ${record.data.name} successfully!`,
+                {
+                    action: {
+                        label: "Open",
+                        onClick: () => {
+                            navigate({
+                                to: "/characters/$id",
+                                params: { id: record.id }
+                            });
+                        }
+                    }
+                }
             );
         },
         onError: (error, post) => {

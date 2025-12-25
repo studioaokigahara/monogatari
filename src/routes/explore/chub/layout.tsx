@@ -132,15 +132,11 @@ export default function ChubLayout() {
 
             const imageBlob = await fetchCharacterImage(job);
             const arrayBuffer = await imageBlob.arrayBuffer();
+
             // we dont bother reading the image, chub stores latest JSON seperately
             // from the card and doesnt update the card itself until who knows when.
             // fetch the json and just use the image as main.png
             const json = await fetchCharacterJSON(job);
-
-            json.data.extensions.chub = {
-                ...json.data.extensions.chub,
-                full_path: job.fullPath
-            };
 
             json.data.extensions.monogatari = {
                 ...json.data.extensions.monogatari,
@@ -173,8 +169,9 @@ export default function ChubLayout() {
                 {
                     action: {
                         label: "Open",
-                        onClick: () =>
-                            navigate({ to: "/characters/$id", params: { id } })
+                        onClick: () => {
+                            navigate({ to: "/characters/$id", params: { id } });
+                        }
                     }
                 }
             );
