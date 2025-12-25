@@ -1,7 +1,7 @@
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { VariantProps } from "class-variance-authority";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, useTransition } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Skeleton } from "./ui/skeleton";
 
@@ -26,7 +26,7 @@ export function TagList({
 }: TagListProps) {
     const containerRef = useRef<HTMLDivElement | null>(null);
 
-    const [ready, setReady] = useState(false);
+    const [isPending, startTransition] = useTransition();
     const [visibleCount, setVisibleCount] = useState(tags.length);
 
     const hiddenCount = tags.length - visibleCount;
@@ -59,14 +59,10 @@ export function TagList({
             setVisibleCount(max);
         };
 
-        setReady(false);
-        measureTags();
-        setReady(true);
+        startTransition(measureTags);
 
         const observer = new ResizeObserver(() => {
-            setReady(false);
-            measureTags();
-            setReady(true);
+            startTransition(measureTags);
         });
         observer.observe(container);
 
@@ -93,6 +89,7 @@ export function TagList({
     ));
 
     const visibleTags = tagList.slice(0, visibleCount);
+    const hiddenTags = tagList.slice(visibleCount);
 
     const skeletons = Array.from({ length: 6 }).map((_, index) => (
         <Skeleton key={index} className={`w-16 h-5.5`} />
@@ -101,8 +98,8 @@ export function TagList({
     return (
         <>
             <div className="w-full flex flex-wrap shrink-0 gap-0.5 overflow-hidden">
-                {ready ? visibleTags : skeletons}
-                {ready && hiddenCount > 0 && (
+                {!isPending ? visibleTags : skeletons}
+                {!isPending && hiddenCount > 0 && (
                     <Popover>
                         <PopoverTrigger asChild>
                             <Badge
@@ -118,7 +115,7 @@ export function TagList({
                             </Badge>
                         </PopoverTrigger>
                         <PopoverContent className="flex flex-wrap gap-1">
-                            {tagList}
+                            {hiddenTags}
                         </PopoverContent>
                     </Popover>
                 )}
