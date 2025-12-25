@@ -74,7 +74,10 @@ export function CommandMenu() {
         const character = characters?.find(
             (character) => character.data.name === characterName
         );
-        if (character) navigateToPage(`/characters/${character.id}`);
+
+        if (character) {
+            navigateToPage(`/characters/${character.id}`);
+        }
     };
 
     const characterItems = characters?.map((character, index) => (
@@ -120,6 +123,7 @@ export function CommandMenu() {
         const persona = personas?.find(
             (persona) => persona.name === personaName
         );
+
         if (persona) {
             setPersona(persona);
             setOpen(false);

@@ -97,12 +97,15 @@ export const SillyTavernPresetConverter = SillyTavernPreset.transform(
             });
 
             if (macro) {
-                if (contentEmpty) messages.push(createMessage(macro));
-                else {
+                if (contentEmpty) {
+                    messages.push(createMessage(macro));
+                } else {
                     messages.push(createMessage(content!));
                     messages.push(createMessage(macro));
                 }
-            } else if (!contentEmpty) messages.push(createMessage(content!));
+            } else if (!contentEmpty) {
+                messages.push(createMessage(content!));
+            }
 
             promptMap.delete(item.identifier);
         });
