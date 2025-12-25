@@ -1,5 +1,33 @@
+type DecoratorNames =
+    | "activate_only_after"
+    | "activate_only_every"
+    | "keep_activate_after_match"
+    | "dont_activate_after_match"
+    | "depth"
+    | "instruct_depth"
+    | "reverse_depth"
+    | "reverse_instruct_depth"
+    | "role"
+    | "scan_depth"
+    | "instruct_scan_depth"
+    | "is_greeting"
+    | "position"
+    | "ignore_on_max_context"
+    | "additional_keys"
+    | "exclude_keys"
+    | "is_user_icon"
+    | "dont_activate"
+    | "activate"
+    | "disable_ui_prompt";
+
+type CustomDecoratorNames =
+    | "match_whole_words"
+    | "activate_only_on_recursion"
+    | "ignore_on_recursion"
+    | "recursion_depth";
+
 export interface Decorator {
-    name: string;
+    name: DecoratorNames | CustomDecoratorNames;
     value?: string | string[] | number | boolean;
     fallbacks?: Decorator[];
 }
@@ -9,7 +37,6 @@ interface DecoratorContext {
     tokenCount: number;
     greetingIndex?: number;
     userIcon?: string;
-    previousMatches: Set<string>;
 }
 
 enum positionOptions {
@@ -42,15 +69,18 @@ export class DecoratorParser {
         if (!match) return null;
 
         const [_, name, value] = match;
-        if (!value) return { name };
+        if (!value) return { name: name as Decorator["name"] };
 
         if (value.includes(","))
             return {
-                name,
+                name: name as Decorator["name"],
                 value: value.split(",").map((value) => value.trim())
             };
 
-        return { name, value: this.parseValue(value.trim()) };
+        return {
+            name: name as Decorator["name"],
+            value: this.parseValue(value.trim())
+        };
     }
 
     static parseContent(content: string) {
@@ -78,32 +108,6 @@ export class DecoratorParser {
 
         const text = lines.slice(startIndex).join("\n").trim();
         return { decorators, content: text };
-    }
-
-    static checkDecorator(
-        decorator: Decorator,
-        context: DecoratorContext,
-        id: string
-    ) {
-        switch (decorator.name) {
-            case "activate_only_after":
-                return context.messageCount >= (decorator.value as number);
-            case "activate_only_every":
-                return context.messageCount % (decorator.value as number) === 0;
-            case "keep_activate_after_match":
-                return context.previousMatches.has(id);
-            case "dont_activate_after_match":
-                return !context.previousMatches.has(id);
-            case "is_greeting":
-                return context.greetingIndex === decorator.value;
-            case "is_user_icon":
-                return context.userIcon === decorator.value;
-            case "dont_activate":
-                return context.previousMatches.has("activate");
-            case "activate":
-            default:
-                return true;
-        }
     }
 
     static getInsertionPosition(

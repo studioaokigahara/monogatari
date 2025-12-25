@@ -3,7 +3,7 @@ import { Persona } from "@/database/schema/persona";
 import { Preset } from "@/database/schema/preset";
 import { type Message } from "@/types/message";
 import { generateCuid2 } from "./utils";
-import { LorebookMatcher } from "./lorebook/matcher";
+import { MatchContext, LorebookMatcher } from "./lorebook/matcher";
 import { DecoratorParser } from "./lorebook/decorator";
 import { replaceMacros } from "./curly-braces";
 import { db } from "@/database/database";
@@ -28,7 +28,7 @@ function buildPresetContext(messages: Message[], preset: Preset) {
         .filter((message) => message.position === "after")
         .sort((a, b) => b.depth - a.depth)
         .forEach((message) => {
-            const index = Math.max(history.length - message.depth, 0);
+            const index = Math.max(after.length - message.depth, 0);
             const newMessage: Message = {
                 id: message.id ?? generateCuid2(),
                 role: message.role,
@@ -41,7 +41,11 @@ function buildPresetContext(messages: Message[], preset: Preset) {
     return [...before, ...after];
 }
 
-async function buildLorebookContext(messages: Message[], character: Character) {
+async function buildLorebookContext(
+    id: string,
+    messages: Message[],
+    character: Character
+) {
     const [embedded, linked, global] = await Promise.all([
         db.lorebooks
             .where("embeddedCharacterID")
@@ -61,11 +65,10 @@ async function buildLorebookContext(messages: Message[], character: Character) {
     ]);
 
     const set = new Set<Lorebook>();
-    for (const lorebook of [...embedded, ...linked, ...global]) {
+    for (const lorebook of [...embedded, ...linked, ...global])
         set.add(lorebook);
-    }
-
     const lorebooks = [...set];
+
     if (lorebooks.length === 0) return messages;
 
     const history = messages
@@ -75,19 +78,26 @@ async function buildLorebookContext(messages: Message[], character: Character) {
         )
         .filter(Boolean);
 
+    const assistantMessageCount = messages.filter(
+        (message) => message.role === "assistant"
+    ).length;
+
     const tokenizer = new Tiktoken(
         o200k_base.bpe_ranks,
         o200k_base.special_tokens,
         o200k_base.pat_str
     );
 
-    const baseContext = {
+    const context: MatchContext = {
         messages: history,
         messageCount: history.length,
+        assistantMessageCount,
         tokenCount: tokenizer.encode(history.join("\n")).length
     };
 
     tokenizer.free();
+
+    const lorebookMatcher = LorebookMatcher.get(id);
 
     const matches = [];
     for (const lorebook of lorebooks) {
@@ -98,14 +108,14 @@ async function buildLorebookContext(messages: Message[], character: Character) {
                 : Infinity;
 
         const entries = lorebook.data.entries;
-        const context = {
-            ...baseContext,
-            previousMatches: new Set<string>()
-        };
+        const recursive = lorebook.data.recursive_scanning;
 
-        const results = lorebook.data.recursive_scanning
-            ? LorebookMatcher.recursiveScan(entries, context, scanDepth)
-            : LorebookMatcher.scan(entries, context, scanDepth);
+        const results = lorebookMatcher.scanLorebook(
+            entries,
+            context,
+            scanDepth,
+            recursive
+        );
 
         matches.push(...results);
     }
@@ -118,7 +128,7 @@ async function buildLorebookContext(messages: Message[], character: Character) {
     for (const match of matches) {
         const position = DecoratorParser.getInsertionPosition(
             match.decorators,
-            { ...baseContext, previousMatches: new Set<string>() }
+            context
         );
 
         const message: Message = {
@@ -128,14 +138,23 @@ async function buildLorebookContext(messages: Message[], character: Character) {
             metadata: { createdAt: new Date() }
         };
 
-        if (position.position === "before") before.push(message);
-        else if (position.position === "after") after.push(message);
-        else if (position.position === "depth" && position.depth) {
-            const index = Math.min(
-                Math.max(messages.length - position.depth, 0),
-                messages.length
-            );
-            messages.splice(index, 0, message);
+        switch (position.position) {
+            case "before":
+                before.push(message);
+                break;
+            case "after":
+                after.push(message);
+                break;
+            case "depth": {
+                const index = Math.min(
+                    Math.max(messages.length - (position?.depth ?? 0), 0),
+                    messages.length
+                );
+                messages.splice(index, 0, message);
+                break;
+            }
+            default:
+                continue;
         }
     }
 
@@ -158,13 +177,14 @@ async function buildLorebookContext(messages: Message[], character: Character) {
 }
 
 export async function buildContext(
+    id: string,
     messages: Message[],
     preset: Preset,
     character: Character,
     persona: Persona
 ) {
     let context = buildPresetContext(messages, preset);
-    context = await buildLorebookContext(context, character);
+    context = await buildLorebookContext(id, context, character);
 
     const prompt = context
         .map((message) => ({
@@ -203,14 +223,21 @@ export async function buildContext(
     const otherParts = [];
     for (const message of systemMessages) {
         for (const part of message.parts) {
-            if (part.type === "text") textParts.push(part.text);
-            else otherParts.push(part);
+            if (part.type === "text") {
+                textParts.push(part.text);
+            } else {
+                otherParts.push(part);
+            }
         }
     }
 
     const combinedParts: (typeof systemMessages)[number]["parts"] = [];
     const combinedText = textParts.join("\n\n").trim();
-    if (combinedText) combinedParts.push({ type: "text", text: combinedText });
+
+    if (combinedText) {
+        combinedParts.push({ type: "text", text: combinedText });
+    }
+
     combinedParts.push(...otherParts);
 
     const creationTimes = systemMessages.map((message) =>

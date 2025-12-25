@@ -85,15 +85,25 @@ function buildDecorators(entry: SillyTavernLorebookEntry): string[] {
         decorators.push(`@@scan_depth ${entry.scanDepth}`);
     }
 
-    if (entry.ignoreBudget === true) decorators.push("@@ignore_token_budget");
-    if (entry.excludeRecursion === true) decorators.push("@@non_recursable");
-    if (entry.preventRecursion === true) decorators.push("@@prevent_recursion");
-
-    if (entry.delayUntilRecursion === true) {
-        decorators.push("@@delay_until_recursion");
+    if (entry.ignoreBudget === true) {
+        decorators.push("@@ignore_token_budget");
     }
 
-    if (entry.matchWholeWords === true) decorators.push("@@match_whole_words");
+    if (entry.excludeRecursion === true) {
+        decorators.push("@@ignore_on_recursion");
+    }
+
+    if (entry.preventRecursion === true) {
+        decorators.push("@@recursion_depth 1");
+    }
+
+    if (entry.delayUntilRecursion === true) {
+        decorators.push("@@activate_only_on_recursion");
+    }
+
+    if (entry.matchWholeWords === true) {
+        decorators.push("@@match_whole_words");
+    }
 
     return decorators;
 }

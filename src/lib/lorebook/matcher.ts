@@ -2,13 +2,13 @@ import { type LorebookEntry } from "@/database/schema/lorebook";
 import { DecoratorParser, Decorator } from "./decorator";
 import { replaceMacros } from "../curly-braces";
 
-interface MatchContext {
+export interface MatchContext {
     messages: string[];
     messageCount: number;
+    assistantMessageCount: number;
     tokenCount: number;
     greetingIndex?: number;
     userIcon?: string;
-    previousMatches: Set<string>;
 }
 
 interface MatchResult {
@@ -19,7 +19,36 @@ interface MatchResult {
 }
 
 export class LorebookMatcher {
-    static checkKeys(
+    private previousMatches = new Set<string | number>();
+    static registry = new Map<string, LorebookMatcher>();
+
+    static get(id: string) {
+        let lorebookMatcher = this.registry.get(id);
+
+        if (!lorebookMatcher) {
+            lorebookMatcher = new this();
+            this.registry.set(id, lorebookMatcher);
+        }
+
+        return lorebookMatcher;
+    }
+
+    static delete(id: string) {
+        this.registry.delete(id);
+    }
+
+    private normalizeKeys(keys: unknown): string[] | null {
+        if (typeof keys === "string") return [keys];
+        if (
+            Array.isArray(keys) &&
+            keys.every((key) => typeof key === "string")
+        ) {
+            return keys;
+        }
+        return null;
+    }
+
+    private checkKeys(
         keys: string[],
         content: string,
         useRegex: boolean,
@@ -27,9 +56,13 @@ export class LorebookMatcher {
         matchWholeWords: boolean
     ): boolean {
         if (useRegex) {
-            return keys.some((key) =>
-                new RegExp(key, caseSensitive ? "g" : "gi").test(content)
-            );
+            return keys.some((key) => {
+                try {
+                    new RegExp(key, caseSensitive ? "g" : "gi").test(content);
+                } catch {
+                    return false;
+                }
+            });
         }
 
         if (matchWholeWords) {
@@ -52,26 +85,77 @@ export class LorebookMatcher {
         });
     }
 
-    static entryMatches(
+    private entryMatches(
         entry: LorebookEntry,
+        decorators: Decorator[],
         context: MatchContext,
         defaultScanDepth: number = Infinity
     ) {
         if (!entry.enabled) return false;
 
-        const { decorators } = DecoratorParser.parseContent(entry.content);
+        if (entry.constant && !entry.use_regex) return true;
 
-        const decoratorsChecked = decorators.every((decorator) =>
-            DecoratorParser.checkDecorator(
-                decorator,
-                context,
-                String(entry.id ?? "")
-            )
+        const activate = decorators.some(
+            (decorator) => decorator.name === "activate"
         );
 
-        if (!decoratorsChecked) return false;
+        const dontActivate = decorators.some(
+            (decorator) => decorator.name === "dont_activate"
+        );
 
-        if (entry.constant) return true;
+        if (!activate && dontActivate) {
+            return false;
+        } else if (activate) {
+            return true;
+        }
+
+        const dontActivateAfterMatch = decorators.some(
+            (decorator) => decorator.name === "dont_activate_after_match"
+        );
+
+        if (dontActivateAfterMatch && this.previousMatches.has(entry.id)) {
+            return false;
+        }
+
+        const keepActivated = decorators.some(
+            (decorator) => decorator.name === "keep_activate_after_match"
+        );
+
+        if (keepActivated && this.previousMatches.has(entry.id)) return true;
+
+        const greeting = decorators.find(
+            (decorator) => decorator.name === "is_greeting"
+        );
+
+        if (greeting && context.greetingIndex !== greeting.value) return false;
+
+        const userIcon = decorators.find(
+            (decorator) => decorator.name === "is_user_icon"
+        );
+        if (userIcon && context.userIcon !== userIcon.value) return false;
+
+        const onlyActivateAfter = decorators.find(
+            (decorator) => decorator.name === "activate_only_after"
+        );
+
+        if (
+            onlyActivateAfter &&
+            typeof onlyActivateAfter.value === "number" &&
+            context.assistantMessageCount < onlyActivateAfter.value
+        ) {
+            return false;
+        }
+
+        const onlyActivateEvery = decorators.find(
+            (decorator) => decorator.name === "activate_only_every"
+        );
+        if (
+            onlyActivateEvery &&
+            typeof onlyActivateEvery.value === "number" &&
+            context.assistantMessageCount % onlyActivateEvery.value !== 0
+        ) {
+            return false;
+        }
 
         const scanDepth = DecoratorParser.getScanDepth(
             decorators,
@@ -88,13 +172,13 @@ export class LorebookMatcher {
             entry.keys,
             contextWindow,
             entry.use_regex,
-            entry.case_sensitive ?? false,
+            entry.case_sensitive,
             matchWholeWords
         );
 
         if (!matchedKeys) return false;
 
-        if (entry.selective && entry.secondary_keys) {
+        if (entry.selective && entry.secondary_keys && !entry.use_regex) {
             const secondaryMatch = this.checkKeys(
                 entry.secondary_keys,
                 contextWindow,
@@ -102,6 +186,7 @@ export class LorebookMatcher {
                 entry.case_sensitive ?? false,
                 matchWholeWords
             );
+
             if (!secondaryMatch) return false;
         }
 
@@ -110,10 +195,9 @@ export class LorebookMatcher {
         );
 
         for (const decorator of additionalKeysDecorators) {
-            if (typeof decorator.value !== "string") return false;
-            const keys = Array.isArray(decorator.value)
-                ? decorator.value
-                : [decorator.value];
+            const keys = this.normalizeKeys(decorator.value);
+            if (!keys) continue;
+
             const additionalMatch = this.checkKeys(
                 keys,
                 contextWindow,
@@ -121,6 +205,7 @@ export class LorebookMatcher {
                 entry.case_sensitive ?? false,
                 matchWholeWords
             );
+
             if (!additionalMatch) return false;
         }
 
@@ -128,41 +213,44 @@ export class LorebookMatcher {
             (decorator) => decorator.name === "exclude_keys"
         );
 
-        for (const decorator of excludeKeysDecorators) {
-            if (typeof decorator.value !== "string") return false;
-            const keys = Array.isArray(decorator.value)
-                ? decorator.value
-                : [decorator.value];
-            const excluded = this.checkKeys(
-                keys,
-                contextWindow,
-                entry.use_regex,
-                entry.case_sensitive ?? false,
-                matchWholeWords
-            );
-            if (excluded) return false;
+        if (!entry.use_regex) {
+            for (const decorator of excludeKeysDecorators) {
+                const keys = this.normalizeKeys(decorator.value);
+                if (!keys) continue;
+
+                const excluded = this.checkKeys(
+                    keys,
+                    contextWindow,
+                    entry.use_regex,
+                    entry.case_sensitive ?? false,
+                    matchWholeWords
+                );
+
+                if (excluded) return false;
+            }
         }
 
         return true;
     }
 
-    static scan(
+    private scan(
         entries: LorebookEntry[],
         context: MatchContext,
-        defaultScanDepth: number = Infinity
+        scanDepth: number = Infinity
     ): MatchResult[] {
         const results: MatchResult[] = [];
         for (const entry of entries) {
-            if (this.entryMatches(entry, context, defaultScanDepth)) {
-                const { decorators, content } = DecoratorParser.parseContent(
-                    entry.content
+            const { decorators, content } = DecoratorParser.parseContent(
+                entry.content
+            );
+
+            if (this.entryMatches(entry, decorators, context, scanDepth)) {
+                const recursionOnly = decorators.some(
+                    (decorator) =>
+                        decorator.name === "activate_only_on_recursion"
                 );
 
-                const delayUntilRecursion = decorators.some(
-                    (decorator) => decorator.name === "delay_until_recursion"
-                );
-
-                if (delayUntilRecursion) continue;
+                if (recursionOnly) continue;
 
                 results.push({
                     entry,
@@ -172,31 +260,34 @@ export class LorebookMatcher {
                 });
             }
         }
+
         return results;
     }
 
-    static recursiveScan(
+    private recursiveScan(
         entries: LorebookEntry[],
         context: MatchContext,
-        defaultScanDepth: number = Infinity
+        scanDepth: number = Infinity
     ): MatchResult[] {
+        const visitedMatches = new Set<string | number>();
         const results: MatchResult[] = [];
 
-        for (const entry of entries) {
-            const entryID = String(entry.id ?? "");
-            if (context.previousMatches.has(entryID)) continue;
+        for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i];
+
+            if (visitedMatches.has(entry.id)) continue;
 
             const { decorators, content } = DecoratorParser.parseContent(
                 entry.content
             );
 
-            const nonRecursable = decorators.some(
-                (decorator) => decorator.name === "non_recursable"
+            const ignoreOnRecursion = decorators.some(
+                (decorator) => decorator.name === "ignore_on_recursion"
             );
 
-            if (nonRecursable) continue;
+            if (ignoreOnRecursion) continue;
 
-            if (this.entryMatches(entry, context)) {
+            if (this.entryMatches(entry, decorators, context)) {
                 const resolvedContent = replaceMacros(content);
 
                 results.push({
@@ -206,27 +297,46 @@ export class LorebookMatcher {
                     priority: entry.priority ?? 0
                 });
 
-                context.previousMatches.add(entryID);
+                visitedMatches.add(entry.id);
 
-                const preventRecursion = decorators.some(
-                    (decorator) => decorator.name === "prevent_recursion"
+                const recursionDepth = decorators.find(
+                    (decorator) => decorator.name === "recursion_depth"
                 );
 
-                if (preventRecursion) continue;
+                if (recursionDepth?.value === i) continue;
 
                 if (context.messages.length > 0) {
                     const newContext = {
                         ...context,
                         messages: [...context.messages, resolvedContent]
                     };
+
                     const recursiveMatches = this.recursiveScan(
                         entries,
                         newContext,
-                        defaultScanDepth
+                        scanDepth
                     );
+
                     results.push(...recursiveMatches);
                 }
             }
+        }
+
+        return results;
+    }
+
+    scanLorebook(
+        entries: LorebookEntry[],
+        context: MatchContext,
+        scanDepth: number,
+        recursive: boolean
+    ): MatchResult[] {
+        const results = recursive
+            ? this.recursiveScan(entries, context, scanDepth)
+            : this.scan(entries, context, scanDepth);
+
+        for (const result of results) {
+            this.previousMatches.add(String(result.entry.id));
         }
 
         return results;

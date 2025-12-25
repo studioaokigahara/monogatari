@@ -47,33 +47,38 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         [settings.preset]
     );
 
+    const { id } = useParams({ from: "/chat/$id" });
+
     const dependencyRef = useRef<Dependencies | null>(null);
     if (character && persona && preset) {
         dependencyRef.current = { settings, character, persona, preset };
     }
 
-    const buildRequestBody = useCallback(async (messages: Message[]) => {
-        if (!dependencyRef.current) {
-            throw new Error("Chat instance not fully initialized.");
-        }
+    const buildRequestBody = useCallback(
+        async (messages: Message[]) => {
+            if (!dependencyRef.current) {
+                throw new Error("Chat instance not fully initialized.");
+            }
 
-        const { settings, character, persona, preset } = dependencyRef.current;
+            const { settings, character, persona, preset } =
+                dependencyRef.current;
 
-        const context = await buildContext(
-            messages,
-            preset,
-            character,
-            persona
-        );
+            const context = await buildContext(
+                id,
+                messages,
+                preset,
+                character,
+                persona
+            );
 
-        return {
-            body: { messages: context, settings }
-        };
-    }, []);
+            return {
+                body: { messages: context, settings }
+            };
+        },
+        [id]
+    );
 
     const [chatState, setChatState] = useState<ChatContextValue>();
-
-    const { id } = useParams({ from: "/chat/$id" });
 
     useEffect(() => {
         const abortController = new AbortController();
