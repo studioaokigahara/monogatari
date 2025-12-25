@@ -282,9 +282,9 @@ export async function importCharacter(
 
     character.data.assets = pointers;
     await character.save();
-    toast.success(`${character.data.name} imported successfully!`);
 
     if (redirect) {
+        toast.success(`${character.data.name} imported successfully!`);
         router.navigate({
             to: `/characters/$id`,
             params: { id: character.id }

@@ -37,8 +37,8 @@ interface ScanCallbacks {
 }
 
 interface ScanResult {
-    replaced: number;
     total: number;
+    replaced: number;
 }
 
 /**
@@ -117,6 +117,7 @@ export async function scanGallery(
 
     let urlCount = 0;
     let galleryCount = 0;
+    let totalDownloadedImages = 0;
     for (let i = 0; i < downloads.length; i++) {
         const step = i + 1;
         onProgress(step, total);
@@ -131,19 +132,26 @@ export async function scanGallery(
 
             try {
                 const download = await downloadAsset(job.url);
+
                 await character.update({
                     assets: [...character.data.assets, download.pointer]
                 });
+
                 const asset = new Asset({
                     category: "character",
                     parentID: character.id,
                     file: download.file
                 });
+
                 await asset.save();
+
                 urlPointerMap.set(
                     job.url,
                     `embedded://${download.pointer.name}.${download.pointer.ext}`
                 );
+
+                totalDownloadedImages++;
+
                 onLog(`✔ Downloaded ${job.url}.`);
             } catch (error) {
                 console.error(error);
@@ -158,15 +166,18 @@ export async function scanGallery(
 
             const name = `gallery_${Date.now()}`;
             const ext = job.blob.type.split("/")[1] ?? "unknown";
+
             const pointer: CharacterCardV3Asset = {
                 type: "x_gallery",
                 uri: `embedded://${name}.${ext}`,
                 name,
                 ext
             };
+
             await character.update({
                 assets: [...character.data.assets, pointer]
             });
+
             const asset = new Asset({
                 category: "character",
                 parentID: character.id,
@@ -174,7 +185,9 @@ export async function scanGallery(
                     type: job.blob.type ?? "application/octet-stream"
                 })
             });
+
             await asset.save();
+            totalDownloadedImages++;
             onLog(`✔ Saved gallery image #${galleryCount}.`);
         }
     }
@@ -210,8 +223,8 @@ export async function scanGallery(
     await character.update({ updatedData });
 
     onLog(
-        `Scan complete. Replaced ${urlPointerMap.size} URLs with embedded images.`
+        `Scan complete. Downloaded ${totalDownloadedImages} images, and replaced ${urlPointerMap.size} URLs with embedded images.`
     );
 
-    return { replaced: urlPointerMap.size, total };
+    return { total: totalDownloadedImages, replaced: urlPointerMap.size };
 }

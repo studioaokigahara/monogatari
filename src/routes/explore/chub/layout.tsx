@@ -16,6 +16,7 @@ import { scanGallery } from "@/lib/character/scanner";
 import { toast } from "sonner";
 import CharacterList from "./list";
 import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 
 const defaultSearchOptions: SearchOptions = {
     searchTerm: "",
@@ -114,6 +115,8 @@ export default function ChubLayout() {
         [data]
     );
 
+    const navigate = useNavigate();
+
     const downloadMutation = useMutation({
         mutationFn: async (job: ChubCharacter) => {
             const isUpdate = characterPaths.has(job.fullPath);
@@ -140,28 +143,46 @@ export default function ChubLayout() {
 
             const record = await importCharacter(json, arrayBuffer);
 
-            if (!record) return { job, isUpdate };
+            if (!record) {
+                throw new Error("Failed to parse character card.");
+            }
 
-            await scanGallery(record).catch((error: Error) => {
-                console.error("Gallery scan failed:", error);
-                toast.error("Gallery scan failed", {
-                    description: error.message
-                });
+            toast.promise(scanGallery(record), {
+                loading: `Scanning ${job.name} for images...`,
+                success: ({ total, replaced }) => ({
+                    message: "Scan completed successfully!",
+                    description: `Downloaded ${total} images, and replaced ${replaced} URLs with embedded images.`
+                }),
+                error: (error: Error) => {
+                    console.error("Gallery scan failed:", error);
+                    return error.message;
+                }
             });
 
-            return { job, isUpdate };
+            return { job, isUpdate, id: record.id };
         },
         onMutate: ({ fullPath }: ChubCharacter) => {
             updateButtonState(fullPath, ButtonState.DOWNLOADING);
         },
-        onSuccess: ({ job, isUpdate }) => {
+        onSuccess: ({ job, isUpdate, id }) => {
             updateButtonState(job.fullPath, ButtonState.DONE);
-            toast.success(`${isUpdate ? "Updated" : "Downloaded"} ${job.name}`);
+            toast.success(
+                `${isUpdate ? "Updated" : "Downloaded"} ${job.name} successfully!`,
+                {
+                    action: {
+                        label: "Open",
+                        onClick: () =>
+                            navigate({ to: "/characters/$id", params: { id } })
+                    }
+                }
+            );
         },
-        onError: (error: any, job) => {
+        onError: (error: Error, job) => {
             console.error("Download failed for", job.fullPath, error);
             updateButtonState(job.fullPath, ButtonState.ERROR, error.message);
-            toast.error(`Download failed for ${job.name}`);
+            toast.error(`Download failed for ${job.name}:`, {
+                description: error.message
+            });
         },
         onSettled: (_, __, job) => {
             setTimeout(() => {
