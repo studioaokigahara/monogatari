@@ -43,22 +43,30 @@ const TavernCardV2Importer = TavernCardV2.extend({
         };
 
         return walk(data) as TavernCardV2Data;
-    }).transform((data) => {
-        const allowedKeys = new Set(Object.keys(TavernCardV2Data.shape));
-        const extras = Object.entries(data).filter(
-            ([key]) => !allowedKeys.has(key)
-        );
-
-        for (const [key] of extras) delete data[key];
-
-        return {
-            ...data,
-            extensions: {
-                ...data.extensions,
-                ...extras
-            }
-        };
     })
+        .transform((data) => {
+            const allowedKeys = new Set(Object.keys(TavernCardV2Data.shape));
+            const extras = Object.entries(data).filter(
+                ([key]) => !allowedKeys.has(key)
+            );
+
+            for (const [key] of extras) delete data[key];
+
+            return {
+                ...data,
+                extensions: {
+                    ...data.extensions,
+                    ...extras
+                }
+            };
+        })
+        .transform((data) => {
+            if (data.character_book === null) {
+                data.character_book = undefined;
+            }
+
+            return data;
+        })
 });
 
 const CharacterCardV3Importer = CharacterCardV3.extend({
@@ -80,22 +88,30 @@ const CharacterCardV3Importer = CharacterCardV3.extend({
         };
 
         return walk(data) as CharacterCardV3Data;
-    }).transform((data) => {
-        const allowedKeys = new Set(Object.keys(CharacterCardV3Data.shape));
-        const extras = Object.entries(data).filter(
-            ([key]) => !allowedKeys.has(key)
-        );
-
-        for (const [key] of extras) delete data[key];
-
-        return {
-            ...data,
-            extensions: {
-                ...data.extensions,
-                ...extras
-            }
-        };
     })
+        .transform((data) => {
+            const allowedKeys = new Set(Object.keys(CharacterCardV3Data.shape));
+            const extras = Object.entries(data).filter(
+                ([key]) => !allowedKeys.has(key)
+            );
+
+            for (const [key] of extras) delete data[key];
+
+            return {
+                ...data,
+                extensions: {
+                    ...data.extensions,
+                    ...extras
+                }
+            };
+        })
+        .transform((data) => {
+            if (data.character_book === null) {
+                data.character_book = undefined;
+            }
+
+            return data;
+        })
 });
 
 export function readCharacterImage(image: ArrayBuffer) {

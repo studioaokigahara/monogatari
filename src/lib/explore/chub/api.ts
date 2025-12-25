@@ -85,7 +85,10 @@ export async function fetchCharacterImage(
 
 export async function fetchCharacterJSON(character: ChubCharacter) {
     const response = await fetch(
-        `https://gateway.chub.ai/api/v4/projects/${character.id}/repository/files/card.json/raw?ref=main&response_type=blob`
+        `https://gateway.chub.ai/api/v4/projects/${character.id}/repository/files/card.json/raw?ref=main&response_type=blob`,
+        {
+            referrerPolicy: "no-referrer"
+        }
     );
 
     if (!response.ok) {
