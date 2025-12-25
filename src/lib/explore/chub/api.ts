@@ -1,4 +1,5 @@
 import { type ChubCharacter, type SearchOptions } from "@/types/explore/chub";
+
 export async function fetchCharacterInfo(
     fullPath: string
 ): Promise<{ id: string; description: string; hasGallery: boolean }> {
@@ -125,6 +126,7 @@ export async function fetchCharacters(
         searchParams.append("chub", "true");
         searchParams.append("nsfw", searchOptions.nsfw.toString());
         searchParams.append("nsfl", searchOptions.nsfw.toString());
+
         searchParams.append(
             "inclusive_or",
             searchOptions.inclusiveOr.toString()
@@ -134,14 +136,19 @@ export async function fetchCharacters(
             .filter((tag) => tag.length)
             .join(",")
             .slice(0, 100);
-        if (includedTags.length) searchParams.append("tags", includedTags);
+
+        if (includedTags.length) {
+            searchParams.append("tags", includedTags);
+        }
 
         const excludedTags = searchOptions.excludedTags
             .filter((tag) => tag.length)
             .join(",")
             .slice(0, 100);
-        if (excludedTags.length)
+
+        if (excludedTags.length) {
             searchParams.append("exclude_tags", excludedTags);
+        }
 
         const settings = JSON.parse(localStorage.getItem("settings") || "");
         const apiKey = settings.apiKeys.chub || "";

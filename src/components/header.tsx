@@ -3,10 +3,9 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
-interface HeaderProps {
+interface HeaderProps extends React.ComponentProps<"header"> {
     children?: React.ReactNode;
     className?: string;
-    props?: React.ComponentProps<"header">;
 }
 
 export default function Header({ children, className, ...props }: HeaderProps) {

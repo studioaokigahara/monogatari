@@ -132,6 +132,7 @@ export class LorebookMatcher {
         const userIcon = decorators.find(
             (decorator) => decorator.name === "is_user_icon"
         );
+
         if (userIcon && context.userIcon !== userIcon.value) return false;
 
         const onlyActivateAfter = decorators.find(
@@ -149,6 +150,7 @@ export class LorebookMatcher {
         const onlyActivateEvery = decorators.find(
             (decorator) => decorator.name === "activate_only_every"
         );
+
         if (
             onlyActivateEvery &&
             typeof onlyActivateEvery.value === "number" &&
@@ -336,7 +338,7 @@ export class LorebookMatcher {
             : this.scan(entries, context, scanDepth);
 
         for (const result of results) {
-            this.previousMatches.add(String(result.entry.id));
+            this.previousMatches.add(result.entry.id);
         }
 
         return results;

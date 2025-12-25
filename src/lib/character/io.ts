@@ -199,6 +199,7 @@ async function extractAssetRecord(
             case "embedded":
                 if (embeddedResolver) {
                     const path = pointer.uri.split("://")[1];
+
                     if (!path) {
                         console.error(
                             "Invalid embedded asset URI:",
@@ -206,7 +207,9 @@ async function extractAssetRecord(
                         );
                         continue;
                     }
+
                     const resolved = await embeddedResolver(path);
+
                     if (!resolved) {
                         console.error(
                             "Embedded asset not found for path",
@@ -214,22 +217,24 @@ async function extractAssetRecord(
                         );
                         continue;
                     }
+
                     blob = resolved;
                 } else {
                     console.error("No resolver for embedded assets");
                     continue;
                 }
                 break;
-            case "data": {
+            case "data":
                 const [head, base64] = pointer.uri.split(",");
                 const array = z.util.base64ToUint8Array(base64);
+
                 const mimeType =
                     head.match(/data:(.+);base64/)?.[1] ??
                     "application/octet-stream";
+
                 blob = new Blob([array], { type: mimeType });
                 break;
-            }
-            default: {
+            default:
                 const response = await fetch(pointer.uri);
 
                 if (!response.ok) {
@@ -242,7 +247,6 @@ async function extractAssetRecord(
                 }
 
                 blob = await response.blob();
-            }
         }
 
         const asset = new Asset({
@@ -252,6 +256,7 @@ async function extractAssetRecord(
                 type: blob.type
             })
         });
+
         await asset.save();
 
         const normalizedURI = uriType === "embeded" ? "embedded" : uriType;

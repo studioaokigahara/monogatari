@@ -1,12 +1,6 @@
 import { DEFAULT_SETTINGS, Settings } from "@/types/settings";
 import merge from "lodash.merge";
-import React, {
-    createContext,
-    useCallback,
-    useContext,
-    useEffect,
-    useState
-} from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 interface SettingsContextType {
     settings: Settings;
@@ -24,12 +18,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         return merge({}, DEFAULT_SETTINGS, parsed);
     });
 
-    const updateSettings = useCallback(
-        (update: Partial<Settings>) => {
-            setSettings((settings: Settings) => ({ ...settings, ...update }));
-        },
-        [setSettings]
-    );
+    const updateSettings = (update: Partial<Settings>) => {
+        setSettings((settings: Settings) => ({ ...settings, ...update }));
+    };
 
     useEffect(() => {
         localStorage.setItem("settings", JSON.stringify(settings));

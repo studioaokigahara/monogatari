@@ -65,8 +65,9 @@ async function buildLorebookContext(
     ]);
 
     const set = new Set<Lorebook>();
-    for (const lorebook of [...embedded, ...linked, ...global])
+    for (const lorebook of [...embedded, ...linked, ...global]) {
         set.add(lorebook);
+    }
     const lorebooks = [...set];
 
     if (lorebooks.length === 0) return messages;
@@ -88,14 +89,15 @@ async function buildLorebookContext(
         o200k_base.pat_str
     );
 
+    const tokenCount = tokenizer.encode(history.join("\n")).length;
+    tokenizer.free();
+
     const context: MatchContext = {
         messages: history,
         messageCount: history.length,
         assistantMessageCount,
-        tokenCount: tokenizer.encode(history.join("\n")).length
+        tokenCount
     };
-
-    tokenizer.free();
 
     const lorebookMatcher = LorebookMatcher.get(id);
 
@@ -145,14 +147,13 @@ async function buildLorebookContext(
             case "after":
                 after.push(message);
                 break;
-            case "depth": {
+            case "depth":
                 const index = Math.min(
                     Math.max(messages.length - (position?.depth ?? 0), 0),
                     messages.length
                 );
                 messages.splice(index, 0, message);
                 break;
-            }
             default:
                 continue;
         }

@@ -71,11 +71,12 @@ export class DecoratorParser {
         const [_, name, value] = match;
         if (!value) return { name: name as Decorator["name"] };
 
-        if (value.includes(","))
+        if (value.includes(",")) {
             return {
                 name: name as Decorator["name"],
                 value: value.split(",").map((value) => value.trim())
             };
+        }
 
         return {
             name: name as Decorator["name"],
@@ -95,7 +96,9 @@ export class DecoratorParser {
                 if (decorator) {
                     decorators.push(decorator);
                     startIndex = i + 1;
-                } else break;
+                } else {
+                    break;
+                }
             } else if (line.startsWith("@@@")) {
                 const fallback = this.parseDecorator(line.substring(1));
                 if (fallback && decorators.length > 0) {
@@ -103,7 +106,9 @@ export class DecoratorParser {
                     if (!lastDecorator.fallbacks) lastDecorator.fallbacks = [];
                     lastDecorator.fallbacks.push(fallback);
                 }
-            } else if (line.length > 0) break;
+            } else if (line.length > 0) {
+                break;
+            }
         }
 
         const text = lines.slice(startIndex).join("\n").trim();
@@ -159,9 +164,7 @@ export class DecoratorParser {
 
     static getScanDepth(decorators: Decorator[], scanDepth: number): number {
         const scanDepthDecorator = decorators.find(
-            (decorator) =>
-                decorator.name === "scan_depth" ||
-                decorator.name === "instruct_scan_depth"
+            (decorator) => decorator.name === "scan_depth"
         );
 
         return scanDepthDecorator

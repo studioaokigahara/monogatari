@@ -44,15 +44,22 @@ export class ChatGraph {
         activeTerminalVertices?: Map<string, string>
     ) {
         this.id = id ?? generateCuid2();
+
         const root: Vertex = {
             id: this.id,
             messages: [],
             parent: null,
             children: []
         };
-        if (vertices) this.vertices = vertices;
-        else this.vertices.set(root.id, root);
+
+        if (vertices) {
+            this.vertices = vertices;
+        } else {
+            this.vertices.set(root.id, root);
+        }
+
         this.#activeVertex = activeVertex ?? this.id;
+
         if (activeTerminalVertices) {
             this.activeTerminalVertices = activeTerminalVertices;
         }
