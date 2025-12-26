@@ -23,7 +23,7 @@ export default function CharacterItem({ character }: { character: Character }) {
     return (
         <Item
             variant="outline"
-            className="h-48 p-2 gap-2 overflow-hidden transition duration-75 hover:-translate-y-1"
+            className="h-48 flex-nowrap p-2 gap-2 overflow-hidden transition duration-75 hover:-translate-y-1"
         >
             <ItemMedia className="h-full aspect-2/3 translate-y-[unset]!">
                 <Link to="/characters/$id" params={{ id: character.id }}>
