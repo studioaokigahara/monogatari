@@ -1,12 +1,12 @@
+import { db } from "@/database/monogatari-db";
+import { Asset } from "@/database/schema/asset";
 import {
     CharacterBook,
-    LorebookData,
-    Lorebook
+    Lorebook,
+    LorebookData
 } from "@/database/schema/lorebook";
-import { z } from "zod";
 import { generateCuid2 } from "@/lib/utils";
-import { db } from "../database";
-import { Asset } from "./asset";
+import { z } from "zod";
 
 // TODO: extract transforms for normalizing chub/sillytavern imports, leave schemas pure
 

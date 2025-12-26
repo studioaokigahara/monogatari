@@ -1,5 +1,3 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -11,6 +9,8 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
     Dialog,
     DialogContent,
@@ -21,15 +21,15 @@ import {
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { useImageURL } from "@/hooks/use-image-url";
-import { CharacterCardV3Asset, Character } from "@/database/schema/character";
+import { db } from "@/database/monogatari-db";
+import { Asset } from "@/database/schema/asset";
+import { Character, CharacterCardV3Asset } from "@/database/schema/character";
 import { useFileDialog } from "@/hooks/use-file-dialog";
-import { Check, ImageUp, Trash2, Radar } from "lucide-react";
+import { useImageURL } from "@/hooks/use-image-url";
+import { scanGallery } from "@/lib/character/scanner";
+import { Check, ImageUp, Radar, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { scanGallery } from "@/lib/character/scanner";
-import { db } from "@/database/database";
-import { Asset } from "@/database/schema/asset";
 
 function GalleryScanner({ character }: { character: Character }) {
     const [open, setOpen] = useState(false);

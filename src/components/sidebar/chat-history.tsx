@@ -41,7 +41,7 @@ import {
     useSidebar
 } from "@/components/ui/sidebar";
 import { useCharacterContext } from "@/contexts/character-context";
-import { db } from "@/database/database";
+import { db } from "@/database/monogatari-db";
 import { Chat } from "@/database/schema/chat";
 import { getTimeGroup, sortByTimeGroupLabel } from "@/lib/time";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
@@ -67,17 +67,17 @@ import {
     useRef,
     useState
 } from "react";
+import useEvent from "react-use-event-hook";
 import { toast } from "sonner";
+import { ButtonGroup } from "../ui/button-group";
 import {
     InputGroup,
     InputGroupAddon,
     InputGroupInput
 } from "../ui/input-group";
 import { Kbd } from "../ui/kbd";
-import { ButtonGroup } from "../ui/button-group";
-import useEvent from "react-use-event-hook";
-import { Spinner } from "../ui/spinner";
 import { Skeleton } from "../ui/skeleton";
+import { Spinner } from "../ui/spinner";
 
 const GraphLoader = lazy(() => import("@/components/graph/loader"));
 

@@ -1,3 +1,4 @@
+import { db } from "@/database/monogatari-db";
 import { Character } from "@/database/schema/character";
 import { Persona } from "@/database/schema/persona";
 import {
@@ -8,7 +9,6 @@ import {
     useState
 } from "react";
 import { useSettingsContext } from "./settings-context";
-import { db } from "@/database/database";
 
 interface CharacterContextType {
     character?: Character;

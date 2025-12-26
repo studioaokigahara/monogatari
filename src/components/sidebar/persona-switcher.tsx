@@ -15,7 +15,7 @@ import {
     useSidebar
 } from "@/components/ui/sidebar";
 import { useCharacterContext } from "@/contexts/character-context";
-import { db } from "@/database/database";
+import { db } from "@/database/monogatari-db";
 import { useImageURL } from "@/hooks/use-image-url";
 import { Link } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";

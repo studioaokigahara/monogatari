@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { db } from "@/database/database";
+import { db } from "@/database/monogatari-db";
 import { Lorebook } from "@/database/schema/lorebook";
 import useAutosave from "@/hooks/use-autosave";
 import { generateCuid2 } from "@/lib/utils";

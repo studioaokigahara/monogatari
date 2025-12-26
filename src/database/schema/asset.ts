@@ -1,6 +1,6 @@
+import { db } from "@/database/monogatari-db";
 import { generateCuid2 } from "@/lib/utils";
 import z from "zod";
-import { db } from "../database";
 
 const AssetRecord = z.object({
     id: z.cuid2().default(generateCuid2),

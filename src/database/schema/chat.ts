@@ -1,9 +1,9 @@
+import { db } from "@/database/monogatari-db";
 import { ChatGraph, GraphSnapshot, Vertex } from "@/lib/graph";
+import { generateCuid2 } from "@/lib/utils";
+import { type Message } from "@/types/message";
 import { z } from "zod";
 import { Character } from "./character";
-import { type Message } from "@/types/message";
-import { generateCuid2 } from "@/lib/utils";
-import { db } from "../database";
 
 const ChatRecord = z.object({
     /** the graph’s root ID (also the PK) */

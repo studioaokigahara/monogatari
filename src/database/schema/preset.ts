@@ -1,6 +1,6 @@
-import { z } from "zod";
+import { db } from "@/database/monogatari-db";
 import { generateCuid2 } from "@/lib/utils";
-import { db } from "../database";
+import { z } from "zod";
 import { SillyTavernPresetConverter } from "./preset/sillytavern";
 
 export const Prompt = z
