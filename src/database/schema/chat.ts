@@ -1,14 +1,18 @@
 import { db } from "@/database/monogatari-db";
 import { ChatGraph, GraphSnapshot, Vertex } from "@/lib/graph";
+import { replaceMacros } from "@/lib/macros";
 import { generateCuid2 } from "@/lib/utils";
 import { type Message } from "@/types/message";
 import { z } from "zod";
 import { Character } from "./character";
+import { Persona } from "./persona";
 
 const ChatRecord = z.object({
     /** the graph’s root ID (also the PK) */
     id: z.string().default(generateCuid2),
     characterIDs: z.array(z.string()),
+    // TODO: per-chat persona ID, switch persona to stored ID on chat load
+    personaID: z.string().optional(),
     /** all vertices */
     vertices: z.array(Vertex),
     activeVertex: z.string(),
@@ -32,7 +36,7 @@ export class Chat implements ChatRecord {
     title?: string;
     fork?: string;
 
-    constructor(character: Character) {
+    constructor(character: Character, persona?: Persona) {
         const graph = new ChatGraph();
         const now = new Date();
 
@@ -45,7 +49,15 @@ export class Chat implements ChatRecord {
             const message: Message = {
                 id: `greeting-${i + 1}-${generateCuid2()}`,
                 role: "assistant",
-                parts: [{ type: "text", text: greetings[i] }],
+                parts: [
+                    {
+                        type: "text",
+                        text: replaceMacros(greetings[i], {
+                            character,
+                            persona
+                        })
+                    }
+                ],
                 metadata: {
                     createdAt: now
                 }

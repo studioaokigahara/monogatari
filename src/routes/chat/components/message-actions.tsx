@@ -5,15 +5,17 @@ import {
     TooltipContent,
     TooltipTrigger
 } from "@/components/ui/tooltip";
+import { useCharacterContext } from "@/contexts/character-context";
+import { useChatContext } from "@/contexts/chat-context";
+import { Chat } from "@/database/schema/chat";
+import { replaceMacros } from "@/lib/macros";
 import { cn, generateCuid2 } from "@/lib/utils";
 import { type Message } from "@/types/message";
-import { Check, Copy, Split, Pencil, RefreshCw, Trash2, X } from "lucide-react";
+import { useChat } from "@ai-sdk/react";
+import { useNavigate } from "@tanstack/react-router";
+import { Check, Copy, Pencil, RefreshCw, Split, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Chat } from "@/database/schema/chat";
-import { useChatContext } from "@/contexts/chat-context";
-import { useNavigate } from "@tanstack/react-router";
-import { useChat } from "@ai-sdk/react";
 
 interface MessageButton {
     Icon: React.ComponentType;
@@ -37,6 +39,7 @@ export function MessageActions({
     editedContentState,
     className
 }: Props) {
+    const { character, persona } = useCharacterContext();
     const { graphSync, chat } = useChatContext();
     const { messages, setMessages, regenerate, status } = useChat<Message>({
         chat
@@ -101,77 +104,96 @@ export function MessageActions({
         toast.success("Message deleted.");
     }, [graphSync, message, setMessages, index]);
 
-    const saveMessageEdit = useCallback(() => {
-        if (message.role === "user") {
-            const oldContent = message.parts.find(
-                (part) => part.type === "text"
-            )?.text;
-
-            if (oldContent !== editedContent) {
-                const vertexID = graphSync.vertexMap.get(message.id);
-                if (!vertexID) return;
-                const vertex = graphSync.graph.getVertex(vertexID);
-                if (!vertex || !vertex.parent) return;
-
-                graphSync.setBranchPoint(vertex.parent);
-
-                setMessages((messages) => {
-                    const newMessages: Message[] = [
-                        ...messages.slice(0, index),
-                        {
-                            id: generateCuid2(),
-                            role: "user",
-                            parts: [{ type: "text", text: editedContent }],
-                            metadata: { createdAt: new Date() }
-                        }
-                    ];
-                    graphSync.commit(newMessages);
-                    return newMessages;
-                });
-
-                regenerate();
-            }
-        } else {
-            setMessages((messages) => {
+    const saveMessageEdit = useCallback(
+        (shouldRegenerate: boolean) => {
+            if (shouldRegenerate) {
                 const oldContent = message.parts.find(
                     (part) => part.type === "text"
                 )?.text;
 
-                if (oldContent === editedContent) {
-                    return messages;
+                if (oldContent !== editedContent) {
+                    const vertexID = graphSync.vertexMap.get(message.id);
+                    if (!vertexID) return;
+                    const vertex = graphSync.graph.getVertex(vertexID);
+                    if (!vertex || !vertex.parent) return;
+
+                    graphSync.setBranchPoint(vertex.parent);
+
+                    setMessages((messages) => {
+                        const newMessages: Message[] = [
+                            ...messages.slice(0, index),
+                            {
+                                id: generateCuid2(),
+                                role: "user",
+                                parts: [
+                                    {
+                                        type: "text",
+                                        text: replaceMacros(editedContent, {
+                                            character,
+                                            persona
+                                        })
+                                    }
+                                ],
+                                metadata: { createdAt: new Date() }
+                            }
+                        ];
+                        graphSync.commit(newMessages);
+                        return newMessages;
+                    });
+
+                    regenerate();
                 }
+            } else {
+                setMessages((messages) => {
+                    const oldContent = message.parts.find(
+                        (part) => part.type === "text"
+                    )?.text;
 
-                const parts = messages[index].parts.map((part) =>
-                    part.type === "text"
-                        ? { ...part, text: editedContent }
-                        : part
-                );
-
-                messages[index] = {
-                    ...message,
-                    parts,
-                    metadata: {
-                        ...message.metadata,
-                        updatedAt: new Date()
+                    if (oldContent === editedContent) {
+                        return messages;
                     }
-                };
 
-                graphSync.updateMessage(messages[index]);
+                    const parts = messages[index].parts.map((part) =>
+                        part.type === "text"
+                            ? {
+                                  ...part,
+                                  text: replaceMacros(editedContent, {
+                                      character,
+                                      persona
+                                  })
+                              }
+                            : part
+                    );
 
-                return messages;
-            });
-        }
-        setEditing(false);
-        toast.success("Message updated.");
-    }, [
-        message,
-        graphSync,
-        setMessages,
-        index,
-        editedContent,
-        regenerate,
-        setEditing
-    ]);
+                    messages[index] = {
+                        ...message,
+                        parts,
+                        metadata: {
+                            ...message.metadata,
+                            updatedAt: new Date()
+                        }
+                    };
+
+                    graphSync.updateMessage(messages[index]);
+
+                    return messages;
+                });
+            }
+            setEditing(false);
+            toast.success("Message updated.");
+        },
+        [
+            message,
+            graphSync,
+            setMessages,
+            index,
+            editedContent,
+            regenerate,
+            setEditing,
+            character,
+            persona
+        ]
+    );
 
     const forkChat = useCallback(async () => {
         const isLastMessage = messages.length === index + 1;
@@ -223,10 +245,18 @@ export function MessageActions({
         const buttons: MessageButton[] = [];
 
         if (editing) {
+            if (message.role === "user") {
+                buttons.push({
+                    Icon: RefreshCw,
+                    tooltip: "Save & Regenerate",
+                    onClick: () => saveMessageEdit(true),
+                    className: "text-blue-500 hover:text-blue-500"
+                });
+            }
             buttons.push({
                 Icon: Check,
                 tooltip: "Save",
-                onClick: saveMessageEdit,
+                onClick: () => saveMessageEdit(false),
                 className: "text-green-500 hover:text-green-500"
             });
             buttons.push({

@@ -3,12 +3,13 @@ import { Character } from "@/database/schema/character";
 import { Lorebook } from "@/database/schema/lorebook";
 import { Persona } from "@/database/schema/persona";
 import { Preset } from "@/database/schema/preset";
+import { DecoratorParser } from "@/lib/lorebook/decorator";
+import { LorebookMatcher, MatchContext } from "@/lib/lorebook/matcher";
+import { replaceMacros } from "@/lib/macros";
+import { MacroContext } from "@/types/macros";
 import { type Message } from "@/types/message";
 import o200k_base from "tiktoken/encoders/o200k_base";
 import { Tiktoken } from "tiktoken/lite";
-import { replaceMacros } from "./curly-braces";
-import { DecoratorParser } from "./lorebook/decorator";
-import { LorebookMatcher, MatchContext } from "./lorebook/matcher";
 import { generateCuid2 } from "./utils";
 
 function buildPresetContext(messages: Message[], preset: Preset) {
@@ -44,7 +45,8 @@ function buildPresetContext(messages: Message[], preset: Preset) {
 async function buildLorebookContext(
     id: string,
     messages: Message[],
-    character: Character
+    character: Character,
+    macroContext: MacroContext
 ) {
     const [embedded, linked, global] = await Promise.all([
         db.lorebooks
@@ -115,6 +117,7 @@ async function buildLorebookContext(
         const results = lorebookMatcher.scanLorebook(
             entries,
             context,
+            macroContext,
             scanDepth,
             recursive
         );
@@ -185,7 +188,15 @@ export async function buildContext(
     persona: Persona
 ) {
     let context = buildPresetContext(messages, preset);
-    context = await buildLorebookContext(id, context, character);
+
+    const variables: Record<string, string> = {};
+    const macroContext: MacroContext = {
+        character,
+        persona,
+        variables
+    };
+
+    context = await buildLorebookContext(id, context, character, macroContext);
 
     const prompt = context
         .map((message) => ({

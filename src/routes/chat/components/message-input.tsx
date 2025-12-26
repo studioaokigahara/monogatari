@@ -1,10 +1,29 @@
+import { Button } from "@/components/ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton
+} from "@/components/ui/input-group";
+import { TextareaAutosize as Textarea } from "@/components/ui/textarea-autosize";
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger
 } from "@/components/ui/tooltip";
-import { TextareaAutosize as Textarea } from "@/components/ui/textarea-autosize";
+import { useCharacterContext } from "@/contexts/character-context";
 import { useChatContext } from "@/contexts/chat-context";
+import { useFileDialog } from "@/hooks/use-file-dialog";
+import { replaceMacros } from "@/lib/macros";
+import { cn } from "@/lib/utils";
+import { type Message } from "@/types/message";
+import { useChat } from "@ai-sdk/react";
+import { FileUIPart } from "ai";
 import {
     ArrowDown,
     ArrowUp,
@@ -15,41 +34,25 @@ import {
     TriangleAlert
 } from "lucide-react";
 import {
-    MouseEvent,
     ChangeEvent,
     ClipboardEvent,
-    KeyboardEvent,
-    useState,
     FormEvent,
-    useMemo,
+    KeyboardEvent,
+    MouseEvent,
+    RefObject,
     useEffect,
     useLayoutEffect,
-    RefObject
+    useMemo,
+    useState
 } from "react";
-import { useChat } from "@ai-sdk/react";
-import { type Message } from "@/types/message";
 import useEvent from "react-use-event-hook";
-import {
-    InputGroup,
-    InputGroupAddon,
-    InputGroupButton
-} from "@/components/ui/input-group";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import { useFileDialog } from "@/hooks/use-file-dialog";
-import { FileUIPart } from "ai";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
 interface Props {
     scrollRef: RefObject<HTMLDivElement | null>;
 }
 
 export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
+    const { character, persona } = useCharacterContext();
     const { chat } = useChatContext();
     const { messages, sendMessage, status, regenerate, stop } =
         useChat<Message>({
@@ -74,8 +77,16 @@ export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!input.trim()) return;
-        if (files) sendMessage({ text: input, files });
-        else sendMessage({ text: input });
+
+        if (files) {
+            sendMessage({
+                text: replaceMacros(input, { character, persona }),
+                files
+            });
+        } else {
+            sendMessage({ text: replaceMacros(input, { character, persona }) });
+        }
+
         setInput("");
         setFiles(undefined);
     };

@@ -1,6 +1,7 @@
 import { type LorebookEntry } from "@/database/schema/lorebook";
-import { DecoratorParser, Decorator } from "./decorator";
-import { replaceMacros } from "../curly-braces";
+import { Decorator, DecoratorParser } from "@/lib/lorebook/decorator";
+import { replaceMacros } from "@/lib/macros";
+import { MacroContext } from "@/types/macros";
 
 export interface MatchContext {
     messages: string[];
@@ -238,6 +239,7 @@ export class LorebookMatcher {
     private scan(
         entries: LorebookEntry[],
         context: MatchContext,
+        macroContext: MacroContext,
         scanDepth: number = Infinity
     ): MatchResult[] {
         const results: MatchResult[] = [];
@@ -257,7 +259,7 @@ export class LorebookMatcher {
                 results.push({
                     entry,
                     decorators,
-                    content: replaceMacros(content),
+                    content: replaceMacros(content, macroContext),
                     priority: entry.priority ?? 0
                 });
             }
@@ -269,6 +271,7 @@ export class LorebookMatcher {
     private recursiveScan(
         entries: LorebookEntry[],
         context: MatchContext,
+        macroContext: MacroContext,
         scanDepth: number = Infinity
     ): MatchResult[] {
         const visitedMatches = new Set<string | number>();
@@ -290,7 +293,7 @@ export class LorebookMatcher {
             if (ignoreOnRecursion) continue;
 
             if (this.entryMatches(entry, decorators, context)) {
-                const resolvedContent = replaceMacros(content);
+                const resolvedContent = replaceMacros(content, macroContext);
 
                 results.push({
                     entry,
@@ -316,6 +319,7 @@ export class LorebookMatcher {
                     const recursiveMatches = this.recursiveScan(
                         entries,
                         newContext,
+                        macroContext,
                         scanDepth
                     );
 
@@ -329,13 +333,14 @@ export class LorebookMatcher {
 
     scanLorebook(
         entries: LorebookEntry[],
-        context: MatchContext,
+        matchContext: MatchContext,
+        macroContext: MacroContext,
         scanDepth: number,
         recursive: boolean
     ): MatchResult[] {
         const results = recursive
-            ? this.recursiveScan(entries, context, scanDepth)
-            : this.scan(entries, context, scanDepth);
+            ? this.recursiveScan(entries, matchContext, macroContext, scanDepth)
+            : this.scan(entries, matchContext, macroContext, scanDepth);
 
         for (const result of results) {
             this.previousMatches.add(result.entry.id);
