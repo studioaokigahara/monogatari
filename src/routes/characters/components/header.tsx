@@ -16,6 +16,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useCharacterContext } from "@/contexts/character-context";
 import { useCharacterFormContext } from "@/contexts/character-form-context";
 import { Character } from "@/database/schema/character";
 import { Chat } from "@/database/schema/chat";
@@ -25,15 +26,16 @@ import {
 } from "@/hooks/use-character-form";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
-import { Edit, Trash2, Heart, MessageCirclePlus } from "lucide-react";
+import { Edit, Heart, MessageCirclePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export function Header({ character }: { character: Character }) {
+    const { persona } = useCharacterContext();
     const { setEditing } = useCharacterFormContext();
     const navigate = useNavigate();
 
     const startNewChat = async () => {
-        const chat = new Chat(character);
+        const chat = new Chat(character, persona);
         await chat.save();
         navigate({ to: "/chat/$id", params: { id: chat.id } });
     };

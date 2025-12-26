@@ -62,7 +62,6 @@ import {
     Fragment,
     lazy,
     Suspense,
-    useCallback,
     useMemo,
     useRef,
     useState
@@ -100,7 +99,7 @@ function ChatHistoryItem({
 
     const titleRef = useRef<HTMLInputElement>(null);
 
-    const renameChat = useCallback(async () => {
+    const renameChat = async () => {
         const title = titleRef.current?.value.trim() ?? "";
 
         if (title && title !== chat.title) {
@@ -108,9 +107,9 @@ function ChatHistoryItem({
         }
 
         setDialogOpen(false);
-    }, [chat]);
+    };
 
-    const deleteChat = useCallback(async () => {
+    const deleteChat = async () => {
         await chat.delete();
         setAlertOpen(false);
 
@@ -120,14 +119,10 @@ function ChatHistoryItem({
                 "You were navigated here to prevent bugs. Pick another chat!"
             );
         }
-    }, [chat, isActive, navigate]);
+    };
 
     const exportChat = async () => {
         const result = await Chat.load(chat.id);
-        if (!result) {
-            toast.error("Failed to load graph from DB.");
-            return;
-        }
         const { graph, record } = result;
         const data = JSON.stringify(graph.save());
         const file = new File(
@@ -262,7 +257,7 @@ function ChatHistoryItem({
 }
 
 export function ChatHistory() {
-    const { character } = useCharacterContext();
+    const { character, persona } = useCharacterContext();
 
     const [graphID, setGraphID] = useState<string>("");
 
@@ -275,7 +270,7 @@ export function ChatHistory() {
         () =>
             db.chats
                 .where("characterIDs")
-                .anyOf(character?.id || "")
+                .anyOf(character?.id ?? "")
                 .filter((chat) => {
                     if (searchTerm === "") return true;
                     if (!chat.title) return false;
@@ -307,7 +302,7 @@ export function ChatHistory() {
     const navigate = useNavigate();
     const startNewChat = async () => {
         if (!character) return;
-        const chat = new Chat(character);
+        const chat = new Chat(character, persona);
         await chat.save();
         navigate({ to: "/chat/$id", params: { id: chat.id } });
     };
