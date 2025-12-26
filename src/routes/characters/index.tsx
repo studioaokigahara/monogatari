@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { useImageURL } from "@/hooks/use-image-url";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useLoaderData } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
@@ -302,22 +302,23 @@ function Characters() {
         loadedCharacters
     );
 
+    const navigate = useNavigate();
+    const createNewCharacter = () => navigate({ to: "/characters/new" });
+
     return (
         <>
             <Header className="justify-between">
-                <div className="flex justify-center gap-2">
-                    <Button onClick={browse}>
+                <ButtonGroup>
+                    <Button variant="outline" onClick={browse}>
                         {input}
                         <Import />
                         Import
                     </Button>
-                    <Link to="/characters/new">
-                        <Button className="cursor-pointer">
-                            <UserPlus />
-                            New Character
-                        </Button>
-                    </Link>
-                </div>
+                    <Button variant="outline" onClick={createNewCharacter}>
+                        <UserPlus />
+                        New
+                    </Button>
+                </ButtonGroup>
             </Header>
             <div className="flex flex-col gap-2">
                 <Favorites favorites={favorites} />
