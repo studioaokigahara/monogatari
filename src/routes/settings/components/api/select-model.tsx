@@ -33,6 +33,12 @@ import { Anthropic } from "@/components/ui/icon/anthropic";
 import { Google } from "@/components/ui/icon/google";
 import { OpenRouter } from "@/components/ui/icon/openrouter";
 import { DeepSeek } from "@/components/ui/icon/deepseek";
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger
+} from "@/components/ui/accordion";
 
 function formatNumber(number: number) {
     if (isNaN(number)) return "?";
@@ -253,15 +259,25 @@ export default function SelectModel() {
 
                 {currentModel && (
                     <div className="mt-6 space-y-4">
-                        <div className="flex flex-col">
-                            <h3 className="text-lg font-medium">
-                                {currentModel.name}
-                            </h3>
-                            <h6 className="font-mono">{currentModel?.id}</h6>
-                            <Prose className="text-sm text-muted-foreground mt-2">
-                                {currentModel?.description || ""}
-                            </Prose>
-                        </div>
+                        <Accordion type="single" collapsible>
+                            <AccordionItem value="model">
+                                <AccordionTrigger>
+                                    <div className="flex flex-col">
+                                        <h3 className="text-lg font-medium">
+                                            {currentModel.name}
+                                        </h3>
+                                        <h6 className="font-mono">
+                                            {currentModel?.id}
+                                        </h6>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                    <Prose className="text-sm text-muted-foreground mt-2">
+                                        {currentModel?.description || ""}
+                                    </Prose>
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
                         <div className="flex flex-row gap-8">
                             {currentModel.knowledgeCutoff && (
                                 <div className="space-y-1">
