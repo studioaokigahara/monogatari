@@ -42,6 +42,7 @@ import { Character } from "@/database/schema/character";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { cn } from "@/lib/utils";
 import useEvent from "react-use-event-hook";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 type SearchOrders =
     | "a-z"
@@ -193,24 +194,25 @@ function Favorites({ favorites }: { favorites: Character[] }) {
             to="/characters/$id"
             params={{ id: character.id }}
         >
-            <Avatar className="w-full h-36 overflow-visible transition duration-75 hover:scale-105 hover:z-999">
-                <AvatarImage
-                    src={imageURLs[index]}
-                    className="absolute blur-xl saturate-200"
-                />
+            <Avatar className="w-full h-36 rounded-md transition">
                 <AvatarImage
                     src={imageURLs[index]}
                     alt={character.data.name}
-                    className="aspect-2/3 rounded-md object-cover brightness-75 hover:brightness-100"
+                    className="aspect-2/3 object-cover sm:brightness-50 sm:saturate-75 hover:brightness-100 hover:saturate-100"
                 />
-                <AvatarFallback className="rounded-xl">
+                <AvatarFallback className="rounded-md">
                     <Skeleton className="h-full aspect-2/3" />
                 </AvatarFallback>
             </Avatar>
         </Link>
     ));
 
-    return <div className="flex flex-row gap-2">{favoriteCards}</div>;
+    return (
+        <ScrollArea>
+            <div className="w-max flex flex-row gap-2">{favoriteCards}</div>
+            <ScrollBar orientation="horizontal" />
+        </ScrollArea>
+    );
 }
 
 function CharacterList({ characters }: { characters: Character[] }) {
