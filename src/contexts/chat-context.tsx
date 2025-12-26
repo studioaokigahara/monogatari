@@ -1,3 +1,18 @@
+import { Spinner } from "@/components/ui/spinner";
+import { useCharacterContext } from "@/contexts/character-context";
+import { useSettingsContext } from "@/contexts/settings-context";
+import { db } from "@/database/monogatari-db";
+import { Character } from "@/database/schema/character";
+import { Persona } from "@/database/schema/persona";
+import { Preset } from "@/database/schema/preset";
+import { buildContext } from "@/lib/build-context";
+import { GraphSyncManager } from "@/lib/graph/sync";
+import type { Message } from "@/types/message";
+import { Settings } from "@/types/settings";
+import { Chat } from "@ai-sdk/react";
+import { useParams } from "@tanstack/react-router";
+import { DefaultChatTransport } from "ai";
+import { useLiveQuery } from "dexie-react-hooks";
 import {
     createContext,
     ReactNode,
@@ -7,21 +22,6 @@ import {
     useRef,
     useState
 } from "react";
-import { Chat } from "@ai-sdk/react";
-import type { Message } from "@/types/message";
-import { DefaultChatTransport } from "ai";
-import { useLiveQuery } from "dexie-react-hooks";
-import { useParams } from "@tanstack/react-router";
-import { useCharacterContext } from "./character-context";
-import { useSettingsContext } from "./settings-context";
-import { Character } from "@/database/schema/character";
-import { GraphSyncManager } from "@/lib/graph/sync";
-import { Settings } from "@/types/settings";
-import { Persona } from "@/database/schema/persona";
-import { Preset } from "@/database/schema/preset";
-import { buildContext } from "@/lib/build-context";
-import { Spinner } from "@/components/ui/spinner";
-import { db } from "@/database/database";
 import { toast } from "sonner";
 
 interface Dependencies {

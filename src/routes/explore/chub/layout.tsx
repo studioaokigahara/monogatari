@@ -1,26 +1,24 @@
-import { useCallback, useMemo, useState } from "react";
-
-import { db } from "@/database/database";
+import Header from "@/components/header";
+import { db } from "@/database/monogatari-db";
 import { importCharacter } from "@/lib/character/io";
+import { scanGallery } from "@/lib/character/scanner";
 import {
     fetchCharacterImage,
-    fetchCharacters,
-    fetchCharacterJSON
+    fetchCharacterJSON,
+    fetchCharacters
 } from "@/lib/explore/chub/api";
+import CharacterList from "@/routes/explore/chub/list";
+import SearchPanel from "@/routes/explore/components/chub/search";
 import {
     ButtonState,
     type ChubCharacter,
     type SearchOptions
 } from "@/types/explore/chub";
-import { useLiveQuery } from "dexie-react-hooks";
-
-import SearchPanel from "@/routes/explore/components/chub/search";
-import Header from "@/components/header";
-import { scanGallery } from "@/lib/character/scanner";
-import { toast } from "sonner";
-import CharacterList from "./list";
 import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { useLiveQuery } from "dexie-react-hooks";
+import { useCallback, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 const defaultSearchOptions: SearchOptions = {
     searchTerm: "",

@@ -1,15 +1,15 @@
+import { db } from "@/database/monogatari-db";
 import { Character } from "@/database/schema/character";
+import { Lorebook } from "@/database/schema/lorebook";
 import { Persona } from "@/database/schema/persona";
 import { Preset } from "@/database/schema/preset";
 import { type Message } from "@/types/message";
-import { generateCuid2 } from "./utils";
-import { MatchContext, LorebookMatcher } from "./lorebook/matcher";
-import { DecoratorParser } from "./lorebook/decorator";
-import { replaceMacros } from "./curly-braces";
-import { db } from "@/database/database";
-import { Lorebook } from "@/database/schema/lorebook";
-import { Tiktoken } from "tiktoken/lite";
 import o200k_base from "tiktoken/encoders/o200k_base";
+import { Tiktoken } from "tiktoken/lite";
+import { replaceMacros } from "./curly-braces";
+import { DecoratorParser } from "./lorebook/decorator";
+import { LorebookMatcher, MatchContext } from "./lorebook/matcher";
+import { generateCuid2 } from "./utils";
 
 function buildPresetContext(messages: Message[], preset: Preset) {
     const enabledMessages = preset.prompts.filter((message) => message.enabled);

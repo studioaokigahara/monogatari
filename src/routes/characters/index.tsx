@@ -1,9 +1,37 @@
-import CharacterItem from "@/routes/characters/components/item";
 import Header from "@/components/header";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput
+} from "@/components/ui/input-group";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { db } from "@/database/monogatari-db";
+import { Character } from "@/database/schema/character";
 import { useFileDialog } from "@/hooks/use-file-dialog";
+import { useImageURL } from "@/hooks/use-image-url";
 import { handleFileChange } from "@/lib/character/io";
+import { cn } from "@/lib/utils";
+import CharacterItem from "@/routes/characters/components/item";
+import {
+    Link,
+    createFileRoute,
+    useLoaderData,
+    useNavigate
+} from "@tanstack/react-router";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
+import { Collection } from "dexie";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
     ArrowDownAZ,
@@ -18,31 +46,7 @@ import {
     UserPlus
 } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
-import { useImageURL } from "@/hooks/use-image-url";
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useLoaderData } from "@tanstack/react-router";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-    InputGroup,
-    InputGroupAddon,
-    InputGroupInput
-} from "@/components/ui/input-group";
-import { ButtonGroup } from "@/components/ui/button-group";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from "@/components/ui/select";
-import { db } from "@/database/database";
-import { Collection } from "dexie";
-import { Character } from "@/database/schema/character";
-import { useWindowVirtualizer } from "@tanstack/react-virtual";
-import { cn } from "@/lib/utils";
 import useEvent from "react-use-event-hook";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 type SearchOrders =
     | "a-z"

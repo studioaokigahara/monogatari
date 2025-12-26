@@ -1,12 +1,4 @@
-import { PromptEditor } from "./components/presets/editor";
-import { PromptList } from "./components/presets/list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, FileX2 } from "lucide-react";
-import { useState } from "react";
-import { useSettingsContext } from "@/contexts/settings-context";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { useLoaderData, createFileRoute } from "@tanstack/react-router";
-import { useLiveQuery } from "dexie-react-hooks";
 import {
     Empty,
     EmptyDescription,
@@ -14,7 +6,15 @@ import {
     EmptyMedia,
     EmptyTitle
 } from "@/components/ui/empty";
-import { db } from "@/database/database";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { useSettingsContext } from "@/contexts/settings-context";
+import { db } from "@/database/monogatari-db";
+import { createFileRoute, useLoaderData } from "@tanstack/react-router";
+import { useLiveQuery } from "dexie-react-hooks";
+import { FileText, FileX2 } from "lucide-react";
+import { useState } from "react";
+import { PromptEditor } from "./components/presets/editor";
+import { PromptList } from "./components/presets/list";
 
 function EmptyPreset() {
     return (

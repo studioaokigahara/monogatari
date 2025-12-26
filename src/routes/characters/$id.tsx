@@ -1,20 +1,3 @@
-import {
-    Description,
-    DescriptionFields
-} from "@/routes/characters/components/description";
-import {
-    ExampleDialogue,
-    ExampleDialogueField
-} from "@/routes/characters/components/example-dialogue";
-import Gallery from "@/routes/characters/components/gallery";
-import {
-    Greetings,
-    GreetingsField
-} from "@/routes/characters/components/greetings";
-import {
-    Header as ProfileHeader,
-    HeaderFields
-} from "@/routes/characters/components/header";
 import Header from "@/components/header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -43,10 +26,28 @@ import { useFileDialog } from "@/hooks/use-file-dialog";
 import { useImageURL } from "@/hooks/use-image-url";
 import { cn } from "@/lib/utils";
 import {
+    Description,
+    DescriptionFields
+} from "@/routes/characters/components/description";
+import {
+    ExampleDialogue,
+    ExampleDialogueField
+} from "@/routes/characters/components/example-dialogue";
+import Gallery from "@/routes/characters/components/gallery";
+import {
+    Greetings,
+    GreetingsField
+} from "@/routes/characters/components/greetings";
+import {
+    HeaderFields,
+    Header as ProfileHeader
+} from "@/routes/characters/components/header";
+import {
     createFileRoute,
     useNavigate,
     useParams,
-    useRouteContext
+    useRouteContext,
+    useSearch
 } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -59,7 +60,6 @@ import {
 } from "lucide-react";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { useSearch } from "@tanstack/react-router";
 import z from "zod";
 
 function CharacterProfile({ character }: { character: Character }) {
@@ -190,7 +190,7 @@ function CharacterProfile({ character }: { character: Character }) {
                 onValueChange={setTab}
                 className="gap-4 mb-2"
             >
-                <TabsList className="sticky top-1 w-full">
+                <TabsList className="sticky top-18 sm:top-2 w-full">
                     <TabsTrigger value="description">
                         <Text />
                         Description

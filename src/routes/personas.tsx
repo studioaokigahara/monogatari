@@ -1,18 +1,13 @@
 import Header from "@/components/header";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { useCharacterContext } from "@/contexts/character-context";
-import { db } from "@/database/database";
-import { Persona } from "@/database/schema/persona";
-import { useFileDialog } from "@/hooks/use-file-dialog";
-import { useImageURL } from "@/hooks/use-image-url";
-import { useLiveQuery } from "dexie-react-hooks";
-import { Trash2, Upload, UserPlus } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
-import { createFileRoute } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import {
     Sidebar,
     SidebarContent,
@@ -26,16 +21,20 @@ import {
     SidebarProvider,
     SidebarSeparator
 } from "@/components/ui/sidebar";
-import { useForm, useStore } from "@tanstack/react-form";
-import useAutosave from "@/hooks/use-autosave";
-import {
-    Field,
-    FieldError,
-    FieldGroup,
-    FieldLabel
-} from "@/components/ui/field";
-import { useLoaderData } from "@tanstack/react-router";
+import { Textarea } from "@/components/ui/textarea";
+import { useCharacterContext } from "@/contexts/character-context";
+import { db } from "@/database/monogatari-db";
 import { Asset } from "@/database/schema/asset";
+import { Persona } from "@/database/schema/persona";
+import useAutosave from "@/hooks/use-autosave";
+import { useFileDialog } from "@/hooks/use-file-dialog";
+import { useImageURL } from "@/hooks/use-image-url";
+import { useForm, useStore } from "@tanstack/react-form";
+import { createFileRoute, useLoaderData } from "@tanstack/react-router";
+import { useLiveQuery } from "dexie-react-hooks";
+import { Trash2, Upload, UserPlus } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface PersonaEditorProps {
     persona: Persona;

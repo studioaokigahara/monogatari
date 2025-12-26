@@ -1,13 +1,18 @@
-import { SelectExploreProvider } from "@/routes/explore/components/select-provider";
 import Password from "@/components/password-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import {
     ChartContainer,
     ChartTooltip,
     ChartTooltipContent
 } from "@/components/ui/chart";
+import { Label } from "@/components/ui/label";
 import { useSettingsContext } from "@/contexts/settings-context";
+import { db } from "@/database/monogatari-db";
+import { SelectExploreProvider } from "@/routes/explore/components/select-provider";
+import {
+    ExportDatabase,
+    ImportDatabase
+} from "@/routes/settings/components/database-dialog";
 import { createFileRoute } from "@tanstack/react-router";
 import {
     Bird,
@@ -32,11 +37,6 @@ import {
     RadialBar,
     RadialBarChart
 } from "recharts";
-import { db } from "@/database/database";
-import {
-    ExportDatabase,
-    ImportDatabase
-} from "@/routes/settings/components/database-dialog";
 
 const chubTooltip = `Necessary to show characters marked "NSFL" by Character Hub's moderation team. To get your API key, view the request headers for the search object while logged in: Right-click > Inspect > Network tab > Reload the page > Find 'search?...'. Your API key will be shown under the 'CH-API-KEY' and 'samwise' headers.`;
 

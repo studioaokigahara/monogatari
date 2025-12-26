@@ -1,3 +1,9 @@
+import { useCharacterContext } from "@/contexts/character-context";
+import { db } from "@/database/monogatari-db";
+import { Character } from "@/database/schema/character";
+import { useImageURL } from "@/hooks/use-image-url";
+import { useNavigate } from "@tanstack/react-router";
+import { useLiveQuery } from "dexie-react-hooks";
 import {
     BookMarked,
     FileText,
@@ -9,6 +15,7 @@ import {
     Users
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
     CommandDialog,
     CommandEmpty,
@@ -19,13 +26,6 @@ import {
     CommandSeparator,
     CommandShortcut
 } from "./ui/command";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/database/database";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { useImageURL } from "@/hooks/use-image-url";
-import { useCharacterContext } from "@/contexts/character-context";
-import { useNavigate } from "@tanstack/react-router";
-import { Character } from "@/database/schema/character";
 
 export function CommandMenu() {
     const [open, setOpen] = useState(false);

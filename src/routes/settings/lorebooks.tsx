@@ -1,12 +1,4 @@
-import { LorebookEditor } from "@/routes/settings/components/lorebooks/editor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { db } from "@/database/database";
-import { createFileRoute, useLoaderData } from "@tanstack/react-router";
-import { useLiveQuery } from "dexie-react-hooks";
-import { BookDashed, BookOpenText } from "lucide-react";
-import { useState } from "react";
-import { LorebookList } from "./components/lorebooks/list";
 import {
     Empty,
     EmptyDescription,
@@ -14,6 +6,14 @@ import {
     EmptyMedia,
     EmptyTitle
 } from "@/components/ui/empty";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { db } from "@/database/monogatari-db";
+import { LorebookEditor } from "@/routes/settings/components/lorebooks/editor";
+import { createFileRoute, useLoaderData } from "@tanstack/react-router";
+import { useLiveQuery } from "dexie-react-hooks";
+import { BookDashed, BookOpenText } from "lucide-react";
+import { useState } from "react";
+import { LorebookList } from "./components/lorebooks/list";
 
 function NoLorebookSelected() {
     return (
