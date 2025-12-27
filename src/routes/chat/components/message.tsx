@@ -1,12 +1,12 @@
 import { Prose } from "@/components/prose";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { BranchSelector } from "@/routes/chat/components/branch-selector";
-import { useState } from "react";
 import { MessageActions } from "@/routes/chat/components/message-actions";
 import { type Message as MessageType } from "@/types/message";
 import { Dot } from "lucide-react";
-import { ButtonGroup } from "@/components/ui/button-group";
+import { useState } from "react";
 
 function TypingIndicator() {
     return (
@@ -95,8 +95,9 @@ export function Message({
                 <>{messageParts}</>
             )}
             <ButtonGroup
+                aria-label="Message Buttons"
                 className={cn(
-                    "flex items-center group-data-[role=user]:justify-self-end min-h-9 my-1",
+                    "flex items-center group-data-[role=user]:justify-self-end min-h-9 my-2",
                     !editing &&
                         "transition-opacity opacity-0 group-hover:opacity-100 will-change-[opacity]"
                 )}

@@ -8,8 +8,8 @@ import {
 import { useChatContext } from "@/contexts/chat-context";
 import { cn } from "@/lib/utils";
 import { type Message } from "@/types/message";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useChat } from "@ai-sdk/react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface Props extends React.ComponentProps<"button"> {
@@ -44,32 +44,25 @@ export function BranchSelector({ message, editing, className }: Props) {
         };
     }, [editing, graphSync, message, status]);
 
-    const selectPreviousBranch = () => {
+    const selectBranch = (offset: -1 | 1) => {
         setMessages((messages) => {
             const branchMessages = graphSync.selectBranch(
                 messages,
                 message.id,
-                -1
+                offset
             );
             return branchMessages ?? messages;
         });
     };
 
-    const selectNextBranch = () => {
-        setMessages((messages) => {
-            const branchMessages = graphSync.selectBranch(
-                messages,
-                message.id,
-                1
-            );
-            return branchMessages ?? messages;
-        });
-    };
+    const selectPreviousBranch = () => selectBranch(-1);
+    const selectNextBranch = () => selectBranch(1);
 
     if (editing) return null;
 
     return (
         <ButtonGroup
+            aria-label="Branch Selector"
             className={cn(
                 "h-9 transition-[width,margin,opacity] will-change-[width,margin,opacity]",
                 siblings.total <= 1 &&
@@ -93,7 +86,7 @@ export function BranchSelector({ message, editing, className }: Props) {
             </Tooltip>
             <ButtonGroupText
                 className={cn(
-                    "bg-transparent border-0 text-sm font-medium peer-disabled:opacity-50",
+                    "bg-transparent border-0 peer-disabled:opacity-50",
                     className
                 )}
             >
