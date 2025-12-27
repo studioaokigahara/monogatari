@@ -1,20 +1,22 @@
+import { Button } from "@/components/ui/button";
 import {
-    useCallback,
-    useEffect,
-    useLayoutEffect,
-    useRef,
-    useState
-} from "react";
-
-import { ButtonState, type ChubCharacter } from "@/types/explore/chub";
-
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle
+} from "@/components/ui/dialog";
+import { ItemGroup } from "@/components/ui/item";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { ChubCharacterItem } from "@/routes/explore/components/chub/item";
 import CharacterPopup from "@/routes/explore/components/chub/popup";
-import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle } from "lucide-react";
+import { ButtonState, type ChubCharacter } from "@/types/explore/chub";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
-import { cn } from "@/lib/utils";
-import { ItemGroup } from "@/components/ui/item";
+import { AlertTriangle } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 interface CharacterListProps {
     characters: ChubCharacter[];
@@ -42,38 +44,32 @@ export default function CharacterList({
     onCreatorClick
 }: CharacterListProps) {
     const [selectedCharacter, setSelectedCharacter] = useState<ChubCharacter>();
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [popupOpen, setPopupOpen] = useState(false);
+    const [dialogOpen, setDialogOpen] = useState(false);
 
-    const handleCharacterClick = useCallback(
-        (character: ChubCharacter) => {
+    const handleCharacterClick = (character: ChubCharacter) => {
+        setSelectedCharacter(character);
+        setPopupOpen(true);
+    };
+
+    const handleDownloadClick = async (character: ChubCharacter) => {
+        const isDownloaded = characterPaths.has(character.fullPath);
+
+        if (isDownloaded) {
             setSelectedCharacter(character);
-            setIsDialogOpen(true);
-        },
-        [setSelectedCharacter, setIsDialogOpen]
-    );
-
-    const handleDownloadClick = useCallback(
-        async (character: ChubCharacter) => {
-            const isDownloaded = characterPaths.has(character.fullPath);
-
-            if (isDownloaded) {
-                const confirmed = window.confirm(
-                    "This character is already downloaded. Would you like to update it?"
-                );
-                if (!confirmed) return;
-            }
-
+            setDialogOpen(true);
+        } else {
             onCharacterDownload(character);
-        },
-        [characterPaths, onCharacterDownload]
-    );
+        }
+    };
 
     const gridRef = useRef<HTMLDivElement>(null);
     const [gridWidth, setGridWidth] = useState(0);
 
     useLayoutEffect(() => {
-        if (!gridRef.current) return;
         const grid = gridRef.current;
+        if (!grid) return;
+
         setGridWidth(grid.clientWidth);
 
         const observer = new ResizeObserver((entries) => {
@@ -81,6 +77,7 @@ export default function CharacterList({
                 setGridWidth(entry.contentRect.width);
             }
         });
+
         observer.observe(grid);
 
         return () => observer.disconnect();
@@ -94,20 +91,7 @@ export default function CharacterList({
         estimateSize: () => 448,
         overscan: 4,
         scrollMargin: gridRef.current?.offsetTop ?? 0,
-        gap: 8,
-        measureElement: (element, _entry, instance) => {
-            if (
-                instance.scrollDirection === "forward" ||
-                instance.scrollDirection === null
-            ) {
-                return (element as HTMLElement)["offsetHeight"];
-            }
-            const index = Number(element.getAttribute("data-index"));
-            const cachedMeasurement = instance.measurementsCache[index]?.size;
-            return (
-                cachedMeasurement || (element as HTMLElement)["offsetHeight"]
-            );
-        }
+        gap: 8
     });
 
     const virtualItems = virtualizer.getVirtualItems();
@@ -208,24 +192,48 @@ export default function CharacterList({
                 ))}
             </div>
 
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Update Character</DialogTitle>
+                        <DialogDescription>
+                            This character is already downloaded. Would you like
+                            to update it?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="outline">Cancel</Button>
+                        </DialogClose>
+                        <Button
+                            onClick={() =>
+                                onCharacterDownload(selectedCharacter!)
+                            }
+                        >
+                            Update
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             {selectedCharacter && (
                 <CharacterPopup
-                    openState={[isDialogOpen, setIsDialogOpen]}
+                    openState={[popupOpen, setPopupOpen]}
                     character={selectedCharacter!}
                     isDownloaded={characterPaths.has(
                         selectedCharacter!.fullPath
                     )}
                     onDownloadClick={() => {
                         handleDownloadClick(selectedCharacter!);
-                        setIsDialogOpen(false);
+                        setPopupOpen(false);
                     }}
                     onTagClick={(tag) => {
                         onTagClick(tag);
-                        setIsDialogOpen(false);
+                        setPopupOpen(false);
                     }}
                     onCreatorClick={(creator) => {
                         onCreatorClick(creator);
-                        setIsDialogOpen(false);
+                        setPopupOpen(false);
                     }}
                     buttonState={
                         buttonStates[selectedCharacter!.fullPath]?.state ??
