@@ -198,7 +198,7 @@ function Favorites({ favorites }: { favorites: Character[] }) {
             to="/characters/$id"
             params={{ id: character.id }}
         >
-            <Avatar className="w-full h-36 rounded-md transition">
+            <Avatar className="w-full h-36 rounded-md transition duration-75 scale-95 hover:scale-100">
                 <AvatarImage
                     src={imageURLs[index]}
                     alt={character.data.name}
@@ -212,7 +212,7 @@ function Favorites({ favorites }: { favorites: Character[] }) {
     ));
 
     return (
-        <ScrollArea>
+        <ScrollArea className="-mb-1">
             <div className="w-max flex flex-row gap-2">{favoriteCards}</div>
             <ScrollBar orientation="horizontal" />
         </ScrollArea>
