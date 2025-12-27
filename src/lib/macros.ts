@@ -235,10 +235,12 @@ function replaceMacro(
         }
 
         const body = text.slice(start + 2, j);
+        const originalMacro = text.slice(start, j + 2);
+
         runtime.pickKey = `${runtime.pickKey}::${start}`;
         const expandedMacro = processMacroBody(body, runtime, context);
 
-        if (expandedMacro.includes("{{")) {
+        if (expandedMacro.includes("{{") && expandedMacro !== originalMacro) {
             runtime.depth++;
             runtime.pickKey = `${runtime.pickKey}::result`;
             parts.push(replaceMacro(expandedMacro, runtime, context));
