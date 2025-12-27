@@ -1,6 +1,6 @@
 import { useCharacterContext } from "@/contexts/character-context";
 import { useMarkdownLexer } from "@/hooks/use-markdown-lexer";
-import { remarkCurlyBraceMacros } from "@/lib/macros";
+import { remarkCurlyBraceSyntax } from "@/lib/macros";
 import { cn } from "@/lib/utils";
 import { useId as useID } from "react";
 import ReactMarkdown, {
@@ -34,7 +34,7 @@ function Markdown({ id, content, streaming }: MarkdownProps) {
         : [
               remarkGfm,
               remarkBreaks,
-              [remarkCurlyBraceMacros, { character, persona }]
+              [remarkCurlyBraceSyntax, { character, persona }]
           ];
 
     const rehypePlugins = streaming ? [] : [rehypeRaw];

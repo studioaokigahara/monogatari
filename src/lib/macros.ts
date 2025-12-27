@@ -270,7 +270,7 @@ export function replaceMacros(text: string, context?: MacroContext): string {
     return replaceMacro(text, runtime, context);
 }
 
-export const remarkCurlyBraceMacros: Plugin<[MacroContext?]> = (props = {}) => {
+export const remarkCurlyBraceSyntax: Plugin<[MacroContext?]> = (props = {}) => {
     return (tree) => {
         visit(tree, ["text", "code", "inlineCode"] as const, (node) => {
             if (
