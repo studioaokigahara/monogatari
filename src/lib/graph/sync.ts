@@ -1,7 +1,7 @@
-import { ChatGraph } from "@/lib/graph";
-import { type Settings } from "@/types/settings";
-import { type Message } from "@/types/message";
 import { Chat } from "@/database/schema/chat";
+import { ChatGraph } from "@/lib/graph";
+import { type Message } from "@/types/message";
+import { type Settings } from "@/types/settings";
 
 export class GraphSyncManager {
     public readonly id: string;
@@ -122,15 +122,19 @@ export class GraphSyncManager {
     }
 
     async commit(messages: Message[]) {
-        let sliceStart = messages.length;
-        for (let i = messages.length - 1; i >= 0; i--) {
-            if (this.vertexMap.has(messages[i].id)) {
+        const pendingMessages = messages.filter(
+            (message) => message.parts.length > 0
+        );
+
+        let sliceStart = pendingMessages.length;
+        for (let i = pendingMessages.length - 1; i >= 0; i--) {
+            if (this.vertexMap.has(pendingMessages[i].id)) {
                 sliceStart = i + 1;
                 break;
             }
         }
 
-        const unsavedMessages = messages.slice(sliceStart);
+        const unsavedMessages = pendingMessages.slice(sliceStart);
         if (unsavedMessages.length === 0 && !this.workingVertex) return;
 
         let currentVertex = this.workingVertex ?? this.graph.activeVertex;
