@@ -190,7 +190,7 @@ export function MessageActions({
         regenerate();
         setEditing(false);
         toast.success(
-            "Message updated. Regenerating last asssistant message..."
+            "Message updated. Regenerating last assistant message..."
         );
     };
 
