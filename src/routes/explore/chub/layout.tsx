@@ -112,10 +112,7 @@ export default function ChubLayout() {
             staleTime: 60_000
         });
 
-    const characters: ChubCharacter[] = useMemo(
-        () => (data?.pages ?? []).flat(),
-        [data]
-    );
+    const characters: ChubCharacter[] = data?.pages.flat() ?? [];
 
     const navigate = useNavigate();
 
@@ -135,6 +132,8 @@ export default function ChubLayout() {
             // from the card and doesnt update the card itself until who knows when.
             // fetch the json and just use the image as main.png
             const json = await fetchCharacterJSON(job);
+
+            json.data.source = [...json.data.source, job.max_res_url];
 
             json.data.extensions.monogatari = {
                 ...json.data.extensions.monogatari,
