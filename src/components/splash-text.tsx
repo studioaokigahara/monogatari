@@ -147,13 +147,31 @@ const splashes = [
     "DeepSeek BTFO!",
     "Gaze upon Altman's orb!",
     "Technofeudalism!",
-    "GPT-4.5 doesn't beat o1!\nTherefore, it's bad!",
+    "GPT-4.5 doesn't benchmark higher o1!\nTherefore, it's bad!",
     "ARC-AGI 2!",
     "hoi!!1!",
     "Also try SillyTavern!",
     "🎉 You clicked me!",
     "GPT-4.1 is newer than GPT-4.5!",
-    "Also try T3 Chat!"
+    "Also try T3 Chat!",
+    "@grok is this real?",
+    "@grok explain this",
+    "Yo, MechaHitler here,",
+    "Is there a seahorse emoji?",
+    "It's not X, it's Y!",
+    "Not X, not Y, just... Z!",
+    "Something else, something vague!",
+    "Something else entirely!",
+    "Gesturing vaguely!",
+    "Barely a whisper!",
+    "Hanging in the air!",
+    "Chorbo!",
+    "Latte!",
+    "Sorbet!",
+    "4pus!",
+    "Goodhart's Law!",
+    "Benchmaxxing!",
+    "Chatbot Psychosis!"
 ];
 
 interface SplashTextProps {
@@ -169,15 +187,16 @@ export default function SplashText({ ref }: SplashTextProps) {
     const wrapperRef = useRef<HTMLDivElement>(null);
 
     const moveSplash = useCallback(() => {
-        const wel = ref.current;
-        const wrap = wrapperRef.current;
-        if (!wel || !wrap) return;
+        const parent = ref.current;
+        const wrapper = wrapperRef.current;
+        if (!parent || !wrapper) return;
 
-        const top = wel.offsetTop + wel.offsetHeight / 2;
-        const left = wel.offsetLeft + wel.offsetWidth;
+        const top = parent.offsetTop + parent.offsetHeight / 2;
+        const left =
+            parent.offsetLeft + parent.offsetWidth - wrapper.offsetWidth / 2;
 
-        wrap.style.top = `${top + 10}px`;
-        wrap.style.left = `${left}px`;
+        wrapper.style.top = `${top + 10}px`;
+        wrapper.style.left = `${left}px`;
     }, [ref]);
 
     useLayoutEffect(() => {
@@ -185,13 +204,15 @@ export default function SplashText({ ref }: SplashTextProps) {
     }, [moveSplash]);
 
     useEffect(() => {
-        const el = ref.current;
-        const wrap = wrapperRef.current;
-        if (!el || !wrap) return;
+        const parent = ref.current;
+        const wrapper = wrapperRef.current;
+        if (!parent || !wrapper) return;
+
         const ro = new ResizeObserver(moveSplash);
         const io = new IntersectionObserver(moveSplash);
-        ro.observe(el);
-        io.observe(wrap);
+        ro.observe(parent);
+        io.observe(wrapper);
+
         return () => {
             ro.disconnect();
             io.disconnect();
@@ -199,10 +220,7 @@ export default function SplashText({ ref }: SplashTextProps) {
     }, [moveSplash, ref, text]);
 
     return (
-        <div
-            ref={wrapperRef}
-            className="max-w-64 w-max absolute translate-full"
-        >
+        <div ref={wrapperRef} className="max-w-64 w-max absolute">
             <span
                 className="inline-block relative items-center text-lg font-mono text-yellow-300 text-shadow-lg shadow-current animate-splash-bounce"
                 onClick={() => setText(getRandomSplash())}
