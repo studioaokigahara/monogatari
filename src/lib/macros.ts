@@ -54,12 +54,9 @@ function pick(
 }
 
 function roll(arg: string): string {
-    let number: number;
-    if (/^d(\d+)$/i.test(arg)) {
-        number = parseInt(arg.slice(1), 10);
-    } else {
-        number = parseInt(arg, 10);
-    }
+    const number = /^d(\d+)$/i.test(arg)
+        ? parseInt(arg.slice(1), 10)
+        : parseInt(arg, 10);
     if (isNaN(number) || number < 1) return "0";
     return String(Math.floor(Math.random() * number) + 1);
 }
@@ -111,21 +108,20 @@ function processMacroBody(
     if (getvar) {
         if (!variables) return macro;
         const value = variables[getvar.variable];
-        if (typeof value === "string") return value;
-        return "";
+        return typeof value === "string" ? value : "";
     }
 
     const setvar = setVariable(body);
     if (setvar) {
         if (!variables) return macro;
 
-        let resolvedValue;
-        if (setvar.value) {
-            runtime.pickKey = `${runtime.pickKey}::setvar`;
-            resolvedValue = replaceMacro(setvar.value, runtime, context);
-        } else {
-            resolvedValue = "";
-        }
+        const resolvedValue = setvar.value
+            ? replaceMacro(
+                  setvar.value,
+                  { ...runtime, pickKey: `${runtime.pickKey}::setvar` },
+                  context
+              )
+            : "";
 
         if (setvar.variable) variables[setvar.variable] = resolvedValue;
         return "";
@@ -148,13 +144,13 @@ function processMacroBody(
         return Array.isArray(value) ? value.join("\n") : String(value);
     }
 
-    let payload;
-    if (rawPayload.includes("{{")) {
-        runtime.pickKey = `${runtime.pickKey}::payload`;
-        payload = replaceMacro(rawPayload, runtime, context);
-    } else {
-        payload = rawPayload;
-    }
+    const payload = rawPayload.includes("{{")
+        ? replaceMacro(
+              rawPayload,
+              { ...runtime, pickKey: `${runtime.pickKey}::payload` },
+              context
+          )
+        : rawPayload;
 
     switch (key) {
         case "char":
