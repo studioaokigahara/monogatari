@@ -7,6 +7,7 @@ import { MessageActions } from "@/routes/chat/components/message-actions";
 import { type Message as MessageType } from "@/types/message";
 import { Dot } from "lucide-react";
 import { useState } from "react";
+import useEvent from "react-use-event-hook";
 
 function TypingIndicator() {
     return (
@@ -35,6 +36,12 @@ export function Message({
     const [editing, setEditing] = useState(false);
     const [editedContent, setEditedContent] = useState(
         message.parts.find((part) => part.type === "text")?.text ?? ""
+    );
+
+    const handleEdit = useEvent(
+        (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+            setEditedContent(event.target.value);
+        }
     );
 
     const messageClasses =
@@ -85,7 +92,7 @@ export function Message({
             {editing ? (
                 <Textarea
                     value={editedContent}
-                    onChange={(e) => setEditedContent(e.target.value)}
+                    onChange={handleEdit}
                     className={cn(
                         "w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-transparent resize-none",
                         messageClasses
