@@ -1,5 +1,18 @@
+import Password from "@/components/password-input";
+import { Prose } from "@/components/prose";
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger
+} from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Anthropic } from "@/components/ui/icon/anthropic";
+import { DeepSeek } from "@/components/ui/icon/deepseek";
+import { Google } from "@/components/ui/icon/google";
+import { OpenAI } from "@/components/ui/icon/openai";
+import { OpenRouter } from "@/components/ui/icon/openrouter";
 import { Label } from "@/components/ui/label";
 import {
     Select,
@@ -11,6 +24,8 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { useSettingsContext } from "@/contexts/settings-context";
+import { OpenRouterRegistry } from "@/lib/openrouter";
+import { Modality } from "@/types/models";
 import { PROVIDER_REGISTRY, getModel } from "@/types/registry";
 import { Settings } from "@/types/settings";
 import {
@@ -24,21 +39,6 @@ import {
     FileVolume2
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import Password from "@/components/password-input";
-import { getProviderName } from "@/lib/openrouter";
-import { Prose } from "@/components/prose";
-import { Modality } from "@/types/models";
-import { OpenAI } from "@/components/ui/icon/openai";
-import { Anthropic } from "@/components/ui/icon/anthropic";
-import { Google } from "@/components/ui/icon/google";
-import { OpenRouter } from "@/components/ui/icon/openrouter";
-import { DeepSeek } from "@/components/ui/icon/deepseek";
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger
-} from "@/components/ui/accordion";
 
 function formatNumber(number: number) {
     if (isNaN(number)) return "?";
@@ -84,7 +84,7 @@ export default function SelectModel() {
         const grouped: Record<string, typeof models> = {};
 
         models.forEach((model) => {
-            const provider = getProviderName(model.id);
+            const provider = OpenRouterRegistry.getProviderName(model.id);
             if (!grouped[provider]) grouped[provider] = [];
             grouped[provider].push(model);
         });
@@ -190,7 +190,7 @@ export default function SelectModel() {
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="space-y-4">
-                    <div className="flex flex-row space-x-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
                         <div className="flex flex-col gap-1">
                             <Label htmlFor="provider">Provider</Label>
                             <Select
@@ -261,7 +261,7 @@ export default function SelectModel() {
                     <div className="mt-6 space-y-4">
                         <Accordion type="single" collapsible>
                             <AccordionItem value="model">
-                                <AccordionTrigger>
+                                <AccordionTrigger className="items-center [&>svg]:size-6">
                                     <div className="flex flex-col">
                                         <h3 className="text-lg font-medium">
                                             {currentModel.name}

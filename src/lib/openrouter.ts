@@ -202,51 +202,51 @@ class OpenRouterRegistryManager {
     isLoading(): boolean {
         return this.loading;
     }
+
+    getProviderName(modelId: string): string {
+        const providerMap: Record<string, string> = {
+            "agentica-org": "Agentica",
+            ai21: "AI21",
+            "aion-labs": "Aion Labs",
+            alfredpros: "AlfredPros",
+            "anthracite-org": "Anthracite",
+            "arcee-ai": "Arcee AI",
+            arliai: "Arli AI",
+            bytedance: "ByteDance",
+            cognitivecomputations: "Cognitive Computations",
+            deepcogito: "Deep Cogito",
+            deepseek: "DeepSeek",
+            eleutherai: "EleutherAI",
+            "meta-llama": "Meta",
+            minimax: "MiniMax",
+            mistralai: "Mistral",
+            moonshotai: "Moonshot AI",
+            neversleep: "NeverSleep",
+            nousresearch: "Nous",
+            nvidia: "NVIDIA",
+            openai: "OpenAI",
+            openrouter: "OpenRouter",
+            pygmalionai: "Pygmalion",
+            raifle: "rAIfle",
+            rekaai: "Reka",
+            sao10k: "Sao10K",
+            "shisa-ai": "Shisa AI",
+            "stepfun-ai": "StepFun",
+            sophosympatheia: "sophosympatheia",
+            thedrummer: "TheDrummer",
+            thudm: "THUDM",
+            tngtech: "TNG",
+            "x-ai": "xAI",
+            "z-ai": "Z.AI"
+        };
+
+        const prefix = modelId.split("/")[0] || "";
+        return (
+            providerMap[prefix] ||
+            prefix.charAt(0).toUpperCase() + prefix.slice(1) ||
+            "Other"
+        );
+    }
 }
 
 export const OpenRouterRegistry = OpenRouterRegistryManager.getInstance();
-
-export function getProviderName(modelId: string): string {
-    const providerMap: Record<string, string> = {
-        "agentica-org": "Agentica",
-        ai21: "AI21",
-        "aion-labs": "Aion Labs",
-        alfredpros: "AlfredPros",
-        "anthracite-org": "Anthracite",
-        "arcee-ai": "Arcee AI",
-        arliai: "Arli AI",
-        bytedance: "ByteDance",
-        cognitivecomputations: "Cognitive Computations",
-        deepcogito: "Deep Cogito",
-        deepseek: "DeepSeek",
-        eleutherai: "EleutherAI",
-        "meta-llama": "Meta",
-        minimax: "MiniMax",
-        mistralai: "Mistral",
-        moonshotai: "Moonshot AI",
-        neversleep: "NeverSleep",
-        nousresearch: "Nous",
-        nvidia: "NVIDIA",
-        openai: "OpenAI",
-        openrouter: "OpenRouter",
-        pygmalionai: "Pygmalion",
-        raifle: "rAIfle",
-        rekaai: "Reka",
-        sao10k: "Sao10K",
-        "shisa-ai": "Shisa AI",
-        "stepfun-ai": "StepFun",
-        sophosympatheia: "sophosympatheia",
-        thedrummer: "TheDrummer",
-        thudm: "THUDM",
-        tngtech: "TNG",
-        "x-ai": "xAI",
-        "z-ai": "Z.AI"
-    };
-
-    const prefix = modelId.split("/")[0] || "";
-    return (
-        providerMap[prefix] ||
-        prefix.charAt(0).toUpperCase() + prefix.slice(1) ||
-        "Other"
-    );
-}
