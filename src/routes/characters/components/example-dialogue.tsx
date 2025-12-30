@@ -1,11 +1,6 @@
 import { Prose } from "@/components/prose";
 import { Card, CardContent } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { Character } from "@/database/schema/character";
-import {
-    characterFormOptions,
-    withCharacterForm
-} from "@/hooks/use-character-form";
 
 function extractExamples(raw: string): string[] {
     return Array.from(
@@ -55,9 +50,9 @@ export function ExampleDialogue({ character }: { character: Character }) {
         (block, index) => formatExamples(block, index, character.data.name)
     );
 
-    const exampleDialogue = formattedExamples.map((example, index) => (
+    const exampleDialogue = formattedExamples.map((example) => (
         <Prose
-            key={index}
+            key={example.slice(0, 9)}
             className="text-(--tw-prose-body) [&_li]:pl-0 [&_li]:mb-[1lh] [&_ul]:pl-0 [&_ul_li::marker]:text-transparent"
         >
             {example}
@@ -76,31 +71,3 @@ export function ExampleDialogue({ character }: { character: Character }) {
         </Card>
     );
 }
-
-export const ExampleDialogueField = withCharacterForm({
-    ...characterFormOptions,
-    render: ({ form }) => {
-        return (
-            <Card>
-                <CardContent>
-                    <form.AppField name="mes_example">
-                        {(field) => (
-                            <Textarea
-                                id={field.name}
-                                name={field.name}
-                                value={field.state.value as string}
-                                onChange={(e) =>
-                                    field.handleChange(e.target.value)
-                                }
-                                onBlur={field.handleBlur}
-                                placeholder={`<START>\n{{char}}: Hello!\n{{user}}: Hi!`}
-                                className="font-mono text-sm"
-                                autoFocus
-                            />
-                        )}
-                    </form.AppField>
-                </CardContent>
-            </Card>
-        );
-    }
-});

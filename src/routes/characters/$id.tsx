@@ -12,11 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCharacterContext } from "@/contexts/character-context";
-import {
-    CharacterFormProvider,
-    useCharacterFormContext
-} from "@/contexts/character-form-context";
+import { CharacterFormProvider } from "@/contexts/character-form-context";
 import { Character } from "@/database/schema/character";
 import {
     characterFormOptions,
@@ -25,23 +21,17 @@ import {
 import { useFileDialog } from "@/hooks/use-file-dialog";
 import { useImageURL } from "@/hooks/use-image-url";
 import { cn } from "@/lib/utils";
+import { Description } from "@/routes/characters/components/description";
+import { ExampleDialogue } from "@/routes/characters/components/example-dialogue";
 import {
-    Description,
-    DescriptionFields
-} from "@/routes/characters/components/description";
-import {
-    ExampleDialogue,
-    ExampleDialogueField
-} from "@/routes/characters/components/example-dialogue";
+    DescriptionFields,
+    ExampleDialogueField,
+    GreetingsField,
+    HeaderFields
+} from "@/routes/characters/components/forms";
 import Gallery from "@/routes/characters/components/gallery";
-import {
-    Greetings,
-    GreetingsField
-} from "@/routes/characters/components/greetings";
-import {
-    HeaderFields,
-    Header as ProfileHeader
-} from "@/routes/characters/components/header";
+import { Greetings } from "@/routes/characters/components/greetings";
+import { Header as ProfileHeader } from "@/routes/characters/components/header";
 import {
     createFileRoute,
     useNavigate,
