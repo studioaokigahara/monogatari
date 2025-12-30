@@ -151,7 +151,10 @@ export function MessageActions({
             (part) => part.type === "text"
         )?.text;
 
-        if (editedContent === oldContent) return;
+        if (editedContent === oldContent) {
+            setEditing(false);
+            return;
+        }
 
         const vertexID = graphSync.vertexMap.get(message.id);
         if (!vertexID) return;
@@ -199,7 +202,10 @@ export function MessageActions({
             (part) => part.type === "text"
         )?.text;
 
-        if (editedContent === oldContent) return;
+        if (editedContent === oldContent) {
+            setEditing(false);
+            return;
+        }
 
         const newParts = message.parts.map((part) =>
             part.type === "text"
