@@ -1,5 +1,5 @@
 import { Character } from "@/database/schema/character";
-import { routeTree } from "@/lib/route-tree";
+import { routeTree } from "@/lib/router/route-tree.gen";
 import { createRouter } from "@tanstack/react-router";
 
 export interface Context {

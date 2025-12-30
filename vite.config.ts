@@ -1,19 +1,19 @@
-import { defineConfig } from "vite";
-import wasm from "vite-plugin-wasm";
-import topLevelAwait from "vite-plugin-top-level-await";
-import { VitePWA } from "vite-plugin-pwa";
-import { tanstackRouter } from "@tanstack/router-plugin/vite";
-import react from "@vitejs/plugin-react";
 import reactScan from "@react-scan/vite-plugin-react-scan";
 import tailwindcss from "@tailwindcss/vite";
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
+import react from "@vitejs/plugin-react";
 import path from "path";
+import { defineConfig } from "vite";
+import { VitePWA } from "vite-plugin-pwa";
+import topLevelAwait from "vite-plugin-top-level-await";
+import wasm from "vite-plugin-wasm";
 
 export default defineConfig({
     plugins: [
         tanstackRouter({
             target: "react",
             autoCodeSplitting: true,
-            generatedRouteTree: "./src/lib/route-tree.ts",
+            generatedRouteTree: "./src/lib/router/route-tree.gen.ts",
             routeFileIgnorePattern: "components|anchorhold|charchive|chub"
         }),
         react({ babel: { plugins: ["babel-plugin-react-compiler"] } }),

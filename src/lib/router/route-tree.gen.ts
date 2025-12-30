@@ -8,21 +8,21 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './../routes/__root'
-import { Route as SettingsRouteImport } from './../routes/settings'
-import { Route as PersonasRouteImport } from './../routes/personas'
-import { Route as ExploreRouteImport } from './../routes/explore'
-import { Route as ChatRouteImport } from './../routes/chat'
-import { Route as CharactersRouteImport } from './../routes/characters'
-import { Route as SettingsIndexRouteImport } from './../routes/settings/index'
-import { Route as ChatIndexRouteImport } from './../routes/chat/index'
-import { Route as CharactersIndexRouteImport } from './../routes/characters/index'
-import { Route as SettingsPresetsRouteImport } from './../routes/settings/presets'
-import { Route as SettingsLorebooksRouteImport } from './../routes/settings/lorebooks'
-import { Route as SettingsApiRouteImport } from './../routes/settings/api'
-import { Route as ChatIdRouteImport } from './../routes/chat/$id'
-import { Route as CharactersNewRouteImport } from './../routes/characters/new'
-import { Route as CharactersIdRouteImport } from './../routes/characters/$id'
+import { Route as rootRouteImport } from './../../routes/__root'
+import { Route as SettingsRouteImport } from './../../routes/settings'
+import { Route as PersonasRouteImport } from './../../routes/personas'
+import { Route as ExploreRouteImport } from './../../routes/explore'
+import { Route as ChatRouteImport } from './../../routes/chat'
+import { Route as CharactersRouteImport } from './../../routes/characters'
+import { Route as SettingsIndexRouteImport } from './../../routes/settings/index'
+import { Route as ChatIndexRouteImport } from './../../routes/chat/index'
+import { Route as CharactersIndexRouteImport } from './../../routes/characters/index'
+import { Route as SettingsPresetsRouteImport } from './../../routes/settings/presets'
+import { Route as SettingsLorebooksRouteImport } from './../../routes/settings/lorebooks'
+import { Route as SettingsApiRouteImport } from './../../routes/settings/api'
+import { Route as ChatIdRouteImport } from './../../routes/chat/$id'
+import { Route as CharactersNewRouteImport } from './../../routes/characters/new'
+import { Route as CharactersIdRouteImport } from './../../routes/characters/$id'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
