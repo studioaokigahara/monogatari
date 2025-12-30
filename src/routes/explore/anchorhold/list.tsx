@@ -182,12 +182,20 @@ export default function AnchorholdList({
                 ? fetchCharacterJSON(characterInfo.node)
                 : JSON.parse(readCharacterImage(arrayBuffer));
 
+            if (!json.data.source) json.data.source = [] as string[];
+            (json.data.source as string[]).push(`anchorhold:${post.id}`);
+
             json.data.extensions.anchorhold = {
                 ...json.data.extensions.anchorhold,
                 id: post.id
             };
 
             if (characterInfo) {
+                (json.data.source as string[]).push(
+                    `chub:${characterInfo.node.fullPath}`,
+                    characterInfo.node.max_res_url
+                );
+
                 json.data.extensions.monogatari = {
                     ...json.data.extensions.monogatari,
                     tagline: characterInfo.node.tagline

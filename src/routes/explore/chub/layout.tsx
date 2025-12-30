@@ -133,7 +133,11 @@ export default function ChubLayout() {
             // fetch the json and just use the image as main.png
             const json = await fetchCharacterJSON(job);
 
-            json.data.source = [...json.data.source, job.max_res_url];
+            if (!json.data.source) json.data.source = [] as string[];
+            (json.data.source as string[]).push(
+                `chub:${job.fullPath}`,
+                job.max_res_url
+            );
 
             json.data.extensions.monogatari = {
                 ...json.data.extensions.monogatari,
