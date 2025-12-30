@@ -1,25 +1,9 @@
 import { db } from "@/database/monogatari-db";
 import { Character } from "@/database/schema/character";
 import { Persona } from "@/database/schema/persona";
-import {
-    ReactNode,
-    createContext,
-    useContext,
-    useEffect,
-    useState
-} from "react";
-import { useSettingsContext } from "./settings-context";
-
-interface CharacterContextType {
-    character?: Character;
-    setCharacter: (character: Character) => void;
-    persona?: Persona;
-    setPersona: (persona: Persona) => void;
-}
-
-const CharacterContext = createContext<CharacterContextType | undefined>(
-    undefined
-);
+import { CharacterContext } from "@/hooks/use-character-context";
+import { useSettingsContext } from "@/hooks/use-settings-context";
+import { ReactNode, useEffect, useState } from "react";
 
 export function CharacterProvider({ children }: { children: ReactNode }) {
     const { settings, updateSettings } = useSettingsContext();
@@ -27,7 +11,7 @@ export function CharacterProvider({ children }: { children: ReactNode }) {
     const [persona, setPersona] = useState<Persona>();
 
     useEffect(() => {
-        db.personas.get(settings.persona).then(setPersona);
+        void db.personas.get(settings.persona).then(setPersona);
     }, [settings.persona]);
 
     useEffect(() => {
@@ -35,7 +19,7 @@ export function CharacterProvider({ children }: { children: ReactNode }) {
     }, [updateSettings, persona?.id]);
 
     return (
-        <CharacterContext.Provider
+        <CharacterContext
             value={{
                 character,
                 setCharacter,
@@ -44,16 +28,6 @@ export function CharacterProvider({ children }: { children: ReactNode }) {
             }}
         >
             {children}
-        </CharacterContext.Provider>
+        </CharacterContext>
     );
-}
-
-export function useCharacterContext(): CharacterContextType {
-    const context = useContext(CharacterContext);
-    if (!context) {
-        throw new Error(
-            "useCharacterContext must be used within CharacterProvider."
-        );
-    }
-    return context;
 }

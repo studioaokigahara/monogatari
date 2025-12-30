@@ -6,8 +6,8 @@ import {
     ChartTooltipContent
 } from "@/components/ui/chart";
 import { Label } from "@/components/ui/label";
-import { useSettingsContext } from "@/contexts/settings-context";
 import { db } from "@/database/monogatari-db";
+import { useSettingsContext } from "@/hooks/use-settings-context";
 import { SelectExploreProvider } from "@/routes/explore/components/select-provider";
 import {
     ExportDatabase,

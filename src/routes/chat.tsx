@@ -8,7 +8,7 @@ import {
     DialogTitle,
     DialogTrigger
 } from "@/components/ui/dialog";
-import { useCharacterContext } from "@/contexts/character-context";
+import { useCharacterContext } from "@/hooks/use-character-context";
 import { useImageURL } from "@/hooks/use-image-url";
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 

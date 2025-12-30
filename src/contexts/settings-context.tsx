@@ -1,14 +1,7 @@
+import { SettingsContext } from "@/hooks/use-settings-context";
 import { DEFAULT_SETTINGS, Settings } from "@/types/settings";
 import merge from "lodash.merge";
-import React, { createContext, useContext, useEffect, useState } from "react";
-
-interface SettingsContextType {
-    settings: Settings;
-    setSettings: React.Dispatch<React.SetStateAction<Settings>>;
-    updateSettings: (update: Partial<Settings>) => void;
-}
-
-const SettingsContext = createContext<SettingsContextType | null>(null);
+import React, { useEffect, useState } from "react";
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const [settings, setSettings] = useState<Settings>(() => {
@@ -27,18 +20,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }, [settings]);
 
     return (
-        <SettingsContext.Provider
-            value={{ settings, setSettings, updateSettings }}
-        >
+        <SettingsContext value={{ settings, setSettings, updateSettings }}>
             {children}
-        </SettingsContext.Provider>
+        </SettingsContext>
     );
-}
-
-export function useSettingsContext() {
-    const context = useContext(SettingsContext);
-    if (!context) {
-        throw new Error("useSettings must be within SettingsProvider.");
-    }
-    return context;
 }

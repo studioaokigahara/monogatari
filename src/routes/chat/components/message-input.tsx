@@ -16,8 +16,8 @@ import {
     TooltipContent,
     TooltipTrigger
 } from "@/components/ui/tooltip";
-import { useCharacterContext } from "@/contexts/character-context";
-import { useChatContext } from "@/contexts/chat-context";
+import { useCharacterContext } from "@/hooks/use-character-context";
+import { useChatContext } from "@/hooks/use-chat-context";
 import { useFileDialog } from "@/hooks/use-file-dialog";
 import { replaceMacros } from "@/lib/macros";
 import { cn } from "@/lib/utils";

@@ -5,7 +5,7 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
-import { useSettingsContext } from "@/contexts/settings-context";
+import { useSettingsContext } from "@/hooks/use-settings-context";
 import { Anchor, Eye, ShieldUser } from "lucide-react";
 
 const ExploreProviders = [

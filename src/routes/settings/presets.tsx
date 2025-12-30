@@ -7,8 +7,8 @@ import {
     EmptyTitle
 } from "@/components/ui/empty";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { useSettingsContext } from "@/contexts/settings-context";
 import { db } from "@/database/monogatari-db";
+import { useSettingsContext } from "@/hooks/use-settings-context";
 import { createFileRoute, useLoaderData } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { FileText, FileX2 } from "lucide-react";

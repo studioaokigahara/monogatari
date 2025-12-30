@@ -23,7 +23,7 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
-import { useSettingsContext } from "@/contexts/settings-context";
+import { useSettingsContext } from "@/hooks/use-settings-context";
 import { OpenRouterRegistry } from "@/lib/openrouter";
 import { Modality } from "@/types/models";
 import { PROVIDER_REGISTRY, getModel } from "@/types/registry";

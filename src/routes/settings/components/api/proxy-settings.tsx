@@ -10,7 +10,7 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
-import { useSettingsContext } from "@/contexts/settings-context";
+import { useSettingsContext } from "@/hooks/use-settings-context";
 import { generateCuid2 } from "@/lib/utils";
 import { Plus, Trash2 } from "lucide-react";
 import { Fragment } from "react";

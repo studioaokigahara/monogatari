@@ -1,7 +1,7 @@
-import { useSettingsContext } from "@/contexts/settings-context";
-import ChubLayout from "@/routes/explore/chub/layout";
+import { useSettingsContext } from "@/hooks/use-settings-context";
 import AnchorholdLayout from "@/routes/explore/anchorhold/layout";
 import { CharacterArchiveExplorer } from "@/routes/explore/charchive/layout";
+import ChubLayout from "@/routes/explore/chub/layout";
 import { createFileRoute } from "@tanstack/react-router";
 
 function ExploreLayout() {

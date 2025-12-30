@@ -5,9 +5,9 @@ import {
     TooltipContent,
     TooltipTrigger
 } from "@/components/ui/tooltip";
-import { useCharacterContext } from "@/contexts/character-context";
-import { useChatContext } from "@/contexts/chat-context";
 import { Chat } from "@/database/schema/chat";
+import { useCharacterContext } from "@/hooks/use-character-context";
+import { useChatContext } from "@/hooks/use-chat-context";
 import { replaceMacros } from "@/lib/macros";
 import { cn, generateCuid2 } from "@/lib/utils";
 import { type Message } from "@/types/message";

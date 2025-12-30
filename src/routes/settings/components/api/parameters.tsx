@@ -8,7 +8,7 @@ import {
     TooltipProvider,
     TooltipTrigger
 } from "@/components/ui/tooltip";
-import { useSettingsContext } from "@/contexts/settings-context";
+import { useSettingsContext } from "@/hooks/use-settings-context";
 import { getModel, PROVIDER_REGISTRY } from "@/types/registry";
 import { Info, Settings2 } from "lucide-react";
 import { Input } from "@/components/ui/input";

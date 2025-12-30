@@ -1,7 +1,7 @@
-import { useChatContext } from "@/contexts/chat-context";
+import { useChatContext } from "@/hooks/use-chat-context";
+import { Message } from "@/routes/chat/components/message";
 import { type Message as MessageType } from "@/types/message";
 import { useChat } from "@ai-sdk/react";
-import { Message } from "./message";
 import { ForwardedRef } from "react";
 
 interface Props {

@@ -16,10 +16,8 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Character } from "@/database/schema/character";
 import { Chat } from "@/database/schema/chat";
-import {
-    characterFormOptions,
-    withCharacterForm
-} from "@/hooks/use-character-form";
+import { useCharacterContext } from "@/hooks/use-character-context";
+import { useCharacterFormContext } from "@/hooks/use-character-form-context";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { Edit, Heart, MessageCirclePlus, Trash2 } from "lucide-react";

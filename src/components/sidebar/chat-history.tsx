@@ -40,9 +40,9 @@ import {
     SidebarMenuItem,
     useSidebar
 } from "@/components/ui/sidebar";
-import { useCharacterContext } from "@/contexts/character-context";
 import { db } from "@/database/monogatari-db";
 import { Chat } from "@/database/schema/chat";
+import { useCharacterContext } from "@/hooks/use-character-context";
 import { getTimeGroup, sortByTimeGroupLabel } from "@/lib/time";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";

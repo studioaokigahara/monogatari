@@ -14,10 +14,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CharacterFormProvider } from "@/contexts/character-form-context";
 import { Character } from "@/database/schema/character";
+import { useCharacterContext } from "@/hooks/use-character-context";
 import {
     characterFormOptions,
     useCharacterForm
 } from "@/hooks/use-character-form";
+import { useCharacterFormContext } from "@/hooks/use-character-form-context";
 import { useFileDialog } from "@/hooks/use-file-dialog";
 import { useImageURL } from "@/hooks/use-image-url";
 import { cn } from "@/lib/utils";

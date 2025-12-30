@@ -22,11 +22,11 @@ import {
     SidebarSeparator
 } from "@/components/ui/sidebar";
 import { Textarea } from "@/components/ui/textarea";
-import { useCharacterContext } from "@/contexts/character-context";
 import { db } from "@/database/monogatari-db";
 import { Asset } from "@/database/schema/asset";
 import { Persona } from "@/database/schema/persona";
 import useAutosave from "@/hooks/use-autosave";
+import { useCharacterContext } from "@/hooks/use-character-context";
 import { useFileDialog } from "@/hooks/use-file-dialog";
 import { useImageURL } from "@/hooks/use-image-url";
 import { useForm, useStore } from "@tanstack/react-form";

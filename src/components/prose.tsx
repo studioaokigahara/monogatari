@@ -1,4 +1,4 @@
-import { useCharacterContext } from "@/contexts/character-context";
+import { useCharacterContext } from "@/hooks/use-character-context";
 import { useMarkdownLexer } from "@/hooks/use-markdown-lexer";
 import { remarkCurlyBraceSyntax } from "@/lib/macros";
 import { cn } from "@/lib/utils";

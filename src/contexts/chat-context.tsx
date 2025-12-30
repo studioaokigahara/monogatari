@@ -1,10 +1,11 @@
 import { Spinner } from "@/components/ui/spinner";
-import { useCharacterContext } from "@/contexts/character-context";
-import { useSettingsContext } from "@/contexts/settings-context";
 import { db } from "@/database/monogatari-db";
 import { Character } from "@/database/schema/character";
 import { Persona } from "@/database/schema/persona";
 import { Preset } from "@/database/schema/preset";
+import { useCharacterContext } from "@/hooks/use-character-context";
+import { ChatContext } from "@/hooks/use-chat-context";
+import { useSettingsContext } from "@/hooks/use-settings-context";
 import { buildContext } from "@/lib/build-context";
 import { GraphSyncManager } from "@/lib/graph/sync";
 import type { Message } from "@/types/message";
@@ -14,10 +15,9 @@ import { useParams } from "@tanstack/react-router";
 import { DefaultChatTransport } from "ai";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-    createContext,
+    ContextType,
     ReactNode,
     useCallback,
-    useContext,
     useEffect,
     useRef,
     useState
@@ -30,13 +30,6 @@ interface Dependencies {
     persona: Persona;
     preset: Preset;
 }
-
-interface ChatContextValue {
-    graphSync: GraphSyncManager;
-    chat: Chat<Message>;
-}
-
-const ChatContext = createContext<ChatContextValue | undefined>(undefined);
 
 export function ChatProvider({ children }: { children: ReactNode }) {
     const { settings } = useSettingsContext();
@@ -78,7 +71,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         [id]
     );
 
-    const [chatState, setChatState] = useState<ChatContextValue>();
+    const [chatState, setChatState] =
+        useState<ContextType<typeof ChatContext>>();
 
     useEffect(() => {
         const abortController = new AbortController();
@@ -129,7 +123,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             setChatState({ graphSync, chat });
         };
 
-        initializeChat();
+        void initializeChat();
 
         return () => {
             abortController.abort();
@@ -148,17 +142,5 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         );
     }
 
-    return (
-        <ChatContext.Provider value={chatState}>
-            {children}
-        </ChatContext.Provider>
-    );
-}
-
-export function useChatContext() {
-    const context = useContext(ChatContext);
-    if (!context) {
-        throw new Error("useChatContext must be used within ChatProvider.");
-    }
-    return context;
+    return <ChatContext value={chatState}>{children}</ChatContext>;
 }

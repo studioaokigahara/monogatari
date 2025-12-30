@@ -1,42 +1,17 @@
-import { createContext, useContext, useState } from "react";
+import { CharacterFormContext } from "@/hooks/use-character-form-context";
+import { useState } from "react";
 
-interface CharacterFormContextProps {
-    mode: "create" | "edit";
-    editing: boolean;
-    setEditing: (value: boolean) => void;
-}
-
-const CharacterFormContext = createContext<CharacterFormContextProps | null>(
-    null
-);
-
-export function useCharacterFormContext() {
-    const context = useContext(CharacterFormContext);
-    if (!context) {
-        throw new Error(
-            "useCharacterForm must be used inside <CharacterFormProvider/>"
-        );
-    }
-    return context;
-}
-
-interface CharacterFormProps {
+interface CharacterForm {
     mode: "create" | "edit";
     children: React.ReactNode;
 }
 
-export function CharacterFormProvider({ mode, children }: CharacterFormProps) {
+export function CharacterFormProvider({ mode, children }: CharacterForm) {
     const [editing, setEditing] = useState(mode === "create");
 
     return (
-        <CharacterFormContext.Provider
-            value={{
-                mode,
-                editing,
-                setEditing
-            }}
-        >
+        <CharacterFormContext value={{ mode, editing, setEditing }}>
             {children}
-        </CharacterFormContext.Provider>
+        </CharacterFormContext>
     );
 }
