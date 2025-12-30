@@ -86,30 +86,26 @@ export function MessageActions({
     }, []);
 
     const regenerateMessage = () => {
-        if (message.role === "assistant") {
-            setMessages((messages) => {
-                const previousMessage = messages[index - 1];
-                if (!previousMessage || previousMessage.role !== "user") {
-                    return messages;
-                }
-                const vertex = graphSync.vertexMap.get(previousMessage.id);
-                if (!vertex) return messages;
-                graphSync.setBranchPoint(vertex);
-                return messages.slice(0, index);
-            });
-        } else if (message.role === "user") {
-            const vertex = graphSync.vertexMap.get(message.id);
-            if (!vertex) return;
-            graphSync.setBranchPoint(vertex);
-            setMessages((messages) => messages.slice(0, index + 1));
+        const vertex =
+            message.role === "user"
+                ? graphSync.vertexMap.get(message.id)
+                : index === 0
+                  ? graphSync.graph.id
+                  : graphSync.vertexMap.get(messages[index - 1].id);
+
+        if (!vertex) {
+            toast.error("Failed to find message ID in vertex map");
+            return;
         }
-        regenerate();
+
+        graphSync.setBranchPoint(vertex);
+        void regenerate({ messageId: message.id });
     };
 
-    const deleteMessage = () => {
+    const deleteMessage = async () => {
         const vertexID = graphSync.vertexMap.get(message.id);
         if (!vertexID) return;
-        graphSync.deleteVertex(vertexID);
+        await graphSync.deleteVertex(vertexID);
         setMessages((messages) => messages.slice(0, index - 1));
         toast.success("Message deleted.");
     };
@@ -125,7 +121,7 @@ export function MessageActions({
             graphSync.title,
             next
         );
-        navigate({ to: "/chat/$id", params: { id } });
+        void navigate({ to: "/chat/$id", params: { id } });
     };
 
     const copyMessage = async () => {
@@ -155,80 +151,80 @@ export function MessageActions({
             (part) => part.type === "text"
         )?.text;
 
-        if (editedContent === oldContent) {
-            return messages;
-        }
+        if (editedContent === oldContent) return;
 
         const vertexID = graphSync.vertexMap.get(message.id);
         if (!vertexID) return;
+
         const vertex = graphSync.graph.getVertex(vertexID);
         if (!vertex || !vertex.parent) return;
 
         graphSync.setBranchPoint(vertex.parent);
 
-        setMessages((messages) => {
-            const newMessages: Message[] = [
-                ...messages.slice(0, index),
-                {
-                    id: generateCuid2(),
-                    role: "user",
-                    parts: [
-                        {
-                            type: "text",
-                            text: replaceMacros(editedContent, {
-                                character,
-                                persona
-                            })
-                        }
-                    ],
-                    metadata: { createdAt: new Date() }
-                }
-            ];
-            graphSync.commit(newMessages);
-            return newMessages;
+        const newMessages: Message[] = [
+            ...messages.slice(0, index),
+            {
+                id: generateCuid2(),
+                role: "user",
+                parts: [
+                    {
+                        type: "text",
+                        text: replaceMacros(editedContent, {
+                            character,
+                            persona
+                        })
+                    }
+                ],
+                metadata: { createdAt: new Date() }
+            }
+        ];
+
+        graphSync.commit(newMessages).catch((error: Error) => {
+            toast.error("Failed to update message", {
+                description: error.message
+            });
         });
-        regenerate();
+
+        setMessages(newMessages);
         setEditing(false);
+        void regenerate();
+
         toast.success(
             "Message updated. Regenerating last assistant message..."
         );
     };
 
     const saveMessageEdit = () => {
-        setMessages((messages) => {
-            const oldContent = message.parts.find(
-                (part) => part.type === "text"
-            )?.text;
+        const oldContent = message.parts.find(
+            (part) => part.type === "text"
+        )?.text;
 
-            if (editedContent === oldContent) {
-                return messages;
+        if (editedContent === oldContent) return;
+
+        for (const part of message.parts) {
+            if (part.type === "text") {
+                part.text = replaceMacros(editedContent, {
+                    character,
+                    persona
+                });
             }
+        }
 
-            const parts = messages[index].parts.map((part) =>
-                part.type === "text"
-                    ? {
-                          ...part,
-                          text: replaceMacros(editedContent, {
-                              character,
-                              persona
-                          })
-                      }
-                    : part
-            );
-
-            messages[index] = {
-                ...message,
-                parts,
-                metadata: {
-                    ...message.metadata,
-                    updatedAt: new Date()
-                }
-            };
-
-            graphSync.updateMessage(messages[index]);
-
-            return messages;
+        graphSync.updateMessage(message).catch((error: Error) => {
+            toast.error("Failed to update message", {
+                description: error.message
+            });
         });
+
+        const newMessages = messages.toSpliced(index, 1, {
+            ...message,
+            metadata: {
+                ...message.metadata,
+                updatedAt: new Date()
+            }
+        });
+
+        setMessages(newMessages);
         setEditing(false);
         toast.success("Message updated.");
     };
@@ -242,10 +238,6 @@ export function MessageActions({
             setEditedContent(messageContent);
         }
     };
-
-    const canRegenerate =
-        message.role === "assistant" ||
-        (message.role === "user" && index === messages.length - 1);
 
     const messageActions = editing
         ? [
@@ -275,7 +267,7 @@ export function MessageActions({
               }
           ]
         : [
-              canRegenerate && {
+              {
                   Icon: RefreshCw,
                   tooltip: "Regenerate",
                   onClick: regenerateMessage
@@ -306,9 +298,9 @@ export function MessageActions({
 
     const messageButtons = messageActions
         .filter((value) => value !== false)
-        .map((action, index) => (
+        .map((action) => (
             <MessageButton
-                key={index}
+                key={action.tooltip}
                 Icon={action.Icon}
                 tooltip={action.tooltip}
                 onClick={action.onClick}
