@@ -88,8 +88,8 @@ function GalleryScanner({ character }: { character: Character }) {
                     </AlertDialogHeader>
                     {log.length > 0 && (
                         <code className="h-48 overflow-y-auto text-sm p-2 mb-4">
-                            {log.map((line, i) => (
-                                <div key={i}>{line}</div>
+                            {log.map((line) => (
+                                <div key={line}>{line}</div>
                             ))}
                         </code>
                     )}
@@ -154,6 +154,7 @@ export default function Gallery({ character }: { character: Character }) {
 
         const updateAssets = async () => {
             let pointers: CharacterCardV3Asset[] = [];
+            let assets: Asset[] = [];
             for (const file of files) {
                 const name = `gallery_${Date.now()}`;
                 const ext =
@@ -170,8 +171,9 @@ export default function Gallery({ character }: { character: Character }) {
                     parentID: character.id,
                     file: new File([file], fileName, { type: file.type })
                 });
-                await asset.save();
+                assets.push(asset);
             }
+            await Promise.all(assets.map(async (asset) => await asset.save()));
             await character.update({
                 assets: [...character.data.assets, ...pointers]
             });
@@ -215,7 +217,7 @@ export default function Gallery({ character }: { character: Character }) {
     });
 
     const galleryImages = character.data.assets.map((asset, index) => (
-        <figure key={index} className="content-center">
+        <figure key={asset.name} className="content-center">
             <Dialog
                 open={openIndex === index}
                 onOpenChange={(open) => setOpenIndex(open ? index : undefined)}
