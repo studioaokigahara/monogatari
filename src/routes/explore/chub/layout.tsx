@@ -167,7 +167,10 @@ export default function ChubLayout() {
                     action: {
                         label: "Open",
                         onClick: () => {
-                            navigate({ to: "/characters/$id", params: { id } });
+                            void navigate({
+                                to: "/characters/$id",
+                                params: { id }
+                            });
                         }
                     }
                 }

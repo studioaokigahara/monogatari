@@ -221,7 +221,7 @@ export default function AnchorholdList({
                     action: {
                         label: "Open",
                         onClick: () => {
-                            navigate({
+                            void navigate({
                                 to: "/characters/$id",
                                 params: { id: record.id }
                             });

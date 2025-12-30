@@ -79,12 +79,14 @@ export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
         if (!input.trim()) return;
 
         if (files) {
-            sendMessage({
+            void sendMessage({
                 text: replaceMacros(input, { character, persona }),
                 files
             });
         } else {
-            sendMessage({ text: replaceMacros(input, { character, persona }) });
+            void sendMessage({
+                text: replaceMacros(input, { character, persona })
+            });
         }
 
         setInput("");
@@ -102,10 +104,10 @@ export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
     const handleButtonClick = (event: MouseEvent<HTMLButtonElement>) => {
         if (status === "streaming" || status === "submitted") {
             event.preventDefault();
-            stop();
+            void stop();
         } else if (status === "error") {
             event.preventDefault();
-            regenerate();
+            void regenerate();
         }
     };
 

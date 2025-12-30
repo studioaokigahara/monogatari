@@ -114,7 +114,7 @@ function ChatHistoryItem({
         setAlertOpen(false);
 
         if (isActive) {
-            void navigate({ to: "/chat" });
+            await navigate({ to: "/chat" });
             toast.warning(
                 "You were navigated here to prevent bugs. Pick another chat!"
             );
