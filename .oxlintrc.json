@@ -1,3 +1,22 @@
 {
-    "plugins": ["react", "react-perf"]
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "plugins": [
+        "eslint",
+        "typescript",
+        "unicorn",
+        "react",
+        "react-perf",
+        "oxc"
+    ],
+    "jsPlugins": ["eslint-plugin-react-refresh"],
+    "rules": {
+        "no-await-in-loop": "error",
+        "oxc/no-accumulating-spread": "error",
+        "oxc/no-map-spread": "error",
+        "react/no-array-index-key": "warn",
+        "unicorn/prefer-array-find": "error",
+        "unicorn/prefer-array-flat-map": "error",
+        "unicorn/prefer-set-has": "error",
+        "react-refresh/only-export-components": "error"
+    }
 }
