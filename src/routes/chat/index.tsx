@@ -1,8 +1,8 @@
+import SplashText from "@/components/splash-text";
 import { waveCircle } from "@lucide/lab";
+import { createFileRoute } from "@tanstack/react-router";
 import { Icon } from "lucide-react";
 import { useMemo, useRef } from "react";
-import SplashText from "@/components/splash-text";
-import { createFileRoute } from "@tanstack/react-router";
 
 function SplashScreen() {
     const ref = useRef<HTMLDivElement>(null);
@@ -14,7 +14,7 @@ function SplashScreen() {
     return (
         <div className="flex grow min-w-3/5 max-w-3xl mx-auto place-center">
             <div className="flex flex-col gap-4 mt-[33%] mx-auto mb-16 text-center">
-                <div className="flex flex-row gap-2">
+                <div ref={ref} className="flex flex-row gap-2">
                     <Icon iconNode={waveCircle} size={36} />
                     <h1 className="text-4xl font-semibold leading-none tracking-tight">
                         {lotto}
