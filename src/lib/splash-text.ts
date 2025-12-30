@@ -200,21 +200,24 @@ const christmasSplashes = [
 ];
 
 export function getSplashText() {
-    const today = DateTime.now().toLocaleString(DateTime.DATE_MED);
+    const today = DateTime.now()
+        .toLocaleString(DateTime.DATE_MED)
+        .split(",")[0];
 
-    if (today.startsWith("Jan 1")) {
-        return newYearsSplashes[
-            Math.floor(Math.random() * newYearsSplashes.length)
-        ];
-    } else if (today.startsWith("Oct 31")) {
-        return halloweenSplashes[
-            Math.floor(Math.random() * halloweenSplashes.length)
-        ];
-    } else if (today.startsWith("Dec 25")) {
-        return christmasSplashes[
-            Math.floor(Math.random() * christmasSplashes.length)
-        ];
+    switch (today) {
+        case "Jan 1":
+            return newYearsSplashes[
+                Math.floor(Math.random() * newYearsSplashes.length)
+            ];
+        case "Oct 31":
+            return halloweenSplashes[
+                Math.floor(Math.random() * halloweenSplashes.length)
+            ];
+        case "Dec 25":
+            return christmasSplashes[
+                Math.floor(Math.random() * christmasSplashes.length)
+            ];
+        default:
+            return splashes[Math.floor(Math.random() * splashes.length)];
     }
-
-    return splashes[Math.floor(Math.random() * splashes.length)];
 }
