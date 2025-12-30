@@ -1,8 +1,11 @@
-import { type ChubCharacter, type SearchOptions } from "@/types/explore/chub";
+import {
+    ChubCharacterResponse,
+    ChubGalleryResponse,
+    type ChubCharacter,
+    type SearchOptions
+} from "@/types/explore/chub";
 
-export async function fetchCharacterInfo(
-    fullPath: string
-): Promise<{ id: string; description: string; hasGallery: boolean }> {
+export async function fetchCharacterInfo(fullPath: string) {
     const response = await fetch(
         `https://gateway.chub.ai/api/characters/${fullPath}`,
         {
@@ -16,7 +19,7 @@ export async function fetchCharacterInfo(
         );
     }
 
-    const json = await response.json();
+    const json: ChubCharacterResponse = await response.json();
     const node = json.node;
 
     return {
@@ -26,7 +29,7 @@ export async function fetchCharacterInfo(
     };
 }
 
-export async function fetchGalleryImages(id: string): Promise<Blob[]> {
+export async function fetchGalleryImages(id: number): Promise<Blob[]> {
     const response = await fetch(
         `https://gateway.chub.ai/api/gallery/project/${id}`,
         {
@@ -40,24 +43,30 @@ export async function fetchGalleryImages(id: string): Promise<Blob[]> {
         );
     }
 
-    const json = await response.json();
+    const json: ChubGalleryResponse = await response.json();
     const blobs: Blob[] = [];
     const nodes = json.nodes || [];
 
-    for (const node of nodes) {
-        const url = node.primary_image_path;
-        if (!url) continue;
+    const urls = nodes.map((node) => node.primary_image_path).filter(Boolean);
 
-        const imgResponse = await fetch(url);
-
-        if (!imgResponse.ok) {
-            const error = `Failed to download ${url}: ${(imgResponse.status, imgResponse.statusText)}`;
-            console.error(error);
-            continue;
+    const imageBlobs = urls.map(async (url) => {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch ${url}: ${(response.status, response.statusText)}`
+            );
         }
+        return await response.blob();
+    });
 
-        blobs.push(await imgResponse.blob());
-    }
+    const settledBlobs = await Promise.allSettled(imageBlobs);
+    settledBlobs.forEach((result, index) => {
+        if (result.status === "fulfilled") {
+            blobs.push(result.value);
+        } else {
+            console.error(`Download failed for ${urls[index]}:`, result.reason);
+        }
+    });
 
     if (!blobs.length) {
         console.error(`No images downloaded for project ${id}`);

@@ -79,6 +79,38 @@ export const ChubCharacterResponse = z.object({
 });
 export type ChubCharacterResponse = z.infer<typeof ChubCharacterResponse>;
 
+const ChubGalleryImage = z.object({
+    generation_uuid: z.uuid().nullable(),
+    cost: z.number().nullable(),
+    queue_length: z.number().nullable(),
+    primary_character_id: z.number(),
+    secondary_character_ids: z.array(z.number()),
+    lorebook_id: z.number().nullable(),
+    primary_image_path: z.url(),
+    user_owned: z.boolean(),
+    nsfw_image: z.boolean(),
+    description: z.string(),
+    prompt: z.record(z.string(), z.number()),
+    is_published: z.boolean(),
+    comments_enabled: z.boolean(),
+    is_done: z.boolean(),
+    is_failed: z.boolean(),
+    parent_image: z.number().nullable(),
+    item_id: z.number().nullable(),
+    uuid: z.uuid(),
+    info: z.string().nullable(),
+    name: z.string().nullable(),
+    preview: z.unknown().nullable()
+});
+type ChubGalleryImage = z.infer<typeof ChubGalleryImage>;
+
+export const ChubGalleryResponse = z.object({
+    count: z.number(),
+    nodes: z.array(ChubGalleryImage),
+    page: z.number()
+});
+export type ChubGalleryResponse = z.infer<typeof ChubGalleryResponse>;
+
 export enum ButtonState {
     READY_DOWNLOAD = "ready_download",
     READY_UPDATE = "ready_update",
