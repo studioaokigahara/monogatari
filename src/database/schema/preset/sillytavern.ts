@@ -59,15 +59,15 @@ export const SillyTavernPresetConverter = SillyTavernPreset.transform(
             worldInfoAfter: "{{lorebook.after}}"
         };
 
-        const fieldsToSkip: string[] = [
+        const fieldsToSkip = new Set([
             "chatHistory",
             "enhanceDefinitions",
             "nsfw"
-        ];
+        ]);
 
         listOrder.forEach((item) => {
             const prompt = promptMap.get(item.identifier);
-            if (!prompt || fieldsToSkip.includes(prompt.identifier)) return;
+            if (!prompt || fieldsToSkip.has(prompt.identifier)) return;
 
             let content = prompt.content?.trim();
             const macro = fieldsToConvert[prompt.identifier];
