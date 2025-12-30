@@ -207,24 +207,23 @@ export class GraphSyncManager {
 
     async updateMessage(message: Message) {
         const vertexID = this.vertexMap.get(message.id);
-        if (!vertexID) return;
+        if (!vertexID) {
+            throw new Error("Message ID not in vertex map");
+        }
 
         const vertex = this.graph.getVertex(vertexID);
-        if (!vertex) return;
+        if (!vertex) {
+            throw new Error(`Vertex ${vertexID} does not exist in graph`);
+        }
 
         const index = vertex.messages.findIndex((m) => m.id === message.id);
-        if (index === -1) return;
+        if (index === -1) {
+            throw new Error(
+                "Unable to get message index, message ID not in vertex messages array"
+            );
+        }
 
-        const prev = vertex.messages[index];
-        vertex.messages[index] = {
-            ...message,
-            metadata: {
-                ...prev.metadata,
-                ...message.metadata,
-                updatedAt: new Date()
-            }
-        };
-
+        vertex.messages[index] = message;
         await this.persist();
     }
 

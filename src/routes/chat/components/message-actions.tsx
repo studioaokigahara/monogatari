@@ -201,28 +201,34 @@ export function MessageActions({
 
         if (editedContent === oldContent) return;
 
-        for (const part of message.parts) {
-            if (part.type === "text") {
-                part.text = replaceMacros(editedContent, {
-                    character,
-                    persona
-                });
-            }
-        }
+        const newParts = message.parts.map((part) =>
+            part.type === "text"
+                ? {
+                      ...part,
+                      text: replaceMacros(editedContent, {
+                          character,
+                          persona
+                      })
+                  }
+                : part
+        );
 
-        graphSync.updateMessage(message).catch((error: Error) => {
+        const editedMessage = {
+            ...message,
+            parts: newParts,
+            metadata: {
+                ...message.metadata,
+                updatedAt: new Date()
+            }
+        };
+
+        graphSync.updateMessage(editedMessage).catch((error: Error) => {
             toast.error("Failed to update message", {
                 description: error.message
             });
         });
 
-        const newMessages = messages.toSpliced(index, 1, {
-            ...message,
-            metadata: {
-                ...message.metadata,
-                updatedAt: new Date()
-            }
-        });
+        const newMessages = messages.toSpliced(index, 1, editedMessage);
 
         setMessages(newMessages);
         setEditing(false);
