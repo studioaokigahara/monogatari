@@ -251,6 +251,10 @@ export function MessageActions({
         }
     };
 
+    const canRegenerate =
+        message.role === "assistant" ||
+        (message.role === "user" && index === messages.length - 1);
+
     const messageActions = editing
         ? [
               message.role === "user" && {
@@ -279,7 +283,7 @@ export function MessageActions({
               }
           ]
         : [
-              {
+              canRegenerate && {
                   Icon: RefreshCw,
                   tooltip: "Regenerate",
                   onClick: regenerateMessage
