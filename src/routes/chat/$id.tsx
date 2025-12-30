@@ -1,10 +1,10 @@
-import MessageThread from "@/routes/chat/components/message-thread";
-import { MessageInput } from "@/routes/chat/components/message-input";
 import { ChatProvider } from "@/contexts/chat-context";
+import { Character } from "@/database/schema/character";
+import { Chat as ChatSchema } from "@/database/schema/chat";
+import { MessageInput } from "@/routes/chat/components/message-input";
+import MessageThread from "@/routes/chat/components/message-thread";
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef } from "react";
-import { Chat as ChatSchema } from "@/database/schema/chat";
-import { Character } from "@/database/schema/character";
 
 function Chat() {
     const scrollRef = useRef<HTMLDivElement>(null);

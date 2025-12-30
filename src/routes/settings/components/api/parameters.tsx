@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
@@ -10,9 +11,8 @@ import {
 } from "@/components/ui/tooltip";
 import { useSettingsContext } from "@/hooks/use-settings-context";
 import { getModel, PROVIDER_REGISTRY } from "@/types/registry";
-import { Info, Settings2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Settings } from "@/types/settings";
+import { Info, Settings2 } from "lucide-react";
 import { useEffect } from "react";
 
 export default function Parameters() {
@@ -31,6 +31,7 @@ export default function Parameters() {
     const lowTemp =
         provider === "anthropic" || model?.id.split("/")[0] === "anthropic";
 
+    // TODO: per-provider sampler settings
     useEffect(() => {
         if (model && settings.maxOutputTokens > model.maxOutputTokens) {
             updateSettings({ maxOutputTokens: model.maxOutputTokens });

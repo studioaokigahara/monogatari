@@ -12,9 +12,9 @@ import {
 } from "@/components/ui/select";
 import { useSettingsContext } from "@/hooks/use-settings-context";
 import { generateCuid2 } from "@/lib/utils";
+import { ProxyProfile } from "@/types/settings";
 import { Plus, Trash2 } from "lucide-react";
 import { Fragment } from "react";
-import type { ProxyProfile } from "@/types/settings";
 
 export function ProxySettings() {
     const { settings, updateSettings } = useSettingsContext();

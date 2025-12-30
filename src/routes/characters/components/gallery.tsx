@@ -39,7 +39,7 @@ function GalleryScanner({ character }: { character: Character }) {
     const [loading, setLoading] = useState(false);
     const [done, setDone] = useState(false);
 
-    const appendLog = (line: string) => setLog((l) => [...l, line]);
+    const appendLog = (newLine: string) => setLog((line) => [...line, newLine]);
 
     async function handleScan() {
         setLoading(true);

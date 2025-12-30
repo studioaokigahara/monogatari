@@ -77,7 +77,7 @@ export default function SelectModel() {
         settings.provider,
         (settings.models[P] as string) ?? fallback
     );
-    const supportedFeatures = currentModel?.supports;
+    const supportedFeatures = currentModel?.supports ?? {};
 
     const openRouterModels = useMemo(() => {
         const models = PROVIDER_REGISTRY.openrouter.models;

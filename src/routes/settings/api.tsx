@@ -1,6 +1,3 @@
-import Parameters from "./components/api/parameters";
-import { ProxySettings } from "./components/api/proxy-settings";
-import SelectModel from "./components/api/select-model";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSettingsContext } from "@/hooks/use-settings-context";
 import Parameters from "@/routes/settings/components/api/parameters";

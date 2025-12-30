@@ -10,17 +10,17 @@ import {
     AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { useRef, useState } from "react";
-import { HardDriveDownload, HardDriveUpload } from "lucide-react";
-import { ExportProgress } from "dexie-export-import";
-import { toast } from "sonner";
-import { DateTime } from "luxon";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
-import { ImportProgress } from "dexie-export-import/dist/import";
-import { useFileDialog } from "@/hooks/use-file-dialog";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { useFileDialog } from "@/hooks/use-file-dialog";
+import { ExportProgress } from "dexie-export-import";
+import { ImportProgress } from "dexie-export-import/dist/import";
+import { HardDriveDownload, HardDriveUpload } from "lucide-react";
+import { DateTime } from "luxon";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
 
 function getOverallPercent(progress?: ExportProgress | ImportProgress) {
     const clamp = (n: number, min: number, max: number) => {

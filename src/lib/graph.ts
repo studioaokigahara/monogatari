@@ -34,8 +34,8 @@ export type GraphSnapshot = z.infer<typeof GraphSnapshot>;
 export class ChatGraph {
     public readonly id: string;
     private vertices = new Map<string, Vertex>();
-    #activeVertex: string;
     private activeTerminalVertices = new Map<string, string>();
+    #activeVertex: string;
 
     constructor(
         id?: string,

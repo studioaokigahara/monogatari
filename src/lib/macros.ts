@@ -94,7 +94,7 @@ function setVariable(body: string) {
 }
 
 /**
- * Process the body of one `{{…}}` macro (the text inside the braces).
+ * Process the body of one `{{...}}` macro (the text inside the braces).
  */
 function processMacroBody(
     body: string,

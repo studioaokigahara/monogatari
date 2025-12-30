@@ -18,7 +18,7 @@ type WorkerRequest =
           type: "import";
           payload: {
               blob: Blob;
-              replace: Boolean;
+              replace: boolean;
               options?: ImportOptions;
           };
       };

@@ -1,11 +1,6 @@
-import { getButtonIcon, getButtonText } from "@/lib/explore/chub/utils";
-import { ButtonState, ChubCharacter } from "@/types/explore/chub";
-import { Button } from "@/components/ui/button";
-import { Heart } from "lucide-react";
 import { TagList } from "@/components/tags";
-import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import {
     Item,
     ItemActions,
@@ -16,6 +11,11 @@ import {
     ItemMedia,
     ItemTitle
 } from "@/components/ui/item";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getButtonIcon, getButtonText } from "@/lib/explore/chub/utils";
+import { cn } from "@/lib/utils";
+import { ButtonState, ChubCharacter } from "@/types/explore/chub";
+import { Heart } from "lucide-react";
 
 interface Props {
     character: ChubCharacter;
@@ -36,23 +36,23 @@ export function ChubCharacterItem({
     onTagClick,
     buttonState
 }: Props) {
-    const handleCardClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const handleCardClick = (event: React.MouseEvent) => {
+        event.stopPropagation();
         onCardClick(character);
     };
 
-    const handleDownloadClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onDownloadClick(character);
+    const handleDownloadClick = async (event: React.MouseEvent) => {
+        event.stopPropagation();
+        await onDownloadClick(character);
     };
 
-    const handleCreatorClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const handleCreatorClick = (event: React.MouseEvent) => {
+        event.stopPropagation();
         onCreatorClick(character.fullPath.split("/")[0]);
     };
 
-    const handleTagClick = (e: React.MouseEvent, tag: string) => {
-        e.stopPropagation();
+    const handleTagClick = (event: React.MouseEvent, tag: string) => {
+        event.stopPropagation();
         onTagClick(tag);
     };
 

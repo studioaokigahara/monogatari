@@ -1,24 +1,25 @@
-import { DescriptionFields } from "@/routes/characters/components/description";
-import { ExampleDialogueField } from "@/routes/characters/components/example-dialogue";
-import { GreetingsField } from "@/routes/characters/components/greetings";
-import { HeaderFields } from "@/routes/characters/components/header";
 import Header from "@/components/header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CharacterFormProvider } from "@/contexts/character-form-context";
-import { useFileDialog } from "@/hooks/use-file-dialog";
-import { router } from "@/lib/router";
-import { MessageSquareText, MessagesSquare, Text, Upload } from "lucide-react";
-import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Asset } from "@/database/schema/asset";
 import { Character } from "@/database/schema/character";
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import {
     characterFormOptions,
     useCharacterForm
 } from "@/hooks/use-character-form";
-import { Asset } from "@/database/schema/asset";
+import { useFileDialog } from "@/hooks/use-file-dialog";
+import {
+    DescriptionFields,
+    ExampleDialogueField,
+    GreetingsField,
+    HeaderFields
+} from "@/routes/characters/components/forms";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { MessageSquareText, MessagesSquare, Text, Upload } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 function CharacterCreator() {
     const [imageBlob, setImageBlob] = useState<Blob>();
@@ -44,6 +45,8 @@ function CharacterCreator() {
             if (file) setImageBlob(file);
         }
     });
+
+    const navigate = useNavigate();
 
     const form = useCharacterForm({
         ...characterFormOptions,
