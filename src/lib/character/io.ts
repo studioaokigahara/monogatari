@@ -1,3 +1,4 @@
+import { Asset } from "@/database/schema/asset";
 import {
     Character,
     CharacterCardV3,
@@ -11,9 +12,8 @@ import { decode, encode as encodeChunk } from "png-chunk-text";
 import encode from "png-chunks-encode";
 import extractChunks from "png-chunks-extract";
 import { toast } from "sonner";
-import { z } from "zod";
 import { unzip } from "unzipit";
-import { Asset } from "@/database/schema/asset";
+import { z } from "zod";
 
 const base64codec = z.codec(z.base64(), z.string(), {
     decode: (base64) => {
@@ -188,41 +188,31 @@ async function extractAssetRecord(
         });
     }
 
-    for (const pointer of pointers) {
+    const pointerPromises = pointers.map(async (pointer) => {
         const uriType = pointer.uri.split(":")[0];
         let blob: Blob;
 
         switch (uriType) {
             case "ccdefault":
-                continue;
+                throw new Error("ccdefault uri, skipping");
             case "embeded":
             case "embedded":
-                if (embeddedResolver) {
-                    const path = pointer.uri.split("://")[1];
-
-                    if (!path) {
-                        console.error(
-                            "Invalid embedded asset URI:",
-                            pointer.uri
-                        );
-                        continue;
-                    }
-
-                    const resolved = await embeddedResolver(path);
-
-                    if (!resolved) {
-                        console.error(
-                            "Embedded asset not found for path",
-                            path
-                        );
-                        continue;
-                    }
-
-                    blob = resolved;
-                } else {
-                    console.error("No resolver for embedded assets");
-                    continue;
+                if (!embeddedResolver) {
+                    throw new Error("No resolver for embedded assets");
                 }
+                const path = pointer.uri.split("://")[1];
+                if (!path) {
+                    throw new Error(
+                        `Invalid embedded asset URI: ${pointer.uri}`
+                    );
+                }
+                const resolved = await embeddedResolver(path);
+                if (!resolved) {
+                    throw new Error(
+                        `Embedded asset not found for path ${path}`
+                    );
+                }
+                blob = resolved;
                 break;
             case "data":
                 const [head, base64] = pointer.uri.split(",");
@@ -236,16 +226,11 @@ async function extractAssetRecord(
                 break;
             default:
                 const response = await fetch(pointer.uri);
-
                 if (!response.ok) {
-                    console.error(
-                        `Failed to fetch asset from ${pointer.uri}:`,
-                        response.status,
-                        response.statusText
+                    throw new Error(
+                        `Failed to fetch ${pointer.uri}: ${response.status} ${response.statusText}`
                     );
-                    continue;
                 }
-
                 blob = await response.blob();
         }
 
@@ -261,13 +246,25 @@ async function extractAssetRecord(
 
         const normalizedURI = uriType === "embeded" ? "embedded" : uriType;
 
-        newPointers.push({
+        return {
             type: pointer.type,
             uri: `${normalizedURI}://${pointer.name}.${pointer.ext}`,
             name: pointer.name,
             ext: pointer.ext
-        });
-    }
+        };
+    });
+
+    const settledPointers = await Promise.allSettled(pointerPromises);
+    settledPointers.forEach((result, index) => {
+        if (result.status === "fulfilled") {
+            newPointers.push(result.value);
+        } else {
+            console.error(
+                `Failed to process pointer ${pointers[index].uri}:`,
+                result.reason
+            );
+        }
+    });
 
     return newPointers;
 }
