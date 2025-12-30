@@ -117,51 +117,43 @@ export async function scanGallery(
 
     let urlCount = 0;
     let galleryCount = 0;
-    let totalDownloadedImages = 0;
-    for (let i = 0; i < downloads.length; i++) {
-        const step = i + 1;
-        onProgress(step, total);
+    let completedCount = 0;
 
-        const job = downloads[i];
+    onLog(`Starting downloads of ${total} image(s)...`);
+    onProgress(0, total);
+
+    const processJob = async (job: Job) => {
         if (job.type === "url") {
             urlCount++;
 
             onLog(
-                `(${step}/${total}) Downloading from URL ${urlCount} of ${totalURLCount}: ${job.url}...`
+                `(${completedCount + 1}/${total}) Downloading from URL ${urlCount} of ${totalURLCount}: ${job.url}...`
             );
 
-            try {
-                const download = await downloadAsset(job.url);
+            const download = await downloadAsset(job.url).catch(
+                (error: Error) => {
+                    const message = `✘ Failed to download ${job.url}: ${error.message}`;
+                    completedCount++;
+                    onLog(message);
+                    onProgress(completedCount, total);
+                    throw new Error(message);
+                }
+            );
 
-                await character.update({
-                    assets: [...character.data.assets, download.pointer]
-                });
+            completedCount++;
+            onLog(`✔ Downloaded ${job.url}.`);
+            onProgress(completedCount, total);
 
-                const asset = new Asset({
-                    category: "character",
-                    parentID: character.id,
-                    file: download.file
-                });
-
-                await asset.save();
-
-                urlPointerMap.set(
-                    job.url,
-                    `embedded://${download.pointer.name}.${download.pointer.ext}`
-                );
-
-                totalDownloadedImages++;
-
-                onLog(`✔ Downloaded ${job.url}.`);
-            } catch (error) {
-                console.error(error);
-                onLog(`✘ Failed to download ${job.url}.`);
-            }
+            return {
+                pointer: download.pointer,
+                file: download.file,
+                url: job.url
+            };
         } else {
             galleryCount++;
 
             onLog(
-                `(${step}/${total}) Saving gallery image ${galleryCount} of ${galleryBlobs.length}...`
+                `(${completedCount + 1}/${total}) Saving gallery image ${galleryCount} of ${galleryBlobs.length}...`
             );
 
             const name = `gallery_${Date.now()}`;
@@ -174,23 +166,54 @@ export async function scanGallery(
                 ext
             };
 
-            await character.update({
-                assets: [...character.data.assets, pointer]
-            });
+            completedCount++;
+            onLog(`✔ Saved gallery image #${galleryCount}.`);
+            onProgress(completedCount, total);
 
-            const asset = new Asset({
-                category: "character",
-                parentID: character.id,
+            return {
+                pointer,
                 file: new File([job.blob], `${name}.${ext}`, {
                     type: job.blob.type ?? "application/octet-stream"
                 })
-            });
-
-            await asset.save();
-            totalDownloadedImages++;
-            onLog(`✔ Saved gallery image #${galleryCount}.`);
+            };
         }
-    }
+    };
+
+    const settledJobs = await Promise.allSettled(
+        downloads.map((job) => processJob(job))
+    );
+
+    const fulfilledJobs = settledJobs
+        .filter((result) => result.status === "fulfilled")
+        .map((result) => result.value);
+
+    const newPointers = fulfilledJobs.map((job) => job.pointer);
+    await character.update({
+        assets: [...character.data.assets, ...newPointers]
+    });
+
+    await Promise.all(
+        fulfilledJobs.map(async (job) => {
+            const asset = new Asset({
+                category: "character",
+                parentID: character.id,
+                file: job.file
+            });
+            await asset.save();
+        })
+    );
+
+    fulfilledJobs.forEach((job) => {
+        if (job.url) {
+            urlPointerMap.set(
+                job.url,
+                `embedded://${job.pointer.name}.${job.pointer.ext}`
+            );
+        }
+    });
+
+    onLog("Downloads complete. Replacing image URLs...");
+    onProgress(total, total);
 
     const replaceAll = (string: string, map: Map<string, string>) => {
         let output = string;
@@ -223,8 +246,8 @@ export async function scanGallery(
     await character.update({ updatedData });
 
     onLog(
-        `Scan complete. Downloaded ${totalDownloadedImages} images, and replaced ${urlPointerMap.size} URLs with embedded images.`
+        `Scan complete. Downloaded ${fulfilledJobs.length} images, and replaced ${urlPointerMap.size} URLs with embedded images.`
     );
 
-    return { total: totalDownloadedImages, replaced: urlPointerMap.size };
+    return { total: fulfilledJobs.length, replaced: urlPointerMap.size };
 }
