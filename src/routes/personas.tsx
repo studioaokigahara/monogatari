@@ -90,7 +90,7 @@ function PersonaEditor({ persona }: PersonaEditorProps) {
         const file = event.target.files?.[0];
         if (file) {
             const asset = await Asset.loadPersonaAsset(persona.id);
-            if (asset) asset.update({ file });
+            if (asset) await asset.update({ file });
         }
     };
 
@@ -101,10 +101,10 @@ function PersonaEditor({ persona }: PersonaEditorProps) {
 
     return (
         <form
-            className="flex flex-col grow pb-2 gap-4 overflow-auto"
-            onSubmit={(e) => {
-                e.preventDefault();
-                form.handleSubmit();
+            className="flex grow pb-2 gap-4 overflow-auto"
+            onSubmit={(event) => {
+                event.preventDefault();
+                void form.handleSubmit();
             }}
         >
             <FieldGroup className="flex flex-row gap-6">

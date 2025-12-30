@@ -223,8 +223,8 @@ export default function CharacterList({
                     isDownloaded={characterPaths.has(
                         selectedCharacter!.fullPath
                     )}
-                    onDownloadClick={() => {
-                        handleDownloadClick(selectedCharacter!);
+                    onDownloadClick={async () => {
+                        await handleDownloadClick(selectedCharacter!);
                         setPopupOpen(false);
                     }}
                     onTagClick={(tag) => {

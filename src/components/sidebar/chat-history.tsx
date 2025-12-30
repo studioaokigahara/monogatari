@@ -114,7 +114,7 @@ function ChatHistoryItem({
         setAlertOpen(false);
 
         if (isActive) {
-            navigate({ to: "/chat" });
+            void navigate({ to: "/chat" });
             toast.warning(
                 "You were navigated here to prevent bugs. Pick another chat!"
             );
@@ -304,7 +304,7 @@ export function ChatHistory() {
         if (!character) return;
         const chat = new Chat(character, persona);
         await chat.save();
-        navigate({ to: "/chat/$id", params: { id: chat.id } });
+        void navigate({ to: "/chat/$id", params: { id: chat.id } });
     };
 
     const { id } = useParams({ strict: false });

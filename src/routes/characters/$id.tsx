@@ -98,7 +98,7 @@ function CharacterProfile({ character }: { character: Character }) {
     const navigate = useNavigate({ from: "/characters/$id" });
 
     const setTab = (value: string) => {
-        navigate({
+        void navigate({
             search: {
                 tab: value as
                     | "description"
@@ -114,9 +114,9 @@ function CharacterProfile({ character }: { character: Character }) {
     return (
         <form
             className="flex flex-col w-full"
-            onSubmit={(e) => {
-                e.preventDefault();
-                form.handleSubmit();
+            onSubmit={(event) => {
+                event.preventDefault();
+                void form.handleSubmit();
             }}
         >
             <Header />

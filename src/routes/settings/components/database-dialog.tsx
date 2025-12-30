@@ -114,7 +114,7 @@ export function ExportDatabase() {
         });
     };
 
-    const handleAction = (event: React.MouseEvent) => {
+    const handleAction = async (event: React.MouseEvent) => {
         event.preventDefault();
         if (done) {
             setExporting(false);
@@ -122,7 +122,9 @@ export function ExportDatabase() {
             setProgress(undefined);
             workerRef.current?.terminate();
             setOpen(false);
-        } else exportDB();
+        } else {
+            await exportDB();
+        }
     };
 
     return (

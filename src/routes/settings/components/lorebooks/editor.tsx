@@ -115,8 +115,8 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
         form.pushFieldValue("data.entries", newEntry);
     };
 
-    const deleteEntry = () => {
-        form.removeFieldValue("data.entries", index);
+    const deleteEntry = async () => {
+        await form.removeFieldValue("data.entries", index);
     };
 
     const characters = useLiveQuery(
@@ -409,9 +409,9 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
         return (
             <form
                 className="flex flex-col grow pb-2 gap-4 overflow-auto"
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    form.handleSubmit();
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    void form.handleSubmit();
                 }}
             >
                 <FieldGroup>
@@ -425,9 +425,9 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
     return (
         <form
             className="flex flex-col grow pb-2 gap-4 overflow-auto"
-            onSubmit={(e) => {
-                e.preventDefault();
-                form.handleSubmit();
+            onSubmit={(event) => {
+                event.preventDefault();
+                void form.handleSubmit();
             }}
         >
             <FieldSet>
@@ -463,7 +463,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                                                                     htmlFor={
                                                                         field.name
                                                                     }
-                                                                    className="text-base font-semibold capitalize bg-[unset]!"
+                                                                    className="text-base font-semibold bg-[unset]!"
                                                                 >
                                                                     {entry.name}
                                                                     <Switch

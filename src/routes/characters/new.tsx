@@ -74,9 +74,8 @@ function CharacterCreator() {
                 });
 
                 await asset.save();
-
                 toast.success(`${value.name} has been created successfully!`);
-                router.navigate({
+                void navigate({
                     to: "/characters/$id",
                     params: { id: character.id }
                 });

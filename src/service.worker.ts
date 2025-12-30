@@ -27,7 +27,7 @@ const providerOptions = {
 
 declare let self: ServiceWorkerGlobalScope;
 
-self.skipWaiting();
+void self.skipWaiting();
 clientsClaim();
 
 self.addEventListener("fetch", (event: FetchEvent) => {
@@ -88,6 +88,7 @@ function createRegistry(settings: Settings) {
             baseURL: proxy?.baseURL || "",
             apiKey: proxy?.password || apiKey
         }),
+        // @ts-expect-error openrouter not yet updated to support v6 types
         openrouter: createOpenRouter({
             apiKey: proxy?.password || apiKey
         })

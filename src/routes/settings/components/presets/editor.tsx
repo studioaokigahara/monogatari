@@ -95,8 +95,8 @@ export function PromptEditor({
         form.pushFieldValue("prompts", newPrompt);
     };
 
-    const deletePrompt = () => {
-        form.removeFieldValue("prompts", promptIndex);
+    const deletePrompt = async () => {
+        await form.removeFieldValue("prompts", promptIndex);
     };
 
     const getRoleColor = (role: string) => {
@@ -115,9 +115,9 @@ export function PromptEditor({
     return (
         <form
             className="flex flex-col grow pb-2 gap-4 overflow-y-auto"
-            onSubmit={(e) => {
-                e.preventDefault();
-                form.handleSubmit();
+            onSubmit={(event) => {
+                event.preventDefault();
+                void form.handleSubmit();
             }}
         >
             <FieldGroup>

@@ -49,7 +49,7 @@ function StorageDisplay() {
             setStorage(storage);
         };
 
-        estimateStorage();
+        void estimateStorage();
     }, []);
 
     const chartData = useMemo(
@@ -184,7 +184,7 @@ function StorageDisplay() {
             if (!cancelled) setDBSize(sizes);
         };
 
-        estimateDbSize();
+        void estimateDbSize();
 
         return () => {
             cancelled = true;

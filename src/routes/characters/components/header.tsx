@@ -31,12 +31,12 @@ export function Header({ character }: { character: Character }) {
     const startNewChat = async () => {
         const chat = new Chat(character, persona);
         await chat.save();
-        navigate({ to: "/chat/$id", params: { id: chat.id } });
+        void navigate({ to: "/chat/$id", params: { id: chat.id } });
     };
 
     const deleteCharacter = async () => {
         await character.delete();
-        navigate({ to: "/characters" });
+        await navigate({ to: "/characters" });
         toast.success(`${character.data.name} deleted successfully.`);
     };
 

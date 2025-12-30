@@ -53,7 +53,7 @@ class OpenRouterRegistryManager {
         try {
             const cached = localStorage.getItem(this.CACHE_KEY);
             if (!cached) {
-                this.ensureModelsLoaded();
+                void this.ensureModelsLoaded();
                 return;
             }
 
@@ -68,7 +68,7 @@ class OpenRouterRegistryManager {
             console.error("Failed to load models from cache:", error);
             localStorage.removeItem(this.CACHE_KEY);
         }
-        this.ensureModelsLoaded();
+        void this.ensureModelsLoaded();
     }
 
     private saveToCache(): void {
@@ -104,21 +104,6 @@ class OpenRouterRegistryManager {
         } finally {
             this.loading = false;
         }
-    }
-
-    private async fetchModels() {
-        const response = await fetch("https://openrouter.ai/api/v1/models");
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-
-        const data = await response.json();
-        return data.data
-            .map(this.transformModel)
-            .filter(Boolean)
-            .sort((a: Model<"openrouter">, b: Model<"openrouter">) =>
-                a.name.localeCompare(b.name)
-            );
     }
 
     private transformModel(
@@ -189,6 +174,21 @@ class OpenRouterRegistryManager {
             console.error("Error transforming model:", apiModel?.id, error);
             return null;
         }
+    }
+
+    private async fetchModels() {
+        const response = await fetch("https://openrouter.ai/api/v1/models");
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.data
+            .map(this.transformModel)
+            .filter(Boolean)
+            .sort((a: Model<"openrouter">, b: Model<"openrouter">) =>
+                a.name.localeCompare(b.name)
+            );
     }
 
     getModels() {

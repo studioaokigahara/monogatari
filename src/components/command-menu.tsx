@@ -45,7 +45,7 @@ export function CommandMenu() {
     const navigate = useNavigate();
 
     const navigateToPage = (pathname: string) => {
-        navigate({ to: pathname });
+        void navigate({ to: pathname });
         setOpen(false);
     };
 

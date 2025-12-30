@@ -305,7 +305,7 @@ export async function importCharacter(
 
     if (redirect) {
         toast.success(`${character.data.name} imported successfully!`);
-        router.navigate({
+        void router.navigate({
             to: `/characters/$id`,
             params: { id: character.id }
         });

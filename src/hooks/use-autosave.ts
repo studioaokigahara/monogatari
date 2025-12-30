@@ -53,7 +53,7 @@ export default function useAutosave({
 
         autoSaveRef.current = setTimeout(() => {
             hasPendingSubmitRef.current = true;
-            void handleSubmit();
+            handleSubmit();
             autoSaveRef.current = null;
         }, 250);
 
