@@ -99,7 +99,7 @@ export default function SelectModel() {
     const mapModality = (modality: Modality) => {
         switch (modality) {
             case "text":
-                return <FileType />;
+                return <FileText />;
             case "image":
                 return <FileImage />;
             case "audio":
@@ -107,8 +107,7 @@ export default function SelectModel() {
             case "video":
                 return <FileVideo />;
             case "pdf":
-            case "file":
-                return <FileText />;
+                return <FileType />;
         }
     };
 

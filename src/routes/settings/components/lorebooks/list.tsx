@@ -97,7 +97,7 @@ export function LorebookList({
     );
 
     return (
-        <Sidebar collapsible="none" className="hidden md:flex">
+        <Sidebar collapsible="none" className="w-full sm:w-(--sidebar-width)">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>

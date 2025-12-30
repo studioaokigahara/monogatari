@@ -235,7 +235,7 @@ function StorageDisplay() {
                     </div>
                 </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-row items-center">
+            <CardContent className="flex flex-col sm:flex-row items-center">
                 <div className="mb-auto">
                     <ChartContainer
                         config={chartConfig}

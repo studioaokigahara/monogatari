@@ -11,7 +11,7 @@ import { db } from "@/database/monogatari-db";
 import { LorebookEditor } from "@/routes/settings/components/lorebooks/editor";
 import { createFileRoute, useLoaderData } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
-import { BookDashed, BookOpenText } from "lucide-react";
+import { BookDashed, BookMarked } from "lucide-react";
 import { useState } from "react";
 import { LorebookList } from "./components/lorebooks/list";
 
@@ -47,16 +47,16 @@ function LorebookSettings() {
     const [entryIndex, setEntryIndex] = useState(0);
 
     return (
-        <div className="h-full pb-2 overflow-hidden">
-            <Card className="h-full pb-0 gap-0">
+        <div className="h-full pb-2 sm:overflow-hidden">
+            <Card className="h-full pb-0 gap-0 overflow-hidden">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <BookOpenText />
+                        <BookMarked />
                         Lorebooks
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="h-full flex flex-row overflow-hidden">
-                    <SidebarProvider className="min-h-0 gap-4">
+                <CardContent className="h-full flex flex-row sm:overflow-hidden">
+                    <SidebarProvider className="min-h-0 flex-col sm:flex-row gap-4">
                         <LorebookList
                             lorebooks={lorebooks}
                             selectedLorebook={selectedLorebook}

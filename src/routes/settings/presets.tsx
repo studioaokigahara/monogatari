@@ -53,16 +53,16 @@ function PresetSettings() {
     const [promptIndex, setPromptIndex] = useState(0);
 
     return (
-        <div className="h-full pb-2 overflow-hidden">
-            <Card className="h-full pb-0 gap-0">
+        <div className="h-full pb-2 sm:overflow-hidden">
+            <Card className="h-full pb-0 gap-0 overflow-hidden">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <FileText />
                         Presets
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="h-full flex flex-row overflow-hidden">
-                    <SidebarProvider className="min-h-0 gap-4">
+                <CardContent className="h-full flex flex-row sm:overflow-hidden">
+                    <SidebarProvider className="min-h-0 flex-col sm:flex-row gap-4">
                         <PromptList
                             presets={presets}
                             selectedPreset={selectedPreset}

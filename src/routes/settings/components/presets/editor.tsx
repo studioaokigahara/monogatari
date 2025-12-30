@@ -1,37 +1,37 @@
-import { useEffect, useCallback } from "react";
-import { Preset, Prompt } from "@/database/schema/preset";
 import { Button } from "@/components/ui/button";
-import {
-    Select,
-    SelectTrigger,
-    SelectValue,
-    SelectContent,
-    SelectItem
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-    Trash2,
-    Plus,
-    Save,
-    X,
-    Terminal,
-    User,
-    Bot,
-    ListStart,
-    ListEnd
-} from "lucide-react";
-import { cn, generateCuid2 } from "@/lib/utils";
-import { useForm, useStore } from "@tanstack/react-form";
 import {
     Field,
     FieldError,
     FieldGroup,
     FieldLabel
 } from "@/components/ui/field";
-import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Preset, Prompt } from "@/database/schema/preset";
 import useAutosave from "@/hooks/use-autosave";
+import { cn, generateCuid2 } from "@/lib/utils";
+import { useForm, useStore } from "@tanstack/react-form";
+import {
+    Bot,
+    ListEnd,
+    ListStart,
+    Plus,
+    Save,
+    Terminal,
+    Trash2,
+    User,
+    X
+} from "lucide-react";
+import { useCallback, useEffect } from "react";
+import { toast } from "sonner";
 
 interface PromptEditorProps {
     selectedPreset: Preset;
@@ -217,7 +217,7 @@ export function PromptEditor({
                                                                         )
                                                                     )}
                                                                 >
-                                                                    <span className="max-w-[27ch] text-balance font-semibold mb-0.25 truncate">
+                                                                    <span className="max-w-[27ch] text-balance font-semibold mb-px truncate">
                                                                         {
                                                                             prompt.name
                                                                         }

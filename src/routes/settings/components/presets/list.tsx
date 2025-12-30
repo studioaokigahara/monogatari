@@ -233,7 +233,7 @@ export function PromptList({
     };
 
     return (
-        <Sidebar collapsible="none" className="hidden md:flex shrink-0">
+        <Sidebar collapsible="none" className="w-full sm:w-(--sidebar-width)">
             <input
                 ref={fileInputRef}
                 type="file"

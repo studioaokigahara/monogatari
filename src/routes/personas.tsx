@@ -107,26 +107,24 @@ function PersonaEditor({ persona }: PersonaEditorProps) {
                 void form.handleSubmit();
             }}
         >
-            <FieldGroup className="flex flex-row gap-6">
-                <div className="flex flex-col shrink-0">
-                    <Avatar className="size-[unset] h-64 rounded-xl">
-                        <AvatarImage
-                            src={imageURL}
-                            className="w-full aspect-[unset] object-cover cursor-pointer transition-all hover:brightness-75"
-                            onClick={browse}
-                        />
-                        <AvatarFallback className="rounded-xl">
-                            <div
-                                onClick={browse}
-                                className="w-48 h-24 flex items-center justify-center cursor-pointer gap-2"
-                            >
-                                <Upload />
-                                No Image
-                            </div>
-                        </AvatarFallback>
-                    </Avatar>
+            <FieldGroup className="flex flex-col sm:flex-row gap-6">
+                <Avatar className="size-[unset] h-64 rounded-xl">
                     {input}
-                </div>
+                    <AvatarImage
+                        src={imageURL}
+                        className="w-full aspect-[unset] object-cover cursor-pointer transition-all hover:brightness-75"
+                        onClick={browse}
+                    />
+                    <AvatarFallback className="rounded-xl">
+                        <div
+                            onClick={browse}
+                            className="w-48 h-24 flex items-center justify-center cursor-pointer gap-2"
+                        >
+                            <Upload />
+                            No Image
+                        </div>
+                    </AvatarFallback>
+                </Avatar>
                 <FieldGroup className="flex flex-col *:gap-1">
                     <form.Field name="name">
                         {(field) => {
@@ -269,11 +267,14 @@ function Personas() {
     return (
         <>
             <Header />
-            <div className="flex flex-col grow pb-2 gap-4 overflow-hidden">
+            <div className="flex flex-col grow pb-2 gap-4 sm:overflow-hidden">
                 <Card className="overflow-hidden">
                     <CardContent className="space-y-2">
-                        <SidebarProvider className="gap-6">
-                            <Sidebar collapsible="none">
+                        <SidebarProvider className="flex-col sm:flex-row gap-6">
+                            <Sidebar
+                                collapsible="none"
+                                className="w-full sm:w-(--sidebar-width)"
+                            >
                                 <SidebarHeader>
                                     <SidebarMenu>
                                         <SidebarMenuItem>
