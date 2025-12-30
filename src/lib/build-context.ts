@@ -198,26 +198,22 @@ export async function buildContext(
 
     context = await buildLorebookContext(id, context, character, macroContext);
 
-    const prompt = context
-        .map((message) => ({
-            ...message,
-            parts: message.parts.map((part) =>
-                part.type === "text"
-                    ? {
-                          ...part,
-                          text: replaceMacros(part.text, {
-                              character,
-                              persona
-                          })
-                              .replace(/^<START>\s*/gm, "")
-                              .trim()
-                      }
-                    : part
-            )
-        }))
-        .filter((message) =>
-            message.parts.find((part) => part.type === "text")?.text.trim()
-        );
+    const prompt = [];
+    for (const message of context) {
+        for (const part of message.parts) {
+            if (part.type === "text") {
+                part.text = replaceMacros(part.text, {
+                    character,
+                    persona
+                })
+                    .replace(/^<START>\s*/gm, "")
+                    .trim();
+            }
+        }
+        if (message.parts.find((part) => part.type === "text")?.text.trim()) {
+            prompt.push(message);
+        }
+    }
 
     const firstNonSystemIndex = prompt.findIndex(
         (message) => message.role !== "system"
