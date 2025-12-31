@@ -26,7 +26,7 @@ export const TavernCardV2Data = z.looseObject({
     system_prompt: z.string(),
     post_history_instructions: z.string(),
     alternate_greetings: z.array(z.string()),
-    character_book: CharacterBook.nullish(),
+    character_book: CharacterBook.optional(),
     tags: z.array(z.string()),
     creator: z.string(),
     character_version: z.string(),
