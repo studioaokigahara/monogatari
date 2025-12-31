@@ -1,6 +1,7 @@
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { VariantProps } from "class-variance-authority";
+import { MoreHorizontal } from "lucide-react";
 import { useLayoutEffect, useRef, useState, useTransition } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Skeleton } from "./ui/skeleton";
@@ -11,7 +12,6 @@ interface TagListProps extends React.ComponentProps<"span"> {
     tags: string[];
     maxRows?: number;
     variant?: BadgeVariants;
-    hiddenVariant?: BadgeVariants;
     onTagClick?: (e: React.MouseEvent<HTMLSpanElement>, tag: string) => void;
 }
 
@@ -19,9 +19,8 @@ export function TagList({
     tags,
     maxRows = 2,
     variant = "outline",
-    hiddenVariant = "outline",
+    className = "bg-secondary",
     onTagClick,
-    className,
     ...props
 }: TagListProps) {
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -80,7 +79,7 @@ export function TagList({
             key={`${tag}-${index}`}
             data-value={tag}
             variant={variant}
-            className={cn(variant === "outline" && "bg-secondary", className)}
+            className={className}
             onClick={handleTagClick}
             {...props}
         >
@@ -92,7 +91,10 @@ export function TagList({
     const hiddenTags = tagList.slice(visibleCount);
 
     const skeletons = Array.from({ length: 6 }).map((_, index) => (
-        <Skeleton key={index} className={`w-16 h-5.5`} />
+        <Skeleton
+            key={`skeleton-${index}`}
+            className="w-16 h-5.5 rounded-full"
+        />
     ));
 
     return (
@@ -103,15 +105,16 @@ export function TagList({
                     <Popover>
                         <PopoverTrigger asChild>
                             <Badge
-                                variant={hiddenVariant}
+                                variant={variant}
                                 className={cn(
-                                    hiddenVariant === "outline" &&
-                                        "bg-secondary hover:brightness-150 transition-all cursor-pointer",
+                                    // hiddenVariant === "outline" &&
+                                    "hover:brightness-150 transition-all cursor-pointer",
                                     className
                                 )}
                                 {...props}
                             >
-                                +{hiddenCount} more
+                                <MoreHorizontal />
+                                {hiddenCount} more
                             </Badge>
                         </PopoverTrigger>
                         <PopoverContent className="flex flex-wrap gap-1">
@@ -123,7 +126,7 @@ export function TagList({
             <div
                 ref={containerRef}
                 aria-hidden
-                className="w-full h-0 pointer-events-none opacity-0 flex flex-wrap shrink-0 gap-0.5 overflow-hidden"
+                className="w-full h-0 pointer-events-none opacity-0 flex flex-wrap shrink-0 gap-1 overflow-hidden"
             >
                 {tagList}
             </div>
