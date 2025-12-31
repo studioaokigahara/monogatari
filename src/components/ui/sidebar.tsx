@@ -1,6 +1,6 @@
 "use client";
 
-import { Slot } from "@radix-ui/react-slot";
+import { Slot as SlotPrimitive } from "radix-ui";
 import { VariantProps, cva } from "class-variance-authority";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import * as React from "react";
@@ -275,6 +275,7 @@ function SidebarTrigger({
 
     return (
         <Button
+            type="button"
             data-sidebar="trigger"
             data-slot="sidebar-trigger"
             variant="ghost"
@@ -312,7 +313,7 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
             onClick={toggleSidebar}
             title="Toggle Sidebar"
             className={cn(
-                "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-in-out group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] sm:flex",
+                "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-in-out group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-0.5 sm:flex",
                 "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",
                 "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
                 "hover:group-data-[collapsible=offcanvas]:bg-sidebar group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full",
@@ -422,7 +423,7 @@ function SidebarGroupLabel({
     asChild = false,
     ...props
 }: React.ComponentProps<"div"> & { asChild?: boolean }) {
-    const Comp = asChild ? Slot : "div";
+    const Comp = asChild ? SlotPrimitive.Slot : "div";
 
     return (
         <Comp
@@ -443,7 +444,7 @@ function SidebarGroupAction({
     asChild = false,
     ...props
 }: React.ComponentProps<"button"> & { asChild?: boolean }) {
-    const Comp = asChild ? Slot : "button";
+    const Comp = asChild ? SlotPrimitive.Slot : "button";
 
     return (
         <Comp
@@ -533,7 +534,7 @@ function SidebarMenuButton({
     isActive?: boolean;
     tooltip?: string | React.ComponentProps<typeof TooltipContent>;
 } & VariantProps<typeof sidebarMenuButtonVariants>) {
-    const Comp = asChild ? Slot : "button";
+    const Comp = asChild ? SlotPrimitive.Slot : "button";
     const { isMobile, state } = useSidebar();
 
     const button = (
@@ -582,7 +583,7 @@ function SidebarMenuAction({
     asChild?: boolean;
     showOnHover?: boolean;
 }) {
-    const Comp = asChild ? Slot : "button";
+    const Comp = asChild ? SlotPrimitive.Slot : "button";
 
     return (
         <Comp
@@ -708,7 +709,7 @@ function SidebarMenuSubButton({
     size?: "sm" | "md";
     isActive?: boolean;
 }) {
-    const Comp = asChild ? Slot : "a";
+    const Comp = asChild ? SlotPrimitive.Slot : "a";
 
     return (
         <Comp
