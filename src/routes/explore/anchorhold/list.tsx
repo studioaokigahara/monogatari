@@ -180,7 +180,7 @@ export default function AnchorholdList({
 
             const arrayBuffer = await imageBlob.arrayBuffer();
             const json = characterInfo
-                ? fetchCharacterJSON(characterInfo.node)
+                ? await fetchCharacterJSON(characterInfo.node)
                 : JSON.parse(readCharacterImage(arrayBuffer));
 
             const character = await importCharacter(json, arrayBuffer);
