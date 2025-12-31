@@ -27,7 +27,7 @@ import { Character } from "@/database/schema/character";
 import { Chat } from "@/database/schema/chat";
 import { useCharacterContext } from "@/hooks/use-character-context";
 import { useCharacterFormContext } from "@/hooks/use-character-form-context";
-import { exportCharX } from "@/lib/character/io";
+import { exportCharX, exportJSON, exportPNG } from "@/lib/character/io";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -61,21 +61,6 @@ export function Header({ character }: { character: Character }) {
 
     const toggleFavorite = async () => {
         await character.toggleFavorite();
-    };
-
-    const exportCharacter = async () => {
-        const charX = await exportCharX(character);
-        const file = new File([charX], `${character.data.name}.charx`, {
-            type: "application/zip"
-        });
-        const url = URL.createObjectURL(file);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = file.name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
     };
 
     return (
@@ -179,15 +164,21 @@ export function Header({ character }: { character: Character }) {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={exportCharacter}>
+                            <DropdownMenuItem
+                                onClick={() => exportCharX(character)}
+                            >
                                 <FileArchive />
                                 Export as CharX
                             </DropdownMenuItem>
-                            <DropdownMenuItem disabled>
+                            <DropdownMenuItem
+                                onClick={() => exportPNG(character)}
+                            >
                                 <FileImage />
                                 Export as PNG
                             </DropdownMenuItem>
-                            <DropdownMenuItem disabled>
+                            <DropdownMenuItem
+                                onClick={() => exportJSON(character)}
+                            >
                                 <FileBracesCorner />
                                 Export as JSON
                             </DropdownMenuItem>

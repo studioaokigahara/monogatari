@@ -329,6 +329,17 @@ export async function handleFileChange(
     await importCharacter(parsedJSON, rawBuffer, true);
 }
 
+function downloadFile(file: File) {
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
 export async function exportCharX(character: Character) {
     const blobWriter = new BlobWriter("application/zip");
     const zipWriter = new ZipWriter(blobWriter);
@@ -363,5 +374,47 @@ export async function exportCharX(character: Character) {
 
     zipWriter.close();
     const charx = await blobWriter.getData();
-    return charx;
+    const file = new File([charx], `${character.data.name}.charx`, {
+        type: "application/zip"
+    });
+    downloadFile(file);
+}
+
+export async function exportPNG(character: Character) {
+    const asset =
+        character.data.assets.find((asset) => asset.type === "icon") ??
+        character.data.assets[0];
+    const main = await Asset.load(character.id, `${asset.name}.${asset.ext}`);
+
+    if (!main) {
+        toast.error(`${character.data.name} doesn't have any images!`);
+        return;
+    }
+
+    const arrayBuffer = await main.file.arrayBuffer();
+
+    const card = JSON.stringify({
+        spec: "chara_card_v3",
+        spec_version: "3.0",
+        data: character.data
+    });
+
+    const characterImage = writeCharacterImage(arrayBuffer, card);
+    const imageBlob = new Blob([characterImage]);
+    const file = new File([imageBlob], `${character.data.name}.png`, {
+        type: "image/png"
+    });
+    downloadFile(file);
+}
+
+export function exportJSON(character: Character) {
+    const card = JSON.stringify({
+        spec: "chara_card_v3",
+        spec_version: "3.0",
+        data: character.data
+    });
+    const file = new File([card], `${character.data.name}.json`, {
+        type: "image/png"
+    });
+    downloadFile(file);
 }
