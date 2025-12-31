@@ -54,14 +54,14 @@ function PresetSettings() {
 
     return (
         <div className="h-full pb-2 sm:overflow-hidden">
-            <Card className="h-full pb-0 gap-0 overflow-hidden">
+            <Card className="pb-0 gap-0 overflow-hidden">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <FileText />
                         Presets
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="h-full flex flex-row sm:overflow-hidden">
+                <CardContent className="h-full flex flex-col sm:flex-row sm:overflow-hidden">
                     <SidebarProvider className="min-h-0 flex-col sm:flex-row gap-4">
                         <PromptList
                             presets={presets}
