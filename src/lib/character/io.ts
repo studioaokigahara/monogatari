@@ -149,7 +149,15 @@ async function extractAssetRecord(
 
         switch (uriType) {
             case "ccdefault":
-                throw new Error("ccdefault uri, skipping");
+                if (!embeddedResolver) {
+                    throw new Error("No resolver for embedded assets");
+                }
+                const main = await embeddedResolver("main.png");
+                if (!main) {
+                    throw new Error("Main character icon not found");
+                }
+                blob = main;
+                break;
             case "embeded":
             case "embedded":
                 if (!embeddedResolver) {
@@ -291,7 +299,9 @@ export async function handleFileChange(
         parsedJSON = JSON.parse(cardData);
 
         const embeddedResolver = async (filename: string) => {
-            const file = entries.find((entry) => entry.filename === filename);
+            const file = entries.find((entry) =>
+                entry.filename.endsWith(filename)
+            );
             if (!file || file.directory) return null;
             const blobWriter = new BlobWriter();
             return await file.getData(blobWriter);
