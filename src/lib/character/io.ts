@@ -8,11 +8,18 @@ import {
     TavernCardV2Data
 } from "@/database/schema/character";
 import { router } from "@/lib/router";
+import {
+    BlobReader,
+    BlobWriter,
+    TextReader,
+    TextWriter,
+    ZipReader,
+    ZipWriter
+} from "@zip.js/zip.js";
 import { decode, encode as encodeChunk } from "png-chunk-text";
 import encode from "png-chunks-encode";
 import extractChunks from "png-chunks-extract";
 import { toast } from "sonner";
-import { unzip } from "unzipit";
 import { z } from "zod";
 
 const base64codec = z.codec(z.base64(), z.string(), {
@@ -25,93 +32,41 @@ const base64codec = z.codec(z.base64(), z.string(), {
 });
 
 const TavernCardV2Importer = TavernCardV2.extend({
-    data: TavernCardV2Data.transform((data) => {
-        const normalize = (value: string) => value.replace(/\r\n/g, "\n");
+    data: z.preprocess((data: TavernCardV2Data) => {
+        const allowedKeys = new Set(Object.keys(TavernCardV2Data.shape));
+        const extensions = { ...data.extensions };
 
-        const walk = (value: unknown): unknown => {
-            if (value instanceof Date) return value;
-            if (typeof value === "string") return normalize(value);
-            if (Array.isArray(value)) return value.map(walk);
-            if (value && typeof value === "object") {
-                const output: Record<string, unknown> = {};
-                for (const [key, keyValue] of Object.entries(value)) {
-                    output[key] = walk(keyValue);
-                }
-                return output;
+        for (const key of Object.keys(data)) {
+            if (!allowedKeys.has(key)) {
+                extensions[key] = data[key];
+                delete data[key];
             }
-            return value;
-        };
+        }
 
-        return walk(data) as TavernCardV2Data;
-    })
-        .transform((data) => {
-            const allowedKeys = new Set(Object.keys(TavernCardV2Data.shape));
-            const extras = Object.entries(data).filter(
-                ([key]) => !allowedKeys.has(key)
-            );
+        data.extensions = extensions;
+        if (data.character_book === null) data.character_book = undefined;
 
-            for (const [key] of extras) delete data[key];
-
-            return {
-                ...data,
-                extensions: {
-                    ...data.extensions,
-                    ...extras
-                }
-            };
-        })
-        .transform((data) => {
-            if (data.character_book === null) {
-                data.character_book = undefined;
-            }
-
-            return data;
-        })
+        return data;
+    }, TavernCardV2Data)
 });
 
 const CharacterCardV3Importer = CharacterCardV3.extend({
-    data: CharacterCardV3Data.transform((data) => {
-        const normalize = (value: string) => value.replace(/\r\n/g, "\n");
+    data: z.preprocess((data: CharacterCardV3Data) => {
+        const allowedKeys = new Set(Object.keys(CharacterCardV3Data.shape));
+        const extensions = { ...data.extensions };
 
-        const walk = (value: unknown): unknown => {
-            if (value instanceof Date) return value;
-            if (typeof value === "string") return normalize(value);
-            if (Array.isArray(value)) return value.map(walk);
-            if (value && typeof value === "object") {
-                const output: Record<string, unknown> = {};
-                for (const [key, keyValue] of Object.entries(value)) {
-                    output[key] = walk(keyValue);
-                }
-                return output;
+        for (const key of Object.keys(data)) {
+            if (!allowedKeys.has(key)) {
+                extensions[key] = data[key];
+                delete data[key];
             }
-            return value;
-        };
+        }
 
-        return walk(data) as CharacterCardV3Data;
-    })
-        .transform((data) => {
-            const allowedKeys = new Set(Object.keys(CharacterCardV3Data.shape));
-            const extras = Object.entries(data).filter(
-                ([key]) => !allowedKeys.has(key)
-            );
+        data.extensions = extensions;
+        if (data.character_book === null) data.character_book = undefined;
 
-            for (const [key] of extras) delete data[key];
-
-            return {
-                ...data,
-                extensions: {
-                    ...data.extensions,
-                    ...extras
-                }
-            };
-        })
-        .transform((data) => {
-            if (data.character_book === null) {
-                data.character_book = undefined;
-            }
-
-            return data;
-        })
+        return data;
+    }, CharacterCardV3Data)
 });
 
 export function readCharacterImage(image: ArrayBuffer) {
@@ -322,26 +277,28 @@ export async function handleFileChange(
     const rawBuffer = await file.arrayBuffer();
 
     if (file.name.endsWith(".charx")) {
-        const { entries } = await unzip(rawBuffer);
+        const zipReader = new ZipReader(new BlobReader(file));
+        const entries = await zipReader.getEntries();
 
-        const keys = Object.keys(entries);
-        const cardKey = keys.find((key) => key === "card.json");
+        const card = entries.find((entry) => entry.filename === "card.json");
 
-        if (!cardKey) {
+        if (!card || card.directory) {
             toast.error("Uploaded CharX is missing card.json");
             return;
         }
 
-        const card = entries[cardKey];
-        parsedJSON = await card.json();
+        const cardData = await card.getData(new TextWriter());
+        parsedJSON = JSON.parse(cardData);
 
-        const embeddedResolver = async (path: string) => {
-            const file = entries[path];
-            if (!file) return null;
-            return await file.blob();
+        const embeddedResolver = async (filename: string) => {
+            const file = entries.find((entry) => entry.filename === filename);
+            if (!file || file.directory) return null;
+            const blobWriter = new BlobWriter();
+            return await file.getData(blobWriter);
         };
 
         await importCharacter(parsedJSON, undefined, true, embeddedResolver);
+        zipReader.close();
         return;
     }
 
@@ -360,4 +317,37 @@ export async function handleFileChange(
     }
 
     await importCharacter(parsedJSON, rawBuffer, true);
+}
+
+export async function exportCharX(character: Character) {
+    const blobWriter = new BlobWriter("application/zip");
+    const zipWriter = new ZipWriter(blobWriter);
+
+    const card = JSON.stringify(character.data);
+    await zipWriter.add("card.json", new TextReader(card));
+
+    const filenames: string[] = [];
+    const paths: string[] = [];
+    for (const asset of character.data.assets) {
+        const filename = `${asset.name}.${asset.ext}`;
+        const type = asset.type.startsWith("x_") ? "other" : asset.type;
+        filenames.push(filename);
+        paths.push(`assets/${type}/${filename}`);
+    }
+
+    const assets = await Promise.all(
+        filenames.map((filename) => Asset.load(character.id, filename))
+    );
+
+    await Promise.all(
+        assets
+            .filter((asset) => asset !== undefined)
+            .map((asset, index) =>
+                zipWriter.add(paths[index], new BlobReader(asset.file))
+            )
+    );
+
+    zipWriter.close();
+    const charx = await blobWriter.getData();
+    return charx;
 }

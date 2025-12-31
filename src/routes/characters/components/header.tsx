@@ -13,14 +13,33 @@ import {
     AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { ButtonGroup } from "@/components/ui/button-group";
+import {
+    ButtonGroup,
+    ButtonGroupSeparator
+} from "@/components/ui/button-group";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 import { Character } from "@/database/schema/character";
 import { Chat } from "@/database/schema/chat";
 import { useCharacterContext } from "@/hooks/use-character-context";
 import { useCharacterFormContext } from "@/hooks/use-character-form-context";
+import { exportCharX } from "@/lib/character/io";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
-import { Edit, Heart, MessageCirclePlus, Trash2 } from "lucide-react";
+import {
+    Edit,
+    FileArchive,
+    FileBracesCorner,
+    FileImage,
+    Heart,
+    MessageCirclePlus,
+    MoreVertical,
+    Trash2
+} from "lucide-react";
 import { toast } from "sonner";
 
 export function Header({ character }: { character: Character }) {
@@ -42,6 +61,21 @@ export function Header({ character }: { character: Character }) {
 
     const toggleFavorite = async () => {
         await character.toggleFavorite();
+    };
+
+    const exportCharacter = async () => {
+        const charX = await exportCharX(character);
+        const file = new File([charX], `${character.data.name}.charx`, {
+            type: "application/zip"
+        });
+        const url = URL.createObjectURL(file);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     };
 
     return (
@@ -74,15 +108,12 @@ export function Header({ character }: { character: Character }) {
                     {character.data.extensions.monogatari?.tagline ??
                         character.data.creator_notes}
                 </Prose>
-                <TagList
-                    variant="outline"
-                    tags={character.data.tags}
-                    maxRows={1}
-                />
+                <TagList tags={character.data.tags} maxRows={1} />
             </div>
             <ButtonGroup className="[--radius:999rem]">
                 <ButtonGroup>
                     <Button
+                        type="button"
                         size="icon"
                         variant="secondary"
                         onClick={toggleFavorite}
@@ -96,17 +127,20 @@ export function Header({ character }: { character: Character }) {
                             fill={character.favorite ? "currentColor" : "none"}
                         />
                     </Button>
+                    <ButtonGroupSeparator />
                     <Button
-                        size="icon"
+                        type="button"
                         variant="secondary"
+                        size="icon"
                         onClick={() => setEditing(true)}
                     >
                         <Edit />
                     </Button>
+                    <ButtonGroupSeparator />
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button size="icon" variant="secondary">
-                                <Trash2 />
+                            <Button variant="secondary" size="icon">
+                                <Trash2 className="text-destructive" />
                             </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
@@ -133,9 +167,35 @@ export function Header({ character }: { character: Character }) {
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
+                    <ButtonGroupSeparator />
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                size="icon"
+                            >
+                                <MoreVertical className="mr-1" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={exportCharacter}>
+                                <FileArchive />
+                                Export as CharX
+                            </DropdownMenuItem>
+                            <DropdownMenuItem disabled>
+                                <FileImage />
+                                Export as PNG
+                            </DropdownMenuItem>
+                            <DropdownMenuItem disabled>
+                                <FileBracesCorner />
+                                Export as JSON
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </ButtonGroup>
                 <ButtonGroup>
-                    <Button size="icon" onClick={startNewChat}>
+                    <Button type="button" size="icon" onClick={startNewChat}>
                         <MessageCirclePlus />
                     </Button>
                 </ButtonGroup>
