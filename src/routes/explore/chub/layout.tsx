@@ -133,20 +133,24 @@ export default function ChubLayout() {
             // fetch the json and just use the image as main.png
             const json = await fetchCharacterJSON(job);
 
-            if (!json.data.source) json.data.source = [] as string[];
-            (json.data.source as string[]).push(
-                `chub:${job.fullPath}`,
-                job.max_res_url
-            );
+            const character = await importCharacter(json, arrayBuffer);
 
-            json.data.extensions.monogatari = {
-                ...json.data.extensions.monogatari,
-                tagline: job.tagline
-            };
+            await character.update({
+                source: [
+                    ...character.data.source,
+                    `chub:${job.fullPath}`,
+                    job.max_res_url
+                ],
+                extensions: {
+                    ...character.data.extensions,
+                    monogatari: {
+                        ...character.data.extensions.monogatari,
+                        tagline: job.tagline
+                    }
+                }
+            });
 
-            const record = await importCharacter(json, arrayBuffer);
-
-            toast.promise(scanGallery(record), {
+            toast.promise(scanGallery(character), {
                 loading: `Scanning ${job.name} for images...`,
                 success: ({ total, replaced }) => ({
                     message: "Scan completed successfully!",
@@ -158,7 +162,7 @@ export default function ChubLayout() {
                 }
             });
 
-            return { job, isUpdate, id: record.id };
+            return { job, isUpdate, id: character.id };
         },
         onMutate: ({ fullPath }: ChubCharacter) => {
             updateButtonState(fullPath, ButtonState.DOWNLOADING);

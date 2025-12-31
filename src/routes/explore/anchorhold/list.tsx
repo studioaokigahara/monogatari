@@ -1,5 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { db } from "@/database/monogatari-db";
+import { useMobile } from "@/hooks/use-mobile";
 import { importCharacter, readCharacterImage } from "@/lib/character/io";
 import { scanGallery } from "@/lib/character/scanner";
 import { AnchorholdPost } from "@/lib/explore/anchorhold/api";
@@ -182,30 +183,37 @@ export default function AnchorholdList({
                 ? fetchCharacterJSON(characterInfo.node)
                 : JSON.parse(readCharacterImage(arrayBuffer));
 
-            if (!json.data.source) json.data.source = [] as string[];
-            (json.data.source as string[]).push(`anchorhold:${post.id}`);
+            const character = await importCharacter(json, arrayBuffer);
 
-            json.data.extensions.anchorhold = {
-                ...json.data.extensions.anchorhold,
-                id: post.id
+            const updateData: Pick<
+                (typeof character)["data"],
+                "source" | "extensions"
+            > = {
+                source: [...character.data.source, `anchorhold:${post.id}`],
+                extensions: {
+                    ...character.data.extensions,
+                    anchorhold: {
+                        ...character.data.extensions.anchorhold,
+                        id: post.id
+                    }
+                }
             };
 
             if (characterInfo) {
-                (json.data.source as string[]).push(
+                updateData.source.push(
                     `chub:${characterInfo.node.fullPath}`,
                     characterInfo.node.max_res_url
                 );
-
-                json.data.extensions.monogatari = {
-                    ...json.data.extensions.monogatari,
+                updateData.extensions.monogatari = {
+                    ...character.data.extensions.monogatari,
                     tagline: characterInfo.node.tagline
                 };
             }
 
-            const record = await importCharacter(json, arrayBuffer);
+            await character.update(updateData);
 
-            toast.promise(scanGallery(record), {
-                loading: `Scanning ${record.data.name} for images...`,
+            toast.promise(scanGallery(character), {
+                loading: `Scanning ${character.data.name} for images...`,
                 success: ({ total, replaced }) => ({
                     message: "Scan completed successfully!",
                     description: `Downloaded ${total} images, and replaced ${replaced} URLs with embedded images.`
@@ -216,7 +224,7 @@ export default function AnchorholdList({
                 }
             });
 
-            return { post, isUpdate, record };
+            return { post, isUpdate, record: character };
         },
         onMutate: (post) => {
             updateButtonState(post.id, ButtonState.DOWNLOADING);
@@ -256,10 +264,11 @@ export default function AnchorholdList({
         }
     });
 
+    const isMobile = useMobile();
     const listRef = useRef<HTMLDivElement>(null);
     const virtualizer = useWindowVirtualizer({
         count: posts.length,
-        estimateSize: () => 384,
+        estimateSize: () => (isMobile ? 256 : 384),
         overscan: 4,
         scrollMargin: listRef.current?.offsetTop ?? 0,
         gap: 8
@@ -281,8 +290,11 @@ export default function AnchorholdList({
                 ref={listRef}
                 className="relative w-full pt-2 pb-4 overflow-auto space-y-2"
             >
-                {[...Array(8)].map((_, i) => (
-                    <Skeleton key={i} className="rounded-xl w-auto h-96" />
+                {[...Array(8)].map((_, index) => (
+                    <Skeleton
+                        key={`skeleton-${index}`}
+                        className="rounded-xl w-auto h-64 sm:h-96"
+                    />
                 ))}
             </div>
         );
