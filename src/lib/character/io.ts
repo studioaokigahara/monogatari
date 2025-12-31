@@ -323,7 +323,11 @@ export async function exportCharX(character: Character) {
     const blobWriter = new BlobWriter("application/zip");
     const zipWriter = new ZipWriter(blobWriter);
 
-    const card = JSON.stringify(character.data);
+    const card = JSON.stringify({
+        spec: "chara_card_v3",
+        spec_version: "3.0",
+        data: character.data
+    });
     await zipWriter.add("card.json", new TextReader(card));
 
     const filenames: string[] = [];
