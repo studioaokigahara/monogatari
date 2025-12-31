@@ -60,7 +60,7 @@ export function ChubCharacterItem({
         <Item
             variant="muted"
             className={cn(
-                "overflow-hidden transition duration-75 will-change-[scale,box-shadow] hover:scale-102 hover:shadow-lg hover:shadow-current/50",
+                "overflow-hidden",
                 isDownloaded && "ring-2 ring-green-500/50"
             )}
         >

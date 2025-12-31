@@ -1,5 +1,5 @@
 import { Prose } from "@/components/prose";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
     Item,
@@ -27,7 +27,7 @@ export default function AnchorholdCard({
     return (
         <Item
             variant="muted"
-            className="flex flex-row h-96 items-start overflow-hidden transition duration-75 will-change-[translate,box-shadow] hover:-translate-y-1 hover:shadow-lg hover:shadow-gray-500/50"
+            className="flex flex-row h-96 items-start overflow-hidden"
         >
             <ItemMedia className="h-full">
                 <Avatar className="max-h-full aspect-2/3 size-[unset] overflow-visible">

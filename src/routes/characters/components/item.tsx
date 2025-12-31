@@ -1,9 +1,5 @@
 import { TagList } from "@/components/tags";
-import { Character } from "@/database/schema/character";
-import { useImageURL } from "@/hooks/use-image-url";
-import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
     Item,
     ItemContent,
@@ -12,6 +8,10 @@ import {
     ItemMedia,
     ItemTitle
 } from "@/components/ui/item";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Character } from "@/database/schema/character";
+import { useImageURL } from "@/hooks/use-image-url";
+import { Link } from "@tanstack/react-router";
 
 export default function CharacterItem({ character }: { character: Character }) {
     const imageURL = useImageURL({
@@ -23,7 +23,7 @@ export default function CharacterItem({ character }: { character: Character }) {
     return (
         <Item
             variant="outline"
-            className="h-48 flex-nowrap p-2 gap-2 overflow-hidden transition duration-75 hover:-translate-y-1"
+            className="h-48 flex-nowrap p-2 gap-2 overflow-hidden"
         >
             <ItemMedia className="h-full aspect-2/3 translate-y-[unset]!">
                 <Link to="/characters/$id" params={{ id: character.id }}>
