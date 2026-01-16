@@ -184,7 +184,7 @@ function CharacterProfile({ character }: { character: Character }) {
                 {editing ? <HeaderFields form={form} /> : <ProfileHeader character={character} />}
             </div>
             <Tabs value={tab ?? "description"} onValueChange={setTab} className="mb-2 gap-4">
-                <TabsList className="sticky top-18 w-full sm:top-2">
+                <TabsList className="sticky top-18 w-full max-sm:grid max-sm:h-auto max-sm:grid-cols-2 max-sm:grid-rows-2 max-sm:*:h-9 sm:top-2">
                     <TabsTrigger value="description">
                         <Text />
                         Description
