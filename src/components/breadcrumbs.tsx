@@ -6,46 +6,46 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useMatches } from "@tanstack/react-router";
 import { Fragment } from "react";
 
 export function Breadcrumbs() {
-    const matches = useRouterState({ select: (state) => state.matches });
+    const matches = useMatches();
 
     const breadcrumbData = matches.flatMap((match) => {
         const label = match.context.breadcrumb;
 
-        if (!label || !label.trim()) return [];
-
-        return [
-            {
-                label,
-                to: match.pathname,
-                params: match.params
-            }
-        ];
+        return label?.trim()
+            ? [
+                  {
+                      label,
+                      to: match.pathname,
+                      params: match.params
+                  }
+              ]
+            : [];
     });
 
-    const breadcrumbs = breadcrumbData.map(({ label, to, params }, index) => {
-        const last = index === breadcrumbData.length - 1;
-        const key = `${to}-${index}`;
-        return (
-            <Fragment key={key}>
+    const breadcrumbs = breadcrumbData.map(({ label, to, params }, index) => (
+        <Fragment key={`${to}-${index}`}>
+            {index === breadcrumbData.length - 1 ? (
                 <BreadcrumbItem>
-                    {last ? (
-                        <BreadcrumbPage>{label}</BreadcrumbPage>
-                    ) : (
+                    <BreadcrumbPage>{label}</BreadcrumbPage>
+                </BreadcrumbItem>
+            ) : (
+                <>
+                    <BreadcrumbItem>
                         <BreadcrumbLink asChild>
                             <Link to={to} params={params}>
                                 {label}
                             </Link>
                         </BreadcrumbLink>
-                    )}
-                </BreadcrumbItem>
-                {!last && <BreadcrumbSeparator />}
-            </Fragment>
-        );
-    });
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                </>
+            )}
+        </Fragment>
+    ));
 
     if (breadcrumbs.length === 0) return null;
 
