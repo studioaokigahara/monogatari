@@ -10,7 +10,7 @@ export default function GraphLoader({ id }: { id: string }) {
     useEffect(() => {
         let canceled = false;
 
-        Chat.load(id).then((result) => {
+        void Chat.load(id).then((result) => {
             if (canceled) return;
             setGraph(result?.graph ?? new ChatGraph(id));
         });
