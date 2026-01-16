@@ -1,8 +1,18 @@
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+    CommandDialog,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+    CommandSeparator,
+    CommandShortcut
+} from "@/components/ui/command";
+import { useCharacterContext } from "@/contexts/character";
 import { db } from "@/database/monogatari-db";
-import { Character } from "@/database/schema/character";
-import { useCharacterContext } from "@/hooks/use-character-context";
 import { useImageURL } from "@/hooks/use-image-url";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
     BookMarked,
@@ -15,26 +25,14 @@ import {
     Users
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import {
-    CommandDialog,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-    CommandSeparator,
-    CommandShortcut
-} from "./ui/command";
 
 export function CommandMenu() {
     const [open, setOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState<string>("");
 
     useEffect(() => {
-        const down = (e: KeyboardEvent) => {
-            if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault();
+        const down = (event: KeyboardEvent) => {
+            if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
+                event.preventDefault();
                 setOpen((open) => !open);
             }
         };
@@ -43,74 +41,55 @@ export function CommandMenu() {
     }, []);
 
     const navigate = useNavigate();
-
-    const navigateToPage = (pathname: string) => {
+    const selectItem = (pathname: string) => {
         void navigate({ to: pathname });
         setOpen(false);
     };
 
-    const characters = useLiveQuery(
-        () =>
-            db.characters
-                .orderBy("data.name")
-                .filter((character: Character) =>
-                    character.data.name
-                        .toLowerCase()
-                        .includes(searchTerm.toLowerCase())
-                )
-                .toArray(),
-        [searchTerm]
-    );
-
+    const characters = useLiveQuery(() => db.characters.orderBy("data.name").toArray(), []);
     const characterImages = useImageURL(
-        characters?.map((character) => ({
-            category: "character" as const,
-            id: character.id,
-            assets: character.data.assets
-        }))
+        characters?.map((character) => {
+            const avatar = character.data.assets.find((asset) => asset.name === "avatar");
+            return {
+                category: "character" as const,
+                id: character.id,
+                assets: character.data.assets,
+                filename: avatar ? `avatar.${avatar.ext}` : undefined
+            };
+        })
     );
-
-    const selectCharacter = (characterName: string) => {
-        const character = characters?.find(
-            (character) => character.data.name === characterName
-        );
-
-        if (character) {
-            navigateToPage(`/characters/${character.id}`);
-        }
-    };
 
     const characterItems = characters?.map((character, index) => (
-        <CommandItem key={character.id} onSelect={selectCharacter}>
-            <Avatar>
-                <AvatarImage
-                    src={characterImages?.[index]}
-                    alt={character.data.name}
-                    className="object-cover"
-                />
-                <AvatarFallback>
-                    {character.data.name.slice(0, 2)}
-                </AvatarFallback>
-            </Avatar>
-            <span>{character.data.name}</span>
-            {character.favorite === 1 && (
-                <Heart fill="currentColor" className="text-pink-400" />
-            )}
+        <CommandItem
+            key={character.id}
+            onSelect={() => {
+                void navigate({ to: "/characters/$id", params: { id: character.id } });
+                setOpen(false);
+            }}
+            asChild
+        >
+            <Link
+                to="/characters/$id"
+                params={{ id: character.id }}
+                onClick={(event) => event.stopPropagation()}
+            >
+                <Avatar>
+                    <AvatarImage
+                        src={characterImages?.[index]}
+                        alt={character.data.name}
+                        className="object-cover"
+                    />
+                    <AvatarFallback>{character.data.name.slice(0, 2)}</AvatarFallback>
+                </Avatar>
+                {character.data.name}
+                {character.favorite === 1 && (
+                    <Heart fill="currentColor" className="text-pink-400" />
+                )}
+            </Link>
         </CommandItem>
     ));
 
-    const personas = useLiveQuery(
-        () =>
-            db.personas
-                .filter((persona) =>
-                    persona.name
-                        .toLowerCase()
-                        .includes(searchTerm.toLowerCase())
-                )
-                .toArray(),
-        [searchTerm]
-    );
-
+    const personas = useLiveQuery(() => db.personas.orderBy("name").toArray(), []);
     const personaImages = useImageURL(
         personas?.map((persona) => ({
             category: "persona" as const,
@@ -119,19 +98,14 @@ export function CommandMenu() {
     );
 
     const { setPersona } = useCharacterContext();
-    const selectPersona = (personaName: string) => {
-        const persona = personas?.find(
-            (persona) => persona.name === personaName
-        );
-
-        if (persona) {
-            setPersona(persona);
-            setOpen(false);
-        }
-    };
-
     const personaItems = personas?.map((persona, index) => (
-        <CommandItem key={persona.id} onSelect={selectPersona}>
+        <CommandItem
+            key={persona.id}
+            onSelect={() => {
+                setPersona(persona);
+                setOpen(false);
+            }}
+        >
             <Avatar>
                 <AvatarImage
                     src={personaImages?.[index]}
@@ -140,69 +114,54 @@ export function CommandMenu() {
                 />
                 <AvatarFallback>{persona.name.slice(0, 2)}</AvatarFallback>
             </Avatar>
-            <span>{persona.name}</span>
+            {persona.name}
         </CommandItem>
     ));
 
     return (
         <CommandDialog open={open} onOpenChange={setOpen}>
-            <CommandInput
-                placeholder="Type a command or search..."
-                value={searchTerm}
-                onValueChange={setSearchTerm}
-            />
+            <CommandInput placeholder="Search..." />
             <CommandList>
                 <CommandEmpty>No results found.</CommandEmpty>
                 <CommandGroup heading="Suggestions">
-                    <CommandItem value="/characters" onSelect={navigateToPage}>
+                    <CommandItem value="/characters" onSelect={selectItem}>
                         <Users />
                         <span>Characters</span>
                     </CommandItem>
-                    <CommandItem value="/explore" onSelect={navigateToPage}>
+                    <CommandItem value="/explore" onSelect={selectItem}>
                         <Shapes />
                         <span>Explore</span>
                     </CommandItem>
-                    <CommandItem value="/personas" onSelect={navigateToPage}>
+                    <CommandItem value="/personas" onSelect={selectItem}>
                         <User />
                         <span>Personas</span>
                     </CommandItem>
                 </CommandGroup>
                 <CommandSeparator />
                 <CommandGroup heading="Settings">
-                    <CommandItem value="/settings" onSelect={navigateToPage}>
+                    <CommandItem value="/settings" onSelect={selectItem}>
                         <SlidersHorizontal />
                         <span>General</span>
                         <CommandShortcut>⌘S</CommandShortcut>
                     </CommandItem>
-                    <CommandItem
-                        value="/settings/api"
-                        onSelect={navigateToPage}
-                    >
+                    <CommandItem value="/settings/api" onSelect={selectItem}>
                         <Plug />
                         <span>API</span>
                         <CommandShortcut>⌘A</CommandShortcut>
                     </CommandItem>
-                    <CommandItem
-                        value="/settings/presets"
-                        onSelect={navigateToPage}
-                    >
+                    <CommandItem value="/settings/presets" onSelect={selectItem}>
                         <FileText />
                         <span>Presets</span>
                         <CommandShortcut>⌘P</CommandShortcut>
                     </CommandItem>
-                    <CommandItem
-                        value="/settings/lorebooks"
-                        onSelect={navigateToPage}
-                    >
+                    <CommandItem value="/settings/lorebooks" onSelect={selectItem}>
                         <BookMarked />
                         <span>Lorebooks</span>
                         <CommandShortcut>⌘L</CommandShortcut>
                     </CommandItem>
                 </CommandGroup>
                 <CommandSeparator />
-                <CommandGroup heading="Characters">
-                    {characterItems}
-                </CommandGroup>
+                <CommandGroup heading="Characters">{characterItems}</CommandGroup>
                 <CommandSeparator />
                 <CommandGroup heading="Personas">{personaItems}</CommandGroup>
             </CommandList>
