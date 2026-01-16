@@ -1,4 +1,4 @@
-import { Prose } from "@/components/prose";
+import { Markdown } from "@/components/markdown";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Character } from "@/database/schema/character";
@@ -37,9 +37,9 @@ export function Greetings({ character }: { character: Character }) {
                     </TabsList>
                 </CardHeader>
                 <CardContent className="overflow-y-auto">
-                    <Prose>
+                    <Markdown>
                         {greetings[activeIndex] || "*Click to add greeting...*"}
-                    </Prose>
+                    </Markdown>
                 </CardContent>
             </Tabs>
         </Card>

@@ -1,4 +1,4 @@
-import { Prose } from "@/components/prose";
+import { Markdown } from "@/components/markdown";
 import { Card, CardContent } from "@/components/ui/card";
 import { Character } from "@/database/schema/character";
 
@@ -51,12 +51,12 @@ export function ExampleDialogue({ character }: { character: Character }) {
     );
 
     const exampleDialogue = formattedExamples.map((example) => (
-        <Prose
+        <Markdown
             key={example.slice(0, 9)}
             className="text-(--tw-prose-body) [&_li]:pl-0 [&_li]:mb-[1lh] [&_ul]:pl-0 [&_ul_li::marker]:text-transparent"
         >
             {example}
-        </Prose>
+        </Markdown>
     ));
 
     return (
@@ -65,7 +65,7 @@ export function ExampleDialogue({ character }: { character: Character }) {
                 {formattedExamples.length ? (
                     <>{exampleDialogue}</>
                 ) : (
-                    <Prose>*No example dialogue... yet.*</Prose>
+                    <Markdown>*No example dialogue... yet.*</Markdown>
                 )}
             </CardContent>
         </Card>
