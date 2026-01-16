@@ -1,18 +1,6 @@
+import { FNV1a } from "@/lib/utils";
 import { MacroContext, MacroRuntime } from "@/types/macros";
-import get from "lodash.get";
 import { DateTime } from "luxon";
-import type { Plugin } from "unified";
-import { visit } from "unist-util-visit";
-
-function FNV1a(string: string): number {
-    let hash = 0x811c9dc5;
-    for (let i = 0; i < string.length; i++) {
-        hash ^= string.charCodeAt(i);
-        hash = Math.imul(hash, 0x01000193);
-    }
-    hash = hash >>> 0;
-    return hash / 0x100000000;
-}
 
 function splitValues(string: string): string[] {
     let value = "";
@@ -37,12 +25,10 @@ function splitValues(string: string): string[] {
     return result;
 }
 
-function pick(
-    runtime: MacroRuntime,
-    body: string,
-    payload: string,
-    values: string[]
-): string {
+function pick(runtime: MacroRuntime, body: string, payload: string): string {
+    const values = splitValues(payload);
+    if (!values.length) return "";
+
     const mapKey = `${runtime.seed}::${runtime.pickKey}::${body}::${payload}`;
     const cached = runtime.pickMap.get(mapKey);
     if (cached) return cached;
@@ -54,9 +40,7 @@ function pick(
 }
 
 function roll(arg: string): string {
-    const number = /^d(\d+)$/i.test(arg)
-        ? parseInt(arg.slice(1), 10)
-        : parseInt(arg, 10);
+    const number = /^d(\d+)$/i.test(arg) ? parseInt(arg.slice(1), 10) : parseInt(arg, 10);
     if (isNaN(number) || number < 1) return "0";
     return String(Math.floor(Math.random() * number) + 1);
 }
@@ -96,19 +80,13 @@ function setVariable(body: string) {
 /**
  * Process the body of one `{{...}}` macro (the text inside the braces).
  */
-function processMacroBody(
-    body: string,
-    runtime: MacroRuntime,
-    context?: MacroContext
-): string {
+function processMacroBody(body: string, runtime: MacroRuntime, context?: MacroContext): string {
     const macro = `{{${body}}}`;
     const { character, persona, variables } = context ?? {};
 
     const getvar = getVariable(body);
     if (getvar) {
-        if (!variables) return macro;
-        const value = variables[getvar.variable];
-        return typeof value === "string" ? value : "";
+        return variables ? variables[getvar.variable] : macro;
     }
 
     const setvar = setVariable(body);
@@ -135,44 +113,29 @@ function processMacroBody(
 
     if (key.startsWith("char.")) {
         if (!character) return macro;
-        const path = key
-            .slice(5)
-            .replace(/\[(\d+)]/g, ".$1")
-            .split(".")
-            .filter(Boolean);
-        const value = get(character?.data, path);
-        return Array.isArray(value) ? value.join("\n") : String(value);
+        const property = key.slice(5);
+        const value = character.data[property as keyof typeof character.data];
+        if (value === undefined || value === null) return "";
+        return Array.isArray(value) ? value.join("\n") : (value as string);
     }
 
     const payload = rawPayload.includes("{{")
-        ? replaceMacro(
-              rawPayload,
-              { ...runtime, pickKey: `${runtime.pickKey}::payload` },
-              context
-          )
+        ? replaceMacro(rawPayload, { ...runtime, pickKey: `${runtime.pickKey}::payload` }, context)
         : rawPayload;
 
     switch (key) {
         case "char":
             if (!character) return macro;
-            return character.data.nickname
-                ? character.data.nickname
-                : character.data.name;
+            return character.data.nickname ? character.data.nickname : character.data.name;
         case "user":
-            if (!persona) return macro;
-            return persona.name;
+            return persona ? persona.name : macro;
         case "user.description":
-            if (!persona) return macro;
-            return persona.description;
-        case "random": {
+            return persona ? persona.description : macro;
+        case "random":
             const values = splitValues(payload);
-            return values.length
-                ? values[Math.floor(Math.random() * values.length)]
-                : "";
-        }
+            return values.length ? values[Math.floor(Math.random() * values.length)] : "";
         case "pick":
-            const values = splitValues(payload);
-            return values.length ? pick(runtime, body, payload, values) : "";
+            return pick(runtime, body, payload);
         case "roll":
             return roll(payload);
         case "hidden_key":
@@ -192,11 +155,7 @@ function processMacroBody(
     }
 }
 
-function replaceMacro(
-    text: string,
-    runtime: MacroRuntime,
-    context?: MacroContext
-) {
+function replaceMacro(text: string, runtime: MacroRuntime, context?: MacroContext) {
     let i = 0;
     const parts: string[] = [];
     while (i < text.length) {
