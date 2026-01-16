@@ -43,8 +43,7 @@ class OpenRouterRegistryManager {
 
     static getInstance(): OpenRouterRegistryManager {
         if (!OpenRouterRegistryManager.instance) {
-            OpenRouterRegistryManager.instance =
-                new OpenRouterRegistryManager();
+            OpenRouterRegistryManager.instance = new OpenRouterRegistryManager();
         }
         return OpenRouterRegistryManager.instance;
     }
@@ -106,62 +105,49 @@ class OpenRouterRegistryManager {
         }
     }
 
-    private transformModel(
-        apiModel: OpenRouterModel
-    ): Model<"openrouter"> | null {
+    private transformModel(model: OpenRouterModel): Model<"openrouter"> | null {
         try {
-            if (!apiModel.context_length || apiModel.context_length <= 0) {
+            if (!model.context_length || model.context_length <= 0) {
                 return null;
             }
 
             const supportsTools =
-                apiModel.supported_parameters?.includes("tools") ||
-                apiModel.supported_parameters?.includes("tool_choice") ||
+                model.supported_parameters?.includes("tools") ||
+                model.supported_parameters?.includes("tool_choice") ||
                 false;
             const supportsReasoning =
-                apiModel.supported_parameters?.includes("reasoning") ||
-                apiModel.supported_parameters?.includes("include_reasoning");
+                model.supported_parameters?.includes("reasoning") ||
+                model.supported_parameters?.includes("include_reasoning");
             const supportsStructuredOutputs =
-                apiModel.supported_parameters?.includes("structured_outputs") ||
-                apiModel.supported_parameters?.includes("response_format");
+                model.supported_parameters?.includes("structured_outputs") ||
+                model.supported_parameters?.includes("response_format");
 
-            const promptPrice = parseFloat(apiModel.pricing?.prompt || "0");
-            const completionPrice = parseFloat(
-                apiModel.pricing?.completion || "0"
-            );
+            const promptPrice = parseFloat(model.pricing?.prompt || "0");
+            const completionPrice = parseFloat(model.pricing?.completion || "0");
 
-            if (apiModel.architecture.input_modalities.includes("file")) {
-                const index =
-                    apiModel.architecture.input_modalities.indexOf("file");
-                apiModel.architecture.input_modalities.splice(index, 1, "pdf");
+            if (model.architecture.input_modalities.includes("file")) {
+                const index = model.architecture.input_modalities.indexOf("file");
+                model.architecture.input_modalities.splice(index, 1, "pdf");
             }
 
-            if (apiModel.architecture.output_modalities.includes("file")) {
-                const index =
-                    apiModel.architecture.output_modalities.indexOf("file");
-                apiModel.architecture.output_modalities.splice(index, 1, "pdf");
+            if (model.architecture.output_modalities.includes("file")) {
+                const index = model.architecture.output_modalities.indexOf("file");
+                model.architecture.output_modalities.splice(index, 1, "pdf");
             }
 
             return {
-                id: apiModel.id,
-                name: apiModel.name || apiModel.id,
-                description: apiModel.description || "",
-                contextLength: apiModel.context_length,
-                maxOutputTokens:
-                    apiModel.top_provider?.max_completion_tokens || 4096,
+                id: model.id,
+                name: model.name || model.id,
+                description: model.description || "",
+                contextLength: model.context_length,
+                maxOutputTokens: model.top_provider?.max_completion_tokens || 4096,
                 price: {
-                    input: parseFloat(
-                        Number(promptPrice * 1_000_000).toFixed(2)
-                    ),
-                    output: parseFloat(
-                        Number(completionPrice * 1_000_000).toFixed(2)
-                    )
+                    input: parseFloat(Number(promptPrice * 1_000_000).toFixed(2)),
+                    output: parseFloat(Number(completionPrice * 1_000_000).toFixed(2))
                 },
                 modalities: {
-                    input: apiModel.architecture
-                        ?.input_modalities as Modality[],
-                    output: apiModel.architecture
-                        ?.output_modalities as Modality[]
+                    input: model.architecture?.input_modalities as Modality[],
+                    output: model.architecture?.output_modalities as Modality[]
                 },
                 supports: {
                     streaming: true,
@@ -171,7 +157,7 @@ class OpenRouterRegistryManager {
                 }
             };
         } catch (error) {
-            console.error("Error transforming model:", apiModel?.id, error);
+            console.error("Error transforming model:", model?.id, error);
             return null;
         }
     }
@@ -184,11 +170,9 @@ class OpenRouterRegistryManager {
 
         const data = await response.json();
         return data.data
-            .map(this.transformModel)
+            .map((model: OpenRouterModel) => this.transformModel(model))
             .filter(Boolean)
-            .sort((a: Model<"openrouter">, b: Model<"openrouter">) =>
-                a.name.localeCompare(b.name)
-            );
+            .sort((a: Model<"openrouter">, b: Model<"openrouter">) => a.name.localeCompare(b.name));
     }
 
     getModels() {
@@ -241,11 +225,7 @@ class OpenRouterRegistryManager {
         };
 
         const prefix = modelId.split("/")[0] || "";
-        return (
-            providerMap[prefix] ||
-            prefix.charAt(0).toUpperCase() + prefix.slice(1) ||
-            "Other"
-        );
+        return providerMap[prefix] || prefix.charAt(0).toUpperCase() + prefix.slice(1) || "Other";
     }
 }
 
