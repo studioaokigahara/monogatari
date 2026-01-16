@@ -265,17 +265,3 @@ export function replaceMacros(text: string, context?: MacroContext): string {
 
     return replaceMacro(text, runtime, context);
 }
-
-export const remarkCurlyBraceSyntax: Plugin<[MacroContext?]> = (props = {}) => {
-    return (tree) => {
-        visit(tree, ["text", "code", "inlineCode"] as const, (node) => {
-            if (
-                "value" in node &&
-                typeof node.value === "string" &&
-                node.value.includes("{{")
-            ) {
-                node.value = replaceMacros(node.value, props);
-            }
-        });
-    };
-};
