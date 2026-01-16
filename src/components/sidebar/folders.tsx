@@ -19,9 +19,9 @@ import {
     SidebarMenu,
     SidebarMenuAction,
     SidebarMenuButton,
-    SidebarMenuItem,
-    useSidebar
+    SidebarMenuItem
 } from "@/components/ui/sidebar";
+import { useSidebarContext } from "@/contexts/sidebar";
 import { Link } from "@tanstack/react-router";
 
 export function NavFolders({
@@ -33,7 +33,7 @@ export function NavFolders({
         icon: LucideIcon;
     }[];
 }) {
-    const { isMobile } = useSidebar();
+    const { isMobile } = useSidebarContext();
 
     const sidebarItems = folders.map((item) => (
         <SidebarMenuItem key={item.name}>

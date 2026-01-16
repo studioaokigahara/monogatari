@@ -1,10 +1,5 @@
 import { Button } from "@/components/ui/button";
-import {
-    Field,
-    FieldError,
-    FieldGroup,
-    FieldLabel
-} from "@/components/ui/field";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
     Select,
@@ -16,21 +11,10 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Preset, Prompt } from "@/database/schema/preset";
-import useAutosave from "@/hooks/use-autosave";
 import { cn, generateCuid2 } from "@/lib/utils";
-import { useForm, useStore } from "@tanstack/react-form";
-import {
-    Bot,
-    ListEnd,
-    ListStart,
-    Plus,
-    Save,
-    Terminal,
-    Trash2,
-    User,
-    X
-} from "lucide-react";
-import { useCallback, useEffect } from "react";
+import { useForm } from "@tanstack/react-form";
+import { Bot, ListEnd, ListStart, Plus, Save, Terminal, Trash2, User, X } from "lucide-react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 
 interface PromptEditorProps {
@@ -57,30 +41,18 @@ export function PromptEditor({
                     description: error.message
                 });
             });
+        },
+        listeners: {
+            onChangeDebounceMs: 500,
+            onChange: ({ formApi: form }) => {
+                if (form.state.isValid && !form.state.isSubmitting) {
+                    form.handleSubmit();
+                }
+            }
         }
     });
 
     useEffect(() => form.reset(selectedPreset), [form, selectedPreset]);
-
-    const [isDirty, isValid, isSubmitting, values] = useStore(
-        form.store,
-        (state) => [
-            state.isDirty,
-            state.isValid,
-            state.isSubmitting,
-            state.values
-        ]
-    );
-
-    const handleSubmit = useCallback(() => form.handleSubmit(), [form]);
-
-    useAutosave({
-        isDirty,
-        isValid,
-        isSubmitting,
-        values,
-        handleSubmit
-    });
 
     const addPrompt = () => {
         const newPrompt: Prompt = {
@@ -114,7 +86,7 @@ export function PromptEditor({
 
     return (
         <form
-            className="flex flex-col grow pb-2 gap-4 overflow-y-auto"
+            className="flex flex-col grow pt-6 pb-2 gap-4 overflow-y-auto @container"
             onSubmit={(event) => {
                 event.preventDefault();
                 void form.handleSubmit();
@@ -124,56 +96,36 @@ export function PromptEditor({
                 <FieldGroup>
                     <form.Field name="name">
                         {(field) => {
-                            const invalid =
-                                field.state.meta.isTouched &&
-                                !field.state.meta.isValid;
+                            const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
                             return (
                                 <Field data-invalid={invalid} className="gap-1">
-                                    <FieldLabel htmlFor={field.name}>
-                                        Name
-                                    </FieldLabel>
+                                    <FieldLabel htmlFor={field.name}>Name</FieldLabel>
                                     <Input
                                         id={field.name}
                                         name={field.name}
                                         value={field.state.value}
                                         onBlur={field.handleBlur}
-                                        onChange={(e) =>
-                                            field.handleChange(e.target.value)
-                                        }
+                                        onChange={(e) => field.handleChange(e.target.value)}
                                     />
-                                    {invalid && (
-                                        <FieldError
-                                            errors={field.state.meta.errors}
-                                        />
-                                    )}
+                                    {invalid && <FieldError errors={field.state.meta.errors} />}
                                 </Field>
                             );
                         }}
                     </form.Field>
                     <form.Field name="description">
                         {(field) => {
-                            const invalid =
-                                field.state.meta.isTouched &&
-                                !field.state.meta.isValid;
+                            const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
                             return (
                                 <Field data-invalid={invalid} className="gap-1">
-                                    <FieldLabel htmlFor={field.name}>
-                                        Description
-                                    </FieldLabel>
+                                    <FieldLabel htmlFor={field.name}>Description</FieldLabel>
                                     <Textarea
                                         id={field.name}
                                         name={field.name}
                                         value={field.state.value}
                                         onBlur={field.handleBlur}
-                                        onChange={(e) =>
-                                            field.handleChange(e.target.value)
-                                        }
+                                        onChange={(e) => field.handleChange(e.target.value)}
                                     />
-                                    {invalid && (
-                                        <FieldError
-                                            errors={field.state.meta.errors}
-                                        />
-                                    )}
+                                    {invalid && <FieldError errors={field.state.meta.errors} />}
                                 </Field>
                             );
                         }}
@@ -183,11 +135,9 @@ export function PromptEditor({
                     <form.Field name="prompts" mode="array">
                         {() => (
                             <>
-                                <div className="flex justify-between">
+                                <div className="flex @max-md:flex-wrap @max-md:gap-2 justify-between">
                                     <form.Subscribe
-                                        selector={(state) =>
-                                            state.values.prompts[promptIndex]
-                                        }
+                                        selector={(state) => state.values.prompts[promptIndex]}
                                     >
                                         {(prompt) => (
                                             <div className="my-auto space-x-2">
@@ -196,44 +146,24 @@ export function PromptEditor({
                                                 >
                                                     {(field) => {
                                                         const invalid =
-                                                            field.state.meta
-                                                                .isTouched &&
-                                                            !field.state.meta
-                                                                .isValid;
+                                                            field.state.meta.isTouched &&
+                                                            !field.state.meta.isValid;
                                                         return (
-                                                            <Field
-                                                                data-invalid={
-                                                                    invalid
-                                                                }
-                                                            >
+                                                            <Field data-invalid={invalid}>
                                                                 <FieldLabel
-                                                                    htmlFor={
-                                                                        field.name
-                                                                    }
+                                                                    htmlFor={field.name}
                                                                     className={cn(
                                                                         "text-base bg-[unset]!",
-                                                                        getRoleColor(
-                                                                            prompt.role
-                                                                        )
+                                                                        getRoleColor(prompt.role)
                                                                     )}
                                                                 >
                                                                     <span className="max-w-[27ch] text-balance font-semibold mb-px truncate">
-                                                                        {
-                                                                            prompt.name
-                                                                        }
+                                                                        {prompt.name}
                                                                     </span>
                                                                     <Switch
-                                                                        id={
-                                                                            field.name
-                                                                        }
-                                                                        name={
-                                                                            field.name
-                                                                        }
-                                                                        checked={
-                                                                            field
-                                                                                .state
-                                                                                .value
-                                                                        }
+                                                                        id={field.name}
+                                                                        name={field.name}
+                                                                        checked={field.state.value}
                                                                         onCheckedChange={(
                                                                             checked
                                                                         ) =>
@@ -243,22 +173,14 @@ export function PromptEditor({
                                                                         }
                                                                     />
                                                                     <span className="text-xs bg-muted px-2 py-1 rounded capitalize">
-                                                                        {
-                                                                            prompt.role
-                                                                        }{" "}
-                                                                        •{" "}
-                                                                        {
-                                                                            prompt.position
-                                                                        }
+                                                                        {prompt.role} •{" "}
+                                                                        {prompt.position}
                                                                     </span>
                                                                 </FieldLabel>
                                                                 {invalid && (
                                                                     <FieldError
                                                                         errors={
-                                                                            field
-                                                                                .state
-                                                                                .meta
-                                                                                .errors
+                                                                            field.state.meta.errors
                                                                         }
                                                                     />
                                                                 )}
@@ -279,38 +201,25 @@ export function PromptEditor({
                                             {([isSubmitting, isValid]) => (
                                                 <Button
                                                     type="submit"
-                                                    disabled={
-                                                        isSubmitting || !isValid
-                                                    }
+                                                    disabled={isSubmitting || !isValid}
                                                 >
                                                     <Save />
-                                                    {isSubmitting
-                                                        ? "Saving..."
-                                                        : "Save"}
+                                                    {isSubmitting ? "Saving..." : "Save"}
                                                 </Button>
                                             )}
                                         </form.Subscribe>
                                         <Button
                                             variant="outline"
-                                            onClick={() =>
-                                                updateSelectedPreset("")
-                                            }
+                                            onClick={() => updateSelectedPreset("")}
                                         >
                                             <X />
                                             Cancel
                                         </Button>
-                                        <Button
-                                            variant="outline"
-                                            onClick={addPrompt}
-                                        >
+                                        <Button variant="outline" onClick={addPrompt}>
                                             <Plus />
                                             New
                                         </Button>
-                                        <form.Subscribe
-                                            selector={(state) =>
-                                                state.isSubmitting
-                                            }
-                                        >
+                                        <form.Subscribe selector={(state) => state.isSubmitting}>
                                             {(isSubmitting) => (
                                                 <Button
                                                     variant="destructive"
@@ -324,84 +233,53 @@ export function PromptEditor({
                                         </form.Subscribe>
                                     </div>
                                 </div>
-                                <form.Field
-                                    name={`prompts[${promptIndex}].name`}
-                                >
+                                <form.Field name={`prompts[${promptIndex}].name`}>
                                     {(field) => {
                                         const invalid =
-                                            field.state.meta.isTouched &&
-                                            !field.state.meta.isValid;
+                                            field.state.meta.isTouched && !field.state.meta.isValid;
                                         return (
-                                            <Field
-                                                data-invalid={invalid}
-                                                className="gap-1"
-                                            >
-                                                <FieldLabel
-                                                    htmlFor={field.name}
-                                                >
-                                                    Name
-                                                </FieldLabel>
+                                            <Field data-invalid={invalid} className="gap-1">
+                                                <FieldLabel htmlFor={field.name}>Name</FieldLabel>
                                                 <Input
                                                     id={field.name}
                                                     name={field.name}
                                                     value={field.state.value}
                                                     onBlur={field.handleBlur}
                                                     onChange={(e) =>
-                                                        field.handleChange(
-                                                            e.target.value
-                                                        )
+                                                        field.handleChange(e.target.value)
                                                     }
                                                 />
                                                 {invalid && (
-                                                    <FieldError
-                                                        errors={
-                                                            field.state.meta
-                                                                .errors
-                                                        }
-                                                    />
+                                                    <FieldError errors={field.state.meta.errors} />
                                                 )}
                                             </Field>
                                         );
                                     }}
                                 </form.Field>
                                 <FieldGroup className="flex flex-row">
-                                    <form.Field
-                                        name={`prompts[${promptIndex}].role`}
-                                    >
+                                    <form.Field name={`prompts[${promptIndex}].role`}>
                                         {(field) => {
                                             const invalid =
                                                 field.state.meta.isTouched &&
                                                 !field.state.meta.isValid;
                                             return (
-                                                <Field
-                                                    data-invalid={invalid}
-                                                    className="gap-1"
-                                                >
-                                                    <FieldLabel
-                                                        htmlFor={field.name}
-                                                    >
+                                                <Field data-invalid={invalid} className="gap-1">
+                                                    <FieldLabel htmlFor={field.name}>
                                                         Role
                                                     </FieldLabel>
                                                     <Select
                                                         name={field.name}
-                                                        value={
-                                                            field.state.value
-                                                        }
+                                                        value={field.state.value}
                                                         onValueChange={(v) =>
                                                             field.handleChange(
-                                                                v as
-                                                                    | "system"
-                                                                    | "assistant"
-                                                                    | "user"
+                                                                v as "system" | "assistant" | "user"
                                                             )
                                                         }
                                                     >
                                                         <SelectTrigger>
                                                             <SelectValue
                                                                 placeholder="Select role..."
-                                                                aria-invalid={
-                                                                    invalid
-                                                                }
+                                                                aria-invalid={invalid}
                                                             />
                                                         </SelectTrigger>
                                                         <SelectContent>
@@ -421,52 +299,36 @@ export function PromptEditor({
                                                     </Select>
                                                     {invalid && (
                                                         <FieldError
-                                                            errors={
-                                                                field.state.meta
-                                                                    .errors
-                                                            }
+                                                            errors={field.state.meta.errors}
                                                         />
                                                     )}
                                                 </Field>
                                             );
                                         }}
                                     </form.Field>
-                                    <form.Field
-                                        name={`prompts[${promptIndex}].position`}
-                                    >
+                                    <form.Field name={`prompts[${promptIndex}].position`}>
                                         {(field) => {
                                             const invalid =
                                                 field.state.meta.isTouched &&
                                                 !field.state.meta.isValid;
                                             return (
-                                                <Field
-                                                    data-invalid={invalid}
-                                                    className="gap-1"
-                                                >
-                                                    <FieldLabel
-                                                        htmlFor={field.name}
-                                                    >
+                                                <Field data-invalid={invalid} className="gap-1">
+                                                    <FieldLabel htmlFor={field.name}>
                                                         Position
                                                     </FieldLabel>
                                                     <Select
                                                         name={field.name}
-                                                        value={
-                                                            field.state.value
-                                                        }
+                                                        value={field.state.value}
                                                         onValueChange={(v) =>
                                                             field.handleChange(
-                                                                v as
-                                                                    | "before"
-                                                                    | "after"
+                                                                v as "before" | "after"
                                                             )
                                                         }
                                                     >
                                                         <SelectTrigger>
                                                             <SelectValue
                                                                 placeholder="Select position..."
-                                                                aria-invalid={
-                                                                    invalid
-                                                                }
+                                                                aria-invalid={invalid}
                                                             />
                                                         </SelectTrigger>
                                                         <SelectContent>
@@ -482,10 +344,7 @@ export function PromptEditor({
                                                     </Select>
                                                     {invalid && (
                                                         <FieldError
-                                                            errors={
-                                                                field.state.meta
-                                                                    .errors
-                                                            }
+                                                            errors={field.state.meta.errors}
                                                         />
                                                     )}
                                                 </Field>
@@ -494,73 +353,44 @@ export function PromptEditor({
                                     </form.Field>
                                     <form.Subscribe
                                         selector={(state) =>
-                                            state.values.prompts[promptIndex]
-                                                .position
+                                            state.values.prompts[promptIndex].position
                                         }
                                     >
                                         {(position) => (
-                                            <form.Field
-                                                name={`prompts[${promptIndex}].depth`}
-                                            >
+                                            <form.Field name={`prompts[${promptIndex}].depth`}>
                                                 {(field) => {
                                                     const invalid =
-                                                        field.state.meta
-                                                            .isTouched &&
-                                                        !field.state.meta
-                                                            .isValid;
+                                                        field.state.meta.isTouched &&
+                                                        !field.state.meta.isValid;
                                                     return (
                                                         <Field
-                                                            data-invalid={
-                                                                invalid
-                                                            }
+                                                            data-invalid={invalid}
                                                             className="gap-1"
                                                         >
                                                             <FieldLabel
-                                                                htmlFor={
-                                                                    field.name
-                                                                }
+                                                                htmlFor={field.name}
                                                                 aria-disabled={
-                                                                    position ===
-                                                                    "before"
+                                                                    position === "before"
                                                                 }
                                                             >
                                                                 Depth
                                                             </FieldLabel>
                                                             <Input
                                                                 id={field.name}
-                                                                name={
-                                                                    field.name
-                                                                }
+                                                                name={field.name}
                                                                 type="number"
-                                                                disabled={
-                                                                    position ===
-                                                                    "before"
-                                                                }
-                                                                value={
-                                                                    field.state
-                                                                        .value
-                                                                }
-                                                                onBlur={
-                                                                    field.handleBlur
-                                                                }
+                                                                disabled={position === "before"}
+                                                                value={field.state.value}
+                                                                onBlur={field.handleBlur}
                                                                 onChange={(e) =>
                                                                     field.handleChange(
-                                                                        Number(
-                                                                            e
-                                                                                .target
-                                                                                .value
-                                                                        )
+                                                                        Number(e.target.value)
                                                                     )
                                                                 }
                                                             />
                                                             {invalid && (
                                                                 <FieldError
-                                                                    errors={
-                                                                        field
-                                                                            .state
-                                                                            .meta
-                                                                            .errors
-                                                                    }
+                                                                    errors={field.state.meta.errors}
                                                                 />
                                                             )}
                                                         </Field>
@@ -570,21 +400,13 @@ export function PromptEditor({
                                         )}
                                     </form.Subscribe>
                                 </FieldGroup>
-                                <form.Field
-                                    name={`prompts[${promptIndex}].content`}
-                                >
+                                <form.Field name={`prompts[${promptIndex}].content`}>
                                     {(field) => {
                                         const invalid =
-                                            field.state.meta.isTouched &&
-                                            !field.state.meta.isValid;
+                                            field.state.meta.isTouched && !field.state.meta.isValid;
                                         return (
-                                            <Field
-                                                data-invalid={invalid}
-                                                className="gap-1"
-                                            >
-                                                <FieldLabel
-                                                    htmlFor={field.name}
-                                                >
+                                            <Field data-invalid={invalid} className="gap-1">
+                                                <FieldLabel htmlFor={field.name}>
                                                     Content
                                                 </FieldLabel>
                                                 <Textarea
@@ -593,18 +415,11 @@ export function PromptEditor({
                                                     value={field.state.value}
                                                     onBlur={field.handleBlur}
                                                     onChange={(e) =>
-                                                        field.handleChange(
-                                                            e.target.value
-                                                        )
+                                                        field.handleChange(e.target.value)
                                                     }
                                                 />
                                                 {invalid && (
-                                                    <FieldError
-                                                        errors={
-                                                            field.state.meta
-                                                                .errors
-                                                        }
-                                                    />
+                                                    <FieldError errors={field.state.meta.errors} />
                                                 )}
                                             </Field>
                                         );

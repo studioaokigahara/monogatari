@@ -1,52 +1,13 @@
-import {
-    CharacterCardV3Asset,
-    CharacterCardV3Data
-} from "@/database/schema/character";
-import {
-    createFormHook,
-    createFormHookContexts,
-    formOptions
-} from "@tanstack/react-form";
+import { CharacterCardV3Data } from "@/database/schema/character";
+import { createFormHook, createFormHookContexts, formOptions } from "@tanstack/react-form";
 import z from "zod";
 
-const CharacterFormSchema = CharacterCardV3Data.extend({
-    name: z.string().min(1, "Give them a name!").default(""),
-    description: z
-        .string()
-        .min(1, "This is the most important part!")
-        .default(""),
-    personality: z.string().default(""),
-    scenario: z.string().default(""),
-    mes_example: z.string().default(""),
-    first_mes: z
-        .string()
-        .min(1, "You can't chat without a greeting.")
-        .default(""),
-    creator: z
-        .string()
-        .min(1, "Let people know who created this character!")
-        .default(""),
-    creator_notes: z.string().default(""),
-    system_prompt: z.string().default(""),
-    post_history_instructions: z.string().default(""),
-    alternate_greetings: z.array(z.string()).default([""]),
-    character_version: z.string().default(""),
-    source: z.array(z.string()).default([""]),
-    tags: z.array(z.string()).default([""]),
-    group_only_greetings: z.array(z.string()).default([""]),
-    extensions: z.record(z.string(), z.any()).default({
-        monogatari: {
-            tagline: ""
-        }
-    }),
-    assets: z.array(CharacterCardV3Asset).default([
-        {
-            type: "icon",
-            uri: "ccdefault:",
-            name: "main",
-            ext: "png"
-        }
-    ])
+const CharacterFormSchema = z.object({
+    ...CharacterCardV3Data.shape,
+    name: z.string().min(1, "Give them a name!"),
+    description: z.string().min(1, "This is the most important part!"),
+    first_mes: z.string().min(1, "You can't chat without a greeting."),
+    creator: z.string().min(1, "Let people know who created this character!")
 });
 export type CharacterFormSchema = z.infer<typeof CharacterFormSchema>;
 
@@ -64,10 +25,37 @@ export const {
     formContext
 });
 
+const defaultValues: CharacterFormSchema = {
+    name: "",
+    description: "",
+    personality: "",
+    scenario: "",
+    first_mes: "",
+    mes_example: "",
+    creator_notes: "",
+    system_prompt: "",
+    post_history_instructions: "",
+    alternate_greetings: [],
+    tags: [],
+    creator: "",
+    character_version: "",
+    extensions: {
+        monogatari: {
+            tagline: ""
+        }
+    },
+    assets: [],
+    source: [],
+    group_only_greetings: []
+};
+
 export const characterFormOptions = formOptions({
-    defaultValues: CharacterFormSchema.parse({}),
+    defaultValues,
     validators: {
+        // @ts-expect-error some lorebook keys have defaults
+        // zod does not distinguish between foo?: string and foo: string | undefined
         onMount: CharacterFormSchema,
+        // @ts-expect-error
         onChange: CharacterFormSchema
     }
 });

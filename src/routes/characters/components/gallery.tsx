@@ -27,7 +27,8 @@ import { Character, CharacterCardV3Asset } from "@/database/schema/character";
 import { useFileDialog } from "@/hooks/use-file-dialog";
 import { useImageURL } from "@/hooks/use-image-url";
 import { scanGallery } from "@/lib/character/scanner";
-import { Check, ImageUp, Radar, Trash2 } from "lucide-react";
+import { downloadFile, generateCuid2, getFileExtension } from "@/lib/utils";
+import { Check, ImageDown, ImageUp, Radar, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -87,27 +88,18 @@ function GalleryScanner({ character }: { character: Character }) {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     {log.length > 0 && (
-                        <code className="h-48 overflow-y-auto text-sm p-2 mb-4">
+                        <code className="mb-4 h-48 overflow-y-auto p-2 text-sm">
                             {log.map((line) => (
                                 <div key={line}>{line}</div>
                             ))}
                         </code>
                     )}
                     {total > 0 && (
-                        <Progress
-                            value={current}
-                            max={total}
-                            className="w-4/5 mx-auto"
-                        />
+                        <Progress value={current} max={total} className="mx-auto w-4/5" />
                     )}
                     <AlertDialogFooter>
-                        <AlertDialogCancel disabled={loading}>
-                            Cancel
-                        </AlertDialogCancel>
-                        <AlertDialogAction
-                            disabled={loading}
-                            onClick={handleAction}
-                        >
+                        <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction disabled={loading} onClick={handleAction}>
                             {label}
                         </AlertDialogAction>
                     </AlertDialogFooter>
@@ -125,7 +117,7 @@ export default function Gallery({ character }: { character: Character }) {
             category: "character" as const,
             id: character.id,
             assets: character.data.assets,
-            fileName: `${asset.name}.${asset.ext}`
+            filename: `${asset.name}.${asset.ext}`
         }))
     );
 
@@ -156,9 +148,8 @@ export default function Gallery({ character }: { character: Character }) {
             let pointers: CharacterCardV3Asset[] = [];
             let assets: Asset[] = [];
             for (const file of files) {
-                const name = `gallery_${Date.now()}`;
-                const ext =
-                    file.name.split(".").pop() ?? file.type.split("/")[1];
+                const name = `gallery_${generateCuid2()}`;
+                const ext = getFileExtension(file.name);
                 const fileName = `${name}.${ext}`;
                 pointers.push({
                     type: "x_gallery",
@@ -173,7 +164,7 @@ export default function Gallery({ character }: { character: Character }) {
                 });
                 assets.push(asset);
             }
-            await Promise.all(assets.map(async (asset) => await asset.save()));
+            await Promise.all(assets.map((asset) => asset.save()));
             await character.update({
                 assets: [...character.data.assets, ...pointers]
             });
@@ -188,7 +179,7 @@ export default function Gallery({ character }: { character: Character }) {
 
     const [copied, setCopied] = useState(false);
     const [copyIndex, setCopyIndex] = useState<number>();
-    const copyTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         return () => {
@@ -198,9 +189,7 @@ export default function Gallery({ character }: { character: Character }) {
 
     const copyFilename = async (index: number) => {
         const asset = character.data.assets[index];
-        await navigator.clipboard.writeText(
-            `embedded://${asset.name}.${asset.ext}`
-        );
+        await navigator.clipboard.writeText(`embedded://${asset.name}.${asset.ext}`);
         setCopied(true);
         setCopyIndex(index);
         if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
@@ -215,6 +204,13 @@ export default function Gallery({ character }: { character: Character }) {
         multiple: true,
         onChange: addToGallery
     });
+
+    const downloadAsset = async (index: number) => {
+        const pointer = character.data.assets[index];
+        const filename = `${pointer.name}.${pointer.ext}`;
+        const asset = await Asset.load(character.id, filename);
+        if (asset) downloadFile(asset.file);
+    };
 
     const galleryImages = character.data.assets.map((asset, index) => (
         <figure key={asset.name} className="content-center">
@@ -232,42 +228,44 @@ export default function Gallery({ character }: { character: Character }) {
                     <img
                         src={imageURLs[index]}
                         alt={asset.name}
-                        className="max-h-[50dvh] rounded-lg cursor-pointer"
+                        className="max-h-[50dvh] cursor-pointer rounded-lg"
                     />
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[80dvw] w-max">
+                <DialogContent className="w-max sm:max-w-[80dvw]">
                     <img
                         src={imageURLs[index]}
                         alt={asset.name}
-                        className="max-h-[80dvh] rounded-xl mx-auto"
+                        className="mx-auto max-h-[80dvh] rounded-xl"
                     />
-                    {index !== 0 && (
-                        <DialogFooter>
-                            <Button
-                                variant="destructive"
-                                className="grow"
-                                onClick={() => deleteAsset(index)}
-                            >
+                    <DialogFooter>
+                        <Button onClick={() => downloadAsset(index)}>
+                            <ImageDown />
+                            Download
+                        </Button>
+                        {index !== 0 && (
+                            <Button variant="destructive" onClick={() => deleteAsset(index)}>
                                 <Trash2 />
                                 Delete
                             </Button>
-                        </DialogFooter>
-                    )}
+                        )}
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
-            <figcaption
-                className="pt-2 text-xs text-muted-foreground"
-                onClick={() => copyFilename(index)}
-            >
+            <figcaption className="pt-2 text-xs font-medium text-muted-foreground">
                 {copied && copyIndex === index ? (
                     <span className="flex flex-row gap-1">
                         <Check className="size-4 text-green-500" />
                         Copied!
                     </span>
                 ) : (
-                    <span className="cursor-copy">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="cursor-copy"
+                        onClick={() => copyFilename(index)}
+                    >
                         {asset.name}.{asset.ext}
-                    </span>
+                    </Button>
                 )}
             </figcaption>
         </figure>
@@ -283,11 +281,9 @@ export default function Gallery({ character }: { character: Character }) {
                     Upload
                 </Button>
             </CardHeader>
-            <CardContent className="flex flex-col space-y-4">
-                <ScrollArea className="overflow-x-hidden">
-                    <div className="flex shrink w-max space-x-4 mb-2">
-                        {galleryImages}
-                    </div>
+            <CardContent className="overflow-hidden px-0">
+                <ScrollArea>
+                    <div className="flex w-max shrink gap-4 px-6 pb-4">{galleryImages}</div>
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>
             </CardContent>

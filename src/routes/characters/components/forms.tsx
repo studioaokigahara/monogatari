@@ -4,11 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import {
-    characterFormOptions,
-    withCharacterForm
-} from "@/hooks/use-character-form";
-import { useCharacterFormContext } from "@/hooks/use-character-form-context";
+import { useCharacterFormContext } from "@/contexts/character-form";
+import { characterFormOptions, withCharacterForm } from "@/hooks/use-character-form";
 import { cn } from "@/lib/utils";
 import { useField, useStore } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
@@ -22,10 +19,10 @@ export const HeaderFields = withCharacterForm({
         const { mode, setEditing } = useCharacterFormContext();
         const navigate = useNavigate();
 
-        const handleCancel = async () => {
+        const handleCancel = () => {
             switch (mode) {
                 case "create": {
-                    await navigate({ to: "/characters" });
+                    void navigate({ to: "/characters" });
                     break;
                 }
                 case "edit": {
@@ -37,8 +34,8 @@ export const HeaderFields = withCharacterForm({
         };
 
         return (
-            <div className="flex flex-col w-full gap-4 rounded-xl z-1">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="z-1 flex w-full flex-col gap-4 rounded-xl">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <form.AppField name="name">
                         {(field) => (
                             <div>
@@ -52,9 +49,7 @@ export const HeaderFields = withCharacterForm({
                                     id={field.name}
                                     name={field.name}
                                     value={field.state.value as string}
-                                    onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                    }
+                                    onChange={(e) => field.handleChange(e.target.value)}
                                     onBlur={field.handleBlur}
                                 />
                                 {field.state.meta.errors && (
@@ -81,9 +76,7 @@ export const HeaderFields = withCharacterForm({
                                     id={field.name}
                                     name={field.name}
                                     value={field.state.value as string}
-                                    onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                    }
+                                    onChange={(e) => field.handleChange(e.target.value)}
                                     onBlur={field.handleBlur}
                                 />
                             </div>
@@ -102,9 +95,7 @@ export const HeaderFields = withCharacterForm({
                                     id={field.name}
                                     name={field.name}
                                     value={field.state.value as string}
-                                    onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                    }
+                                    onChange={(e) => field.handleChange(e.target.value)}
                                     onBlur={field.handleBlur}
                                 />
                                 {field.state.meta.errors && (
@@ -132,9 +123,7 @@ export const HeaderFields = withCharacterForm({
                                     name={field.name}
                                     type="number"
                                     value={field.state.value as string}
-                                    onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                    }
+                                    onChange={(e) => field.handleChange(e.target.value)}
                                     onBlur={field.handleBlur}
                                 />
                                 {field.state.meta.errors && (
@@ -162,13 +151,8 @@ export const HeaderFields = withCharacterForm({
                                 <Input
                                     id={field.name}
                                     name={field.name}
-                                    // @ts-expect-error withForm does not narrow types
                                     value={field.state.value.join(", ")}
-                                    onChange={(e) =>
-                                        field.handleChange(
-                                            e.target.value.split(", ")
-                                        )
-                                    }
+                                    onChange={(e) => field.handleChange(e.target.value.split(", "))}
                                     onBlur={field.handleBlur}
                                 />
                                 {field.state.meta.errors && (
@@ -197,9 +181,7 @@ export const HeaderFields = withCharacterForm({
                                     id={field.name}
                                     name={field.name}
                                     value={field.state.value as string}
-                                    onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                    }
+                                    onChange={(e) => field.handleChange(e.target.value)}
                                     onBlur={field.handleBlur}
                                 />
                             </div>
@@ -218,24 +200,17 @@ export const HeaderFields = withCharacterForm({
                                     id={field.name}
                                     name={field.name}
                                     value={field.state.value as string}
-                                    onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                    }
+                                    onChange={(e) => field.handleChange(e.target.value)}
                                     onBlur={field.handleBlur}
                                 />
                             </div>
                         )}
                     </form.AppField>
-                    <div className="flex gap-2 items-end">
+                    <div className="flex items-end gap-2">
                         <Button variant="secondary" onClick={handleCancel}>
                             Cancel
                         </Button>
-                        <form.Subscribe
-                            selector={(state) => [
-                                state.canSubmit,
-                                state.isSubmitting
-                            ]}
-                        >
+                        <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
                             {([canSubmit, isSubmitting]) => (
                                 <Button
                                     type="submit"
@@ -271,9 +246,7 @@ export const DescriptionFields = withCharacterForm({
                                     name={field.name}
                                     placeholder="Describe your character's appearance, background, and key details..."
                                     value={field.state.value as string}
-                                    onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                    }
+                                    onChange={(e) => field.handleChange(e.target.value)}
                                     onBlur={field.handleBlur}
                                     className="font-mono text-sm"
                                 />
@@ -297,9 +270,7 @@ export const DescriptionFields = withCharacterForm({
                                     name={field.name}
                                     placeholder="Describe their personality, speech patterns, mannerisms, and what makes them unique..."
                                     value={field.state.value as string}
-                                    onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                    }
+                                    onChange={(e) => field.handleChange(e.target.value)}
                                     onBlur={field.handleBlur}
                                     className="font-mono text-sm"
                                 />
@@ -315,9 +286,7 @@ export const DescriptionFields = withCharacterForm({
                                     name={field.name}
                                     placeholder="Describe the setting and circumstances where this character would be encountered..."
                                     value={field.state.value as string}
-                                    onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                    }
+                                    onChange={(e) => field.handleChange(e.target.value)}
                                     onBlur={field.handleBlur}
                                     className="font-mono text-sm"
                                 />
@@ -327,16 +296,12 @@ export const DescriptionFields = withCharacterForm({
                     <form.Field name="system_prompt">
                         {(field) => (
                             <div className="space-y-2">
-                                <Label htmlFor={field.name}>
-                                    System Prompt
-                                </Label>
+                                <Label htmlFor={field.name}>System Prompt</Label>
                                 <Textarea
                                     id={field.name}
                                     name={field.name}
                                     value={field.state.value as string}
-                                    onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                    }
+                                    onChange={(e) => field.handleChange(e.target.value)}
                                     onBlur={field.handleBlur}
                                     className="font-mono text-sm"
                                 />
@@ -346,16 +311,12 @@ export const DescriptionFields = withCharacterForm({
                     <form.Field name="post_history_instructions">
                         {(field) => (
                             <div className="space-y-2">
-                                <Label htmlFor={field.name}>
-                                    Post-History Instructions
-                                </Label>
+                                <Label htmlFor={field.name}>Post-History Instructions</Label>
                                 <Textarea
                                     id={field.name}
                                     name={field.name}
                                     value={field.state.value as string}
-                                    onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                    }
+                                    onChange={(e) => field.handleChange(e.target.value)}
                                     onBlur={field.handleBlur}
                                     className="font-mono text-sm"
                                 />
@@ -412,7 +373,7 @@ export const GreetingsField = withCharacterForm({
                         <TabsList
                             className={cn(
                                 greetings.length > 10
-                                    ? "h-auto flex flex-wrap justify-start *:flex-0"
+                                    ? "flex h-auto flex-wrap justify-start *:flex-0"
                                     : ""
                             )}
                         >
@@ -459,15 +420,10 @@ export const GreetingsField = withCharacterForm({
                                 <Textarea
                                     key={field.name}
                                     value={field.state.value as string}
-                                    onChange={(e) =>
-                                        field.handleChange(
-                                            e.currentTarget.value
-                                        )
-                                    }
+                                    onChange={(e) => field.handleChange(e.currentTarget.value)}
                                     onBlur={field.handleBlur}
                                     placeholder="Write a message..."
                                     className="font-mono text-sm"
-                                    autoFocus
                                 />
                             )}
                         </form.AppField>
@@ -490,13 +446,10 @@ export const ExampleDialogueField = withCharacterForm({
                                 id={field.name}
                                 name={field.name}
                                 value={field.state.value as string}
-                                onChange={(e) =>
-                                    field.handleChange(e.target.value)
-                                }
+                                onChange={(e) => field.handleChange(e.target.value)}
                                 onBlur={field.handleBlur}
                                 placeholder={`<START>\n{{char}}: Hello!\n{{user}}: Hi!`}
                                 className="font-mono text-sm"
-                                autoFocus
                             />
                         )}
                     </form.AppField>

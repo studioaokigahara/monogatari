@@ -1,11 +1,11 @@
 import { Spinner } from "@/components/ui/spinner";
+import { useCharacterContext } from "@/contexts/character";
+import { ChatContext } from "@/contexts/chat";
+import { useSettingsContext } from "@/contexts/settings";
 import { db } from "@/database/monogatari-db";
 import { Character } from "@/database/schema/character";
 import { Persona } from "@/database/schema/persona";
 import { Preset } from "@/database/schema/preset";
-import { useCharacterContext } from "@/hooks/use-character-context";
-import { ChatContext } from "@/hooks/use-chat-context";
-import { useSettingsContext } from "@/hooks/use-settings-context";
 import { buildContext } from "@/lib/build-context";
 import { GraphSyncManager } from "@/lib/graph/sync";
 import type { Message } from "@/types/message";
@@ -14,14 +14,7 @@ import { Chat } from "@ai-sdk/react";
 import { useParams } from "@tanstack/react-router";
 import { DefaultChatTransport } from "ai";
 import { useLiveQuery } from "dexie-react-hooks";
-import {
-    ContextType,
-    ReactNode,
-    useCallback,
-    useEffect,
-    useRef,
-    useState
-} from "react";
+import { ContextType, ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 interface Dependencies {
@@ -35,10 +28,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const { settings } = useSettingsContext();
     const { character, setCharacter, persona } = useCharacterContext();
 
-    const preset = useLiveQuery(
-        () => db.presets.get(settings.preset),
-        [settings.preset]
-    );
+    const preset = useLiveQuery(() => db.presets.get(settings.preset), [settings.preset]);
 
     const { id } = useParams({ from: "/chat/$id" });
 
@@ -53,16 +43,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                 throw new Error("Chat instance not fully initialized.");
             }
 
-            const { settings, character, persona, preset } =
-                dependencyRef.current;
+            const { settings, character, persona, preset } = dependencyRef.current;
 
-            const context = await buildContext(
-                id,
-                messages,
-                preset,
-                character,
-                persona
-            );
+            const context = await buildContext(id, messages, preset, character, persona);
 
             return {
                 body: { messages: context, settings }
@@ -71,8 +54,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         [id]
     );
 
-    const [chatState, setChatState] =
-        useState<ContextType<typeof ChatContext>>();
+    const [chatState, setChatState] = useState<ContextType<typeof ChatContext>>();
 
     useEffect(() => {
         const abortController = new AbortController();
@@ -93,9 +75,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
             const chat = new Chat<Message>({
                 transport: new DefaultChatTransport({
-                    api: settings.streaming
-                        ? "/api/chat"
-                        : "/api/chat/completions",
+                    api: settings.streaming ? "/api/chat" : "/api/chat/completions",
                     headers: {
                         "HTTP-Referer": "http://localhost",
                         "X-Title": "Monogatari"
@@ -142,5 +122,5 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         );
     }
 
-    return <ChatContext value={chatState}>{children}</ChatContext>;
+    return <ChatContext.Provider value={chatState}>{children}</ChatContext.Provider>;
 }

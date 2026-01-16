@@ -3,13 +3,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger
-} from "@/components/ui/tooltip";
-import { useSettingsContext } from "@/hooks/use-settings-context";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useSettingsContext } from "@/contexts/settings";
 import { getModel, PROVIDER_REGISTRY } from "@/types/registry";
 import { Settings } from "@/types/settings";
 import { Info, Settings2 } from "lucide-react";
@@ -23,13 +18,11 @@ export default function Parameters() {
 
     const samplerSet = new Set(
         provider === "openrouter"
-            ? (PROVIDER_REGISTRY[
-                  model?.id.split("/")[0] as Settings["provider"]
-              ]?.samplers ?? PROVIDER_REGISTRY[provider].samplers)
+            ? (PROVIDER_REGISTRY[model?.id.split("/")[0] as Settings["provider"]]?.samplers ??
+                  PROVIDER_REGISTRY[provider].samplers)
             : PROVIDER_REGISTRY[provider].samplers
     );
-    const lowTemp =
-        provider === "anthropic" || model?.id.split("/")[0] === "anthropic";
+    const lowTemp = provider === "anthropic" || model?.id.split("/")[0] === "anthropic";
 
     // TODO: per-provider sampler settings
     useEffect(() => {
@@ -66,9 +59,8 @@ export default function Parameters() {
                                         <Info className="size-4 ml-2 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs">
-                                        Stream tokens as they're generated
-                                        instead of waiting for the complete
-                                        response.
+                                        Stream tokens as they're generated instead of waiting for
+                                        the complete response.
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
@@ -87,22 +79,17 @@ export default function Parameters() {
                 <div className="space-y-1">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                            <Label htmlFor="max-tokens">
-                                Maximum Output Tokens
-                            </Label>
+                            <Label htmlFor="max-tokens">Maximum Output Tokens</Label>
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Info className="size-4 ml-2 text-muted-foreground" />
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
-                                    One token is roughly 4 characters of English
-                                    text.
+                                    One token is roughly 4 characters of English text.
                                 </TooltipContent>
                             </Tooltip>
                         </div>
-                        <span className="font-mono text-sm">
-                            {settings.maxOutputTokens}
-                        </span>
+                        <span className="font-mono text-sm">{settings.maxOutputTokens}</span>
                     </div>
                     <Slider
                         id="max-tokens"
@@ -128,9 +115,8 @@ export default function Parameters() {
                                         <Info className="size-4 ml-2 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs">
-                                        Lower values produce more deterministic
-                                        outputs, higher values produce more
-                                        stochastic outputs.
+                                        Lower values produce more deterministic outputs, higher
+                                        values produce more stochastic outputs.
                                     </TooltipContent>
                                 </Tooltip>
                             </div>
@@ -160,17 +146,14 @@ export default function Parameters() {
                     <div className="space-y-1">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center">
-                                <Label htmlFor="freqPen">
-                                    Frequency Penalty
-                                </Label>
+                                <Label htmlFor="freqPen">Frequency Penalty</Label>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <Info className="h-4 w-4 ml-2 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs">
-                                        Penalizes token probabilities
-                                        proportionate to the number of times the
-                                        token appears in context.
+                                        Penalizes token probabilities proportionate to the number of
+                                        times the token appears in context.
                                     </TooltipContent>
                                 </Tooltip>
                             </div>
@@ -200,16 +183,14 @@ export default function Parameters() {
                     <div className="space-y-1">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center">
-                                <Label htmlFor="presPen">
-                                    Presence Penalty
-                                </Label>
+                                <Label htmlFor="presPen">Presence Penalty</Label>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <Info className="h-4 w-4 ml-2 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="w-fit">
-                                        Applies a flat penalty to tokens that
-                                        have already appeared in context.
+                                        Applies a flat penalty to tokens that have already appeared
+                                        in context.
                                     </TooltipContent>
                                 </Tooltip>
                             </div>
@@ -245,14 +226,11 @@ export default function Parameters() {
                                         <Info className="h-4 w-4 ml-2 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs">
-                                        Only select from the top_k options for
-                                        each token.
+                                        Only select from the top_k options for each token.
                                     </TooltipContent>
                                 </Tooltip>
                             </div>
-                            <span className="font-mono text-sm">
-                                {settings.samplers.topK}
-                            </span>
+                            <span className="font-mono text-sm">{settings.samplers.topK}</span>
                         </div>
                         <Slider
                             id="top_k"
@@ -282,16 +260,13 @@ export default function Parameters() {
                                         <Info className="h-4 w-4 ml-2 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs">
-                                        Nucleus sampling. Sums the probabilities
-                                        of every option for each token in
-                                        decreasing order and cuts off the 'tail'
-                                        once the probability sum reaches top_p.
+                                        Nucleus sampling. Sums the probabilities of every option for
+                                        each token in decreasing order and cuts off the 'tail' once
+                                        the probability sum reaches top_p.
                                     </TooltipContent>
                                 </Tooltip>
                             </div>
-                            <span className="font-mono text-sm">
-                                {settings.samplers.topP}
-                            </span>
+                            <span className="font-mono text-sm">{settings.samplers.topP}</span>
                         </div>
                         <Slider
                             id="topP"
@@ -315,9 +290,7 @@ export default function Parameters() {
                     <div className="space-y-1">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center">
-                                <Label htmlFor="repPen">
-                                    Repetition Penalty
-                                </Label>
+                                <Label htmlFor="repPen">Repetition Penalty</Label>
                                 {/*<Tooltip>
                                 <TooltipTrigger asChild>
                                     <Info className="h-4 w-4 ml-2 text-muted-foreground" />
@@ -359,15 +332,12 @@ export default function Parameters() {
                                         <Info className="h-4 w-4 ml-2 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs">
-                                        Only considers tokens whose
-                                        probabilities are at least min_p % of
-                                        the top token's probability.
+                                        Only considers tokens whose probabilities are at least min_p
+                                        % of the top token's probability.
                                     </TooltipContent>
                                 </Tooltip>
                             </div>
-                            <span className="font-mono text-sm">
-                                {settings.samplers.minP}
-                            </span>
+                            <span className="font-mono text-sm">{settings.samplers.minP}</span>
                         </div>
                         <Slider
                             id="min_p"
@@ -401,9 +371,7 @@ export default function Parameters() {
                                 </TooltipContent>
                             </Tooltip>*/}
                             </div>
-                            <span className="font-mono text-sm">
-                                {settings.samplers.topA}
-                            </span>
+                            <span className="font-mono text-sm">{settings.samplers.topA}</span>
                         </div>
                         <Slider
                             id="top_a"
@@ -423,8 +391,7 @@ export default function Parameters() {
                         />
                     </div>
                 )}
-                {(settings.provider === "anthropic" ||
-                    model?.id.split("/")[0] === "anthropic") && (
+                {(settings.provider === "anthropic" || model?.id.split("/")[0] === "anthropic") && (
                     <div className="flex items-center justify-between">
                         <div className="flex items-center">
                             <Label htmlFor="cacheDepth">Cache Depth</Label>
@@ -433,11 +400,10 @@ export default function Parameters() {
                                     <Info className="size-4 ml-2 text-muted-foreground" />
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
-                                    Set the cache breakpoint depth. A depth of 2
-                                    will insert the breakpoint 2 messages from
-                                    the bottom; messages 0 and 1 will not be
-                                    cached, and any change above message 1 will
-                                    result in a cache miss.
+                                    Set the cache breakpoint depth. A depth of 2 will insert the
+                                    breakpoint 2 messages from the bottom; messages 0 and 1 will not
+                                    be cached, and any change above message 1 will result in a cache
+                                    miss.
                                 </TooltipContent>
                             </Tooltip>
                         </div>

@@ -11,10 +11,10 @@ import {
 import {
     SidebarMenu,
     SidebarMenuButton,
-    SidebarMenuItem,
-    useSidebar
+    SidebarMenuItem
 } from "@/components/ui/sidebar";
-import { useCharacterContext } from "@/hooks/use-character-context";
+import { useCharacterContext } from "@/contexts/character";
+import { useSidebarContext } from "@/contexts/sidebar";
 import { db } from "@/database/monogatari-db";
 import { useImageURL } from "@/hooks/use-image-url";
 import { Link } from "@tanstack/react-router";
@@ -26,7 +26,7 @@ export function PersonaSwitcher() {
     const [open, setOpen] = useState(false);
 
     const { persona, setPersona } = useCharacterContext();
-    const { isMobile } = useSidebar();
+    const { isMobile } = useSidebarContext();
 
     const personas = useLiveQuery(() => db.personas.toArray(), [], []);
 

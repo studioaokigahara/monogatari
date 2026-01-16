@@ -39,16 +39,14 @@ const Samplers = z
 
 export const Settings = z.object({
     provider: ProviderSchema.default("openai"),
-    apiKeys: z
-        .record(z.union([ProviderSchema, z.literal("chub")]), z.string())
-        .default({
-            openai: "",
-            anthropic: "",
-            google: "",
-            deepseek: "",
-            openrouter: "",
-            chub: ""
-        }),
+    apiKeys: z.record(z.union([ProviderSchema, z.literal("chub")]), z.string()).default({
+        openai: "",
+        anthropic: "",
+        google: "",
+        deepseek: "",
+        openrouter: "",
+        chub: ""
+    }),
     samplers: Samplers,
     maxOutputTokens: z.number().default(512),
     streaming: z.boolean().default(true),
@@ -64,9 +62,7 @@ export const Settings = z.object({
     preset: z.string().default(""),
     explore: z
         .object({
-            provider: z
-                .enum(["chub", "anchorhold", "charchive"])
-                .default("chub")
+            repo: z.enum(["chub", "anchorhold"]).default("chub")
         })
         .prefault({}),
     cacheDepth: z.int().nonnegative().multipleOf(2).default(2)

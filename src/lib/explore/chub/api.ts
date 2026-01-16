@@ -6,12 +6,9 @@ import {
 } from "@/types/explore/chub";
 
 export async function fetchCharacterInfo(fullPath: string) {
-    const response = await fetch(
-        `https://gateway.chub.ai/api/characters/${fullPath}`,
-        {
-            referrerPolicy: "no-referrer"
-        }
-    );
+    const response = await fetch(`https://gateway.chub.ai/api/characters/${fullPath}`, {
+        referrerPolicy: "no-referrer"
+    });
 
     if (!response.ok) {
         throw new Error(
@@ -30,12 +27,9 @@ export async function fetchCharacterInfo(fullPath: string) {
 }
 
 export async function fetchGalleryImages(id: number): Promise<Blob[]> {
-    const response = await fetch(
-        `https://gateway.chub.ai/api/gallery/project/${id}`,
-        {
-            referrerPolicy: "no-referrer"
-        }
-    );
+    const response = await fetch(`https://gateway.chub.ai/api/gallery/project/${id}`, {
+        referrerPolicy: "no-referrer"
+    });
 
     if (!response.ok) {
         throw new Error(
@@ -44,7 +38,6 @@ export async function fetchGalleryImages(id: number): Promise<Blob[]> {
     }
 
     const json: ChubGalleryResponse = await response.json();
-    const blobs: Blob[] = [];
     const nodes = json.nodes || [];
 
     const urls = nodes.map((node) => node.primary_image_path).filter(Boolean);
@@ -52,13 +45,12 @@ export async function fetchGalleryImages(id: number): Promise<Blob[]> {
     const imageBlobs = urls.map(async (url) => {
         const response = await fetch(url);
         if (!response.ok) {
-            throw new Error(
-                `Failed to fetch ${url}: ${(response.status, response.statusText)}`
-            );
+            throw new Error(`Failed to fetch ${url}: ${(response.status, response.statusText)}`);
         }
         return await response.blob();
     });
 
+    const blobs: Blob[] = [];
     const settledBlobs = await Promise.allSettled(imageBlobs);
     settledBlobs.forEach((result, index) => {
         if (result.status === "fulfilled") {
@@ -78,9 +70,7 @@ export async function fetchGalleryImages(id: number): Promise<Blob[]> {
 /**
  * Fetches a character's `chara_card_v2.png`
  */
-export async function fetchCharacterImage(
-    character: ChubCharacter
-): Promise<Blob> {
+export async function fetchCharacterImage(character: ChubCharacter): Promise<Blob> {
     const response = await fetch(character.max_res_url);
 
     if (!response.ok) {
@@ -111,85 +101,45 @@ export async function fetchCharacterJSON(character: ChubCharacter) {
     return json;
 }
 
-export async function fetchCharacters(
-    searchOptions: SearchOptions
-): Promise<ChubCharacter[]> {
-    try {
-        const searchParams = new URLSearchParams();
+export async function fetchCharacters(searchOptions: SearchOptions): Promise<ChubCharacter[]> {
+    const searchParams = new URLSearchParams();
 
-        if (searchOptions.searchTerm) {
-            searchParams.append("search", searchOptions.searchTerm);
-        }
+    searchParams.append("search", searchOptions.searchTerm);
+    searchParams.append("username", searchOptions.creator);
+    searchParams.append("first", searchOptions.itemsPerPage.toString());
+    searchParams.append("sort", searchOptions.sort || "trending_downloads");
+    searchParams.append("namespace", searchOptions.namespace);
+    searchParams.append("page", searchOptions.page.toString());
+    searchParams.append("asc", searchOptions.sortAscending.toString());
+    searchParams.append("include_forks", "true");
+    searchParams.append("venus", "true");
+    searchParams.append("chub", "true");
+    searchParams.append("nsfw", searchOptions.nsfw.toString());
+    searchParams.append("nsfl", searchOptions.nsfw.toString());
+    searchParams.append("inclusive_or", searchOptions.inclusiveOr.toString());
+    searchParams.append("tags", searchOptions.includedTags);
+    searchParams.append("exclude_tags", searchOptions.excludedTags);
 
-        if (searchOptions.creator) {
-            searchParams.append("username", searchOptions.creator);
-        }
+    const settings = JSON.parse(localStorage.getItem("settings") ?? "");
+    const apiKey = settings.apiKeys.chub ?? "";
 
-        searchParams.append("first", searchOptions.itemsPerPage.toString());
-        searchParams.append("sort", searchOptions.sort || "trending_downloads");
-        searchParams.append("namespace", searchOptions.namespace);
-        searchParams.append("page", searchOptions.page.toString());
-        searchParams.append("asc", searchOptions.sortAscending.toString());
-        searchParams.append("include_forks", "true");
-        searchParams.append("venus", "true");
-        searchParams.append("chub", "true");
-        searchParams.append("nsfw", searchOptions.nsfw.toString());
-        searchParams.append("nsfl", searchOptions.nsfw.toString());
+    const response = await fetch(`https://gateway.chub.ai/search?${String(searchParams)}`, {
+        headers: new Headers({
+            "CH-API-KEY": apiKey,
+            samwise: apiKey
+        }),
+        referrerPolicy: "no-referrer"
+    });
 
-        searchParams.append(
-            "inclusive_or",
-            searchOptions.inclusiveOr.toString()
-        );
-
-        const includedTags = searchOptions.includedTags
-            .filter((tag) => tag.length)
-            .join(",")
-            .slice(0, 100);
-
-        if (includedTags.length) {
-            searchParams.append("tags", includedTags);
-        }
-
-        const excludedTags = searchOptions.excludedTags
-            .filter((tag) => tag.length)
-            .join(",")
-            .slice(0, 100);
-
-        if (excludedTags.length) {
-            searchParams.append("exclude_tags", excludedTags);
-        }
-
-        const settings = JSON.parse(localStorage.getItem("settings") || "");
-        const apiKey = settings.apiKeys.chub || "";
-
-        const response = await fetch(
-            `https://gateway.chub.ai/search?${String(searchParams)}`,
-            {
-                headers: new Headers({
-                    "CH-API-KEY": apiKey,
-                    samwise: apiKey
-                }),
-                referrerPolicy: "no-referrer"
-            }
-        );
-
-        if (!response.ok) {
-            throw new Error(
-                `chub API returned error: ${(response.status, response.statusText)}`
-            );
-        }
-
-        const searchResults = await response.json();
-
-        const characters: ChubCharacter[] = searchResults.data.nodes
-            // .map((node: ChubCharacter) => ({
-            //     ...node,
-            //     tagline: sanitizeText(node.tagline)
-            // }))
-            .filter((character: ChubCharacter) => character !== null);
-
-        return characters;
-    } catch (error) {
-        throw new Error("Error fetching characters", error as Error);
+    if (!response.ok) {
+        throw new Error(`chub API returned error: ${(response.status, response.statusText)}`);
     }
+
+    const searchResults = await response.json();
+
+    const characters: ChubCharacter[] = searchResults.data.nodes.filter(
+        (character: ChubCharacter) => character !== null
+    );
+
+    return characters;
 }

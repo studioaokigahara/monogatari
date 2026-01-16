@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useSettingsContext } from "@/hooks/use-settings-context";
+import { useSettingsContext } from "@/contexts/settings";
 import Parameters from "@/routes/settings/components/api/parameters";
 import { ProxySettings } from "@/routes/settings/components/api/proxy-settings";
 import SelectModel from "@/routes/settings/components/api/select-model";
@@ -10,10 +10,7 @@ import { ChevronsLeftRightEllipsis, Image, Text } from "lucide-react";
 function ApiSettings() {
     const { settings } = useSettingsContext();
 
-    const selectedModel = getModel(
-        settings.provider,
-        settings.models[settings.provider] as string
-    );
+    const selectedModel = getModel(settings.provider, settings.models[settings.provider] as string);
 
     return (
         <div className="space-y-4 pb-2">

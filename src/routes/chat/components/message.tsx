@@ -1,4 +1,4 @@
-import { Prose } from "@/components/prose";
+import { Markdown } from "@/components/markdown";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -7,14 +7,13 @@ import { MessageActions } from "@/routes/chat/components/message-actions";
 import { type Message as MessageType } from "@/types/message";
 import { Dot } from "lucide-react";
 import { useState } from "react";
-import useEvent from "react-use-event-hook";
 
 function TypingIndicator() {
     return (
         <div className="flex flex-row">
             <Dot strokeWidth={6} className="animate-bounce" />
-            <Dot strokeWidth={6} className="animate-bounce delay-100 -ml-3" />
-            <Dot strokeWidth={6} className="animate-bounce delay-200 -ml-3" />
+            <Dot strokeWidth={6} className="-ml-3 animate-bounce delay-100" />
+            <Dot strokeWidth={6} className="-ml-3 animate-bounce delay-200" />
         </div>
     );
 }
@@ -26,23 +25,16 @@ interface MessageProps {
     showTypingIndicator: boolean;
 }
 
-export function Message({
-    message,
-    index,
-    streaming,
-    showTypingIndicator
-}: MessageProps) {
+export function Message({ message, index, streaming, showTypingIndicator }: MessageProps) {
     const [hovered, setHovered] = useState(false);
     const [editing, setEditing] = useState(false);
     const [editedContent, setEditedContent] = useState(
         message.parts.find((part) => part.type === "text")?.text ?? ""
     );
 
-    const handleEdit = useEvent(
-        (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-            setEditedContent(event.target.value);
-        }
-    );
+    const handleEdit = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setEditedContent(event.target.value);
+    };
 
     const messageClasses =
         "relative message-tail-path dark:group-data-[role=user]:[--tw-prose-body:--tw-prose-invert-headings] group-data-[role=user]:bg-blue-500 group-data-[role=user]:before:bg-blue-500 group-data-[role=user]:mr-[12.25px] group-data-[role=user]:rounded-3xl group-data-[role=user]:max-w-4/5 group-data-[role=user]:px-3 group-data-[role=user]:py-2 group-data-[role=user]:justify-self-end group-data-[role=assistant]:max-w-full";
@@ -55,14 +47,14 @@ export function Message({
         switch (part.type) {
             case "text":
                 return (
-                    <Prose
+                    <Markdown
                         key={`${message.id}-text-${index}`}
                         id={message.id}
                         streaming={streaming}
                         className={messageClasses}
                     >
                         {part.text}
-                    </Prose>
+                    </Markdown>
                 );
             case "file": {
                 if (part.mediaType?.startsWith("image/")) {
@@ -94,7 +86,7 @@ export function Message({
                     value={editedContent}
                     onChange={handleEdit}
                     className={cn(
-                        "w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-transparent resize-none",
+                        "w-full resize-none rounded border border-gray-300 bg-transparent p-2 dark:border-gray-700",
                         messageClasses
                     )}
                 />
@@ -104,9 +96,9 @@ export function Message({
             <ButtonGroup
                 aria-label="Message Buttons"
                 className={cn(
-                    "flex items-center group-data-[role=user]:justify-self-end min-h-9 my-2",
+                    "my-2 flex min-h-9 items-center group-data-[role=user]:justify-self-end",
                     !editing &&
-                        "transition-opacity opacity-0 group-hover:opacity-100 will-change-[opacity]"
+                        "opacity-0 transition-opacity will-change-[opacity] group-hover:opacity-100"
                 )}
             >
                 {showButtons && (
@@ -120,10 +112,7 @@ export function Message({
                             message={message}
                             index={index}
                             editingState={[editing, setEditing]}
-                            editedContentState={[
-                                editedContent,
-                                setEditedContent
-                            ]}
+                            editedContentState={[editedContent, setEditedContent]}
                             className={buttonClasses}
                         />
                     </>

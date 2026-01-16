@@ -5,7 +5,7 @@ import {
     TooltipContent,
     TooltipTrigger
 } from "@/components/ui/tooltip";
-import { useChatContext } from "@/hooks/use-chat-context";
+import { useChatContext } from "@/contexts/chat";
 import { cn } from "@/lib/utils";
 import { type Message } from "@/types/message";
 import { useChat } from "@ai-sdk/react";

@@ -8,16 +8,13 @@ import {
 import {
     InputGroup,
     InputGroupAddon,
-    InputGroupButton
+    InputGroupButton,
+    InputGroupText,
+    InputGroupTextarea
 } from "@/components/ui/input-group";
-import { TextareaAutosize as Textarea } from "@/components/ui/textarea-autosize";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger
-} from "@/components/ui/tooltip";
-import { useCharacterContext } from "@/hooks/use-character-context";
-import { useChatContext } from "@/hooks/use-chat-context";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useCharacterContext } from "@/contexts/character";
+import { useChatContext } from "@/contexts/chat";
 import { useFileDialog } from "@/hooks/use-file-dialog";
 import { replaceMacros } from "@/lib/macros";
 import { cn } from "@/lib/utils";
@@ -27,25 +24,17 @@ import { FileUIPart } from "ai";
 import {
     ArrowDown,
     ArrowUp,
-    Link,
+    FileIcon,
+    Files,
+    LinkIcon,
     Paperclip,
     Plus,
     Square,
     TriangleAlert
 } from "lucide-react";
-import {
-    ChangeEvent,
-    ClipboardEvent,
-    FormEvent,
-    KeyboardEvent,
-    MouseEvent,
-    RefObject,
-    useEffect,
-    useLayoutEffect,
-    useMemo,
-    useState
-} from "react";
-import useEvent from "react-use-event-hook";
+import { RefObject, useEffect, useMemo, useRef, useState } from "react";
+
+const MAX_HEIGHT = 48;
 
 interface Props {
     scrollRef: RefObject<HTMLDivElement | null>;
@@ -54,27 +43,22 @@ interface Props {
 export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
     const { character, persona } = useCharacterContext();
     const { chat } = useChatContext();
-    const { messages, sendMessage, status, regenerate, stop } =
-        useChat<Message>({
-            chat
-        });
+    const { messages, sendMessage, status, regenerate, stop } = useChat<Message>({
+        chat
+    });
 
     const [input, setInput] = useState("");
     const [files, setFiles] = useState<FileList | FileUIPart[]>();
 
-    const handleInput = useEvent((event: ChangeEvent<HTMLTextAreaElement>) => {
-        setInput(event.target.value);
-    });
-
     const { input: fileInput, browse } = useFileDialog({
         accept: "image/*, text/*",
-        onChange: (event: ChangeEvent<HTMLInputElement>) => {
+        multiple: true,
+        onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
             if (event.target.files) setFiles(event.target.files);
-        },
-        multiple: true
+        }
     });
 
-    const submit = (event: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!input.trim()) return;
 
@@ -93,7 +77,7 @@ export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
         setFiles(undefined);
     };
 
-    const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
             if (event.nativeEvent?.isComposing) return;
@@ -101,7 +85,7 @@ export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
         }
     };
 
-    const handleButtonClick = (event: MouseEvent<HTMLButtonElement>) => {
+    const handleButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => {
         if (status === "streaming" || status === "submitted") {
             event.preventDefault();
             void stop();
@@ -116,7 +100,7 @@ export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
         return options[Math.floor(Math.random() * options.length)];
     }, []);
 
-    const pasteFiles = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+    const handlePaste = (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
         const files = event.clipboardData.files;
         if (files.length > 0) {
             event.preventDefault();
@@ -131,8 +115,7 @@ export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
         const checkScrollPosition = () => {
             const { scrollHeight, scrollTop, clientHeight } =
                 document.scrollingElement || document.documentElement;
-            const distanceFromBottom =
-                scrollHeight - (scrollTop + clientHeight);
+            const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
             const atBottom = distanceFromBottom < 50;
             setAutoScroll(atBottom);
             checking = false;
@@ -153,14 +136,11 @@ export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
         };
     }, []);
 
-    useLayoutEffect(() => {
+    useEffect(() => {
         const scrollAnchor = scrollAnchorRef.current;
         if (!scrollAnchor || !autoScroll) return;
 
-        const options =
-            status === "streaming"
-                ? undefined
-                : ({ behavior: "smooth" } as const);
+        const options = status === "streaming" ? undefined : ({ behavior: "smooth" } as const);
 
         scrollAnchor.scrollIntoView(options);
     }, [autoScroll, status, messages]); // oxlint-disable-line
@@ -171,12 +151,38 @@ export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
         });
     };
 
+    const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
+    const [lineWrapped, setLineWrapped] = useState(false);
+
+    const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const input = event.target.value;
+        setInput(input);
+        if (input.includes("\n")) setLineWrapped(true);
+    };
+
+    useEffect(() => {
+        const textArea = textAreaRef.current;
+        if (!textArea) return;
+
+        const checkHeight = () => {
+            const wrapped = textArea.clientHeight > MAX_HEIGHT;
+            setLineWrapped((prev) => (prev === wrapped ? prev : wrapped));
+        };
+
+        checkHeight();
+
+        const observer = new ResizeObserver(checkHeight);
+        observer.observe(textArea);
+
+        return () => observer.disconnect();
+    }, []);
+
     return (
-        <div className="sticky bottom-2 sm:w-2xl @min-[1025px]:w-3xl sm:mx-auto">
+        <div className="sticky bottom-2 sm:mx-auto sm:w-2xl @min-[1025px]:w-3xl">
             <Button
                 variant="outline"
                 className={cn(
-                    "flex mx-auto -mt-9 mb-2 dark:bg-sidebar/50 backdrop-blur rounded-full transition opacity-0",
+                    "mx-auto -mt-9 mb-2 flex rounded-full opacity-0 backdrop-blur transition dark:bg-sidebar/50",
                     !autoScroll ? "opacity-100" : "pointer-events-none"
                 )}
                 onClick={scrollToBottom}
@@ -184,24 +190,40 @@ export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
                 Scroll to Bottom
                 <ArrowDown />
             </Button>
-            <form onSubmit={submit}>
-                <InputGroup className="rounded-3xl border-input! ring-0! dark:bg-sidebar/50 backdrop-blur">
-                    <Textarea
-                        data-slot="input-group-control"
+            <form onSubmit={handleSubmit}>
+                <InputGroup className="rounded-3xl border-input! ring-0! backdrop-blur transition-[height] dark:bg-sidebar/50">
+                    <InputGroupTextarea
+                        name="message-input"
                         onKeyDown={handleKeyDown}
-                        onChange={handleInput}
-                        onPaste={pasteFiles}
+                        onChange={handleChange}
+                        onPaste={handlePaste}
                         value={input}
                         placeholder={placeholder}
-                        className="min-h-0 py-3 dark:bg-transparent resize-none border-none shadow-none focus-visible:ring-0"
+                        className={cn(
+                            "transition-[position,margin,padding] transition-discrete",
+                            "min-h-0 resize-none border-none shadow-none focus-visible:ring-0 dark:bg-transparent dark:text-foreground",
+                            !lineWrapped
+                                ? "absolute mt-0.5 px-12 delay-[20ms,0ms,0ms]"
+                                : "delay-[0ms,20ms,20ms]"
+                        )}
                     />
-                    <InputGroupAddon align="block-end">
+                    <InputGroupText
+                        aria-hidden
+                        ref={textAreaRef}
+                        className="pointer-events-none absolute mt-0.5 w-full px-13 py-3 text-base opacity-0 md:text-sm"
+                    >
+                        {input}
+                    </InputGroupText>
+                    <InputGroupAddon
+                        align="block-end"
+                        className={cn(!lineWrapped && "p-2", "transition-[margin,padding]")}
+                    >
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <InputGroupButton
                                     variant="outline"
                                     size="icon-sm"
-                                    className="rounded-full"
+                                    className="z-1 rounded-full"
                                 >
                                     <Plus />
                                 </InputGroupButton>
@@ -213,71 +235,44 @@ export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
                                     Attach Files...
                                 </DropdownMenuItem>
                                 <DropdownMenuItem disabled>
-                                    <Link />
+                                    <LinkIcon />
                                     Import from URL
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                         <Tooltip>
-                            <TooltipTrigger asChild></TooltipTrigger>
-                            <TooltipContent>Attach file</TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
                             <TooltipTrigger asChild>
                                 <InputGroupButton
                                     variant="default"
                                     size="icon-sm"
-                                    type={
-                                        status === "ready" ? "submit" : "button"
-                                    }
-                                    className="ml-auto rounded-full"
-                                    disabled={
-                                        status === "ready" && !input.trim()
-                                    }
+                                    type={status === "ready" ? "submit" : "button"}
+                                    className="z-1 ml-auto rounded-full"
+                                    disabled={status === "ready" && !input.trim()}
                                     onClick={handleButtonClick}
                                 >
-                                    {status === "ready" && (
-                                        <ArrowUp className="size-6" />
-                                    )}
-                                    {(status === "streaming" ||
-                                        status === "submitted") && (
+                                    {status === "ready" && <ArrowUp className="size-6" />}
+                                    {(status === "streaming" || status === "submitted") && (
                                         <Square fill="currentColor" />
                                     )}
-                                    {status === "error" && (
-                                        <TriangleAlert className="size-6" />
-                                    )}
+                                    {status === "error" && <TriangleAlert className="size-6" />}
                                 </InputGroupButton>
                             </TooltipTrigger>
                             <TooltipContent>
                                 {status === "ready" && "Submit"}
-                                {(status === "streaming" ||
-                                    status === "submitted") &&
-                                    "Stop"}
+                                {(status === "streaming" || status === "submitted") && "Stop"}
                                 {status === "error" && "Retry"}
                             </TooltipContent>
                         </Tooltip>
                     </InputGroupAddon>
+                    {files?.length && (
+                        <InputGroupAddon align="block-start">
+                            <InputGroupText>
+                                {files.length > 1 ? <Files /> : <FileIcon />}
+                                {files.length} {files.length > 1 ? "files" : "file"} attached
+                            </InputGroupText>
+                        </InputGroupAddon>
+                    )}
                 </InputGroup>
-                {/* {attachments.length > 0 && (
-                        <div className="flex items-center gap-1">
-                            <File size={16} />
-                            <div className="text-xs text-muted-foreground">
-                                {attachments.length} file(s) attached
-                            </div>
-                        </div>
-                    )} */}
-
-                {/* <input
-            type="file"
-            ref={fileInputRef}
-            // onChange={handleFiles}
-            className="hidden"
-            multiple
-          /> */}
-                {/* / <div */}
-                {/* // className={`${messages.length > 0 ? "flex -mt-24 mb-4 z-1" : "flex grow"} w-auto h-auto `}
-        // </div>
-        // > */}
             </form>
         </div>
     );

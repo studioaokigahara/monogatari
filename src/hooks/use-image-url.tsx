@@ -1,4 +1,4 @@
-import { CharacterCardV3Asset } from "@/database/schema/character";
+import type { CharacterCardV3Asset } from "@/database/schema/character";
 
 type ImageRequest =
     | { category: "persona"; id: string }
@@ -6,19 +6,15 @@ type ImageRequest =
           category: "character";
           id: string;
           assets: CharacterCardV3Asset[];
-          fileName?: string;
+          filename?: string;
       };
 
 export function useImageURL(request: ImageRequest): string;
 export function useImageURL(request: ImageRequest[]): string[];
 export function useImageURL(request: ImageRequest | undefined): string;
-export function useImageURL(
-    request: ImageRequest[] | undefined
-): string | string[];
+export function useImageURL(request: ImageRequest[] | undefined): string | string[];
 
-export function useImageURL(
-    request: ImageRequest | ImageRequest[] | undefined
-) {
+export function useImageURL(request: ImageRequest | ImageRequest[] | undefined) {
     const requests = Array.isArray(request) ? request : [request];
 
     const imageURLs = requests.map((request) => {
@@ -29,15 +25,14 @@ export function useImageURL(
         }
 
         const assets = request.assets;
-        let fileName = request.fileName;
+        let filename = request.filename;
 
-        if (!fileName) {
-            const asset =
-                assets.find((asset) => asset.type === "icon") ?? assets[0];
-            if (asset) fileName = `${asset.name}.${asset.ext}`;
+        if (!filename) {
+            const asset = assets.find((asset) => asset.type === "icon") ?? assets[0];
+            if (asset) filename = `${asset.name}.${asset.ext}`;
         }
 
-        return `/images/characters/${request.id}/${fileName}`;
+        return `/images/characters/${request.id}/${filename}`;
     });
 
     return Array.isArray(request) ? imageURLs : imageURLs[0];

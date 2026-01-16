@@ -7,13 +7,7 @@ import {
     EmptyMedia,
     EmptyTitle
 } from "@/components/ui/empty";
-import {
-    Field,
-    FieldError,
-    FieldGroup,
-    FieldLabel,
-    FieldSet
-} from "@/components/ui/field";
+import { Field, FieldError, FieldGroup, FieldLabel, FieldSet } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
     Select,
@@ -26,25 +20,22 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { db } from "@/database/monogatari-db";
 import { Lorebook } from "@/database/schema/lorebook";
-import useAutosave from "@/hooks/use-autosave";
 import { generateCuid2 } from "@/lib/utils";
-import { useForm, useStore } from "@tanstack/react-form";
+import { useForm } from "@tanstack/react-form";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ListEnd, ListPlus, ListStart, TextSelect, Trash2 } from "lucide-react";
-import { useCallback, useEffect } from "react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 
 function NoLorebookEntries() {
     return (
-        <Empty className="mb-2 border border-dashed">
+        <Empty className="border border-dashed my-6">
             <EmptyHeader>
                 <EmptyMedia variant="icon">
                     <TextSelect />
                 </EmptyMedia>
                 <EmptyTitle>No Lorebook Entries</EmptyTitle>
-                <EmptyDescription>
-                    Click "Add Entry" to get started
-                </EmptyDescription>
+                <EmptyDescription>Click "Add Entry" to get started</EmptyDescription>
             </EmptyHeader>
         </Empty>
     );
@@ -63,36 +54,26 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
             onSubmit: ({ value }) => Lorebook.validate(value)
         },
         onSubmit: async ({ value }) => {
-            await lorebook.update(value).catch((error: Error) => {
+            try {
+                await lorebook.update(value.data);
+            } catch (error) {
                 console.error("Failed to update lorebook:", error);
                 toast.error("Failed to update lorebook", {
-                    description: error.message
+                    description: error instanceof Error ? error.message : ""
                 });
-            });
+            }
+        },
+        listeners: {
+            onChangeDebounceMs: 500,
+            onChange: ({ formApi: form }) => {
+                if (form.state.isValid && !form.state.isSubmitting) {
+                    form.handleSubmit();
+                }
+            }
         }
     });
 
     useEffect(() => form.reset(lorebook), [form, lorebook]);
-
-    const [isDirty, isValid, isSubmitting, values] = useStore(
-        form.store,
-        (state) => [
-            state.isDirty,
-            state.isValid,
-            state.isSubmitting,
-            state.values
-        ]
-    );
-
-    const handleSubmit = useCallback(() => form.handleSubmit(), [form]);
-
-    useAutosave({
-        isDirty,
-        isValid,
-        isSubmitting,
-        values,
-        handleSubmit
-    });
 
     const addEntry = () => {
         const newEntry: Lorebook["data"]["entries"][number] = {
@@ -119,10 +100,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
         await form.removeFieldValue("data.entries", index);
     };
 
-    const characters = useLiveQuery(
-        () => db.characters.orderBy("data.name").toArray(),
-        []
-    );
+    const characters = useLiveQuery(() => db.characters.orderBy("data.name").toArray(), []);
 
     const options = characters
         ? characters.map((character) => ({
@@ -139,120 +117,74 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
     const CommonForm = () => (
         <>
             <FieldGroup className="*:gap-1">
-                <FieldGroup className="flex flex-row *:gap-1">
+                <FieldGroup className="flex flex-row @max-md:flex-wrap *:gap-1">
                     <form.Field name="data.name">
                         {(field) => {
-                            const invalid =
-                                field.state.meta.isTouched &&
-                                !field.state.meta.isValid;
+                            const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
                             return (
                                 <Field data-invalid={invalid}>
-                                    <FieldLabel htmlFor={field.name}>
-                                        Name
-                                    </FieldLabel>
+                                    <FieldLabel htmlFor={field.name}>Name</FieldLabel>
                                     <Input
                                         id={field.name}
                                         name={field.name}
                                         value={field.state.value}
                                         onBlur={field.handleBlur}
-                                        onChange={(e) =>
-                                            field.handleChange(e.target.value)
-                                        }
+                                        onChange={(e) => field.handleChange(e.target.value)}
                                         aria-invalid={invalid}
                                     />
-                                    {invalid && (
-                                        <FieldError
-                                            errors={field.state.meta.errors}
-                                        />
-                                    )}
+                                    {invalid && <FieldError errors={field.state.meta.errors} />}
                                 </Field>
                             );
                         }}
                     </form.Field>
                     <form.Field name="enabled">
                         {(field) => {
-                            const invalid =
-                                field.state.meta.isTouched &&
-                                !field.state.meta.isValid;
+                            const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
                             return (
-                                <Field
-                                    data-invalid={invalid}
-                                    className="w-min self-center mt-6"
-                                >
-                                    <FieldLabel
-                                        htmlFor={field.name}
-                                        className="bg-[unset]!"
-                                    >
+                                <Field data-invalid={invalid} className="w-min self-center mt-6">
+                                    <FieldLabel htmlFor={field.name} className="bg-[unset]!">
                                         Enabled
                                         <Switch
                                             id={field.name}
                                             name={field.name}
                                             checked={Boolean(field.state.value)}
                                             onCheckedChange={(checked) =>
-                                                field.handleChange(
-                                                    Number(checked)
-                                                )
+                                                field.handleChange(Number(checked))
                                             }
                                         />
                                     </FieldLabel>
-                                    {invalid && (
-                                        <FieldError
-                                            errors={field.state.meta.errors}
-                                        />
-                                    )}
+                                    {invalid && <FieldError errors={field.state.meta.errors} />}
                                 </Field>
                             );
                         }}
                     </form.Field>
                     <form.Field name="global">
                         {(field) => {
-                            const invalid =
-                                field.state.meta.isTouched &&
-                                !field.state.meta.isValid;
+                            const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
                             return (
-                                <Field
-                                    data-invalid={invalid}
-                                    className="w-min self-center mt-6"
-                                >
-                                    <FieldLabel
-                                        htmlFor={field.name}
-                                        className="bg-[unset]!"
-                                    >
+                                <Field data-invalid={invalid} className="w-min self-center mt-6">
+                                    <FieldLabel htmlFor={field.name} className="bg-[unset]!">
                                         Global
                                         <Switch
                                             id={field.name}
                                             name={field.name}
                                             checked={Boolean(field.state.value)}
                                             onCheckedChange={(checked) =>
-                                                field.handleChange(
-                                                    Number(checked)
-                                                )
+                                                field.handleChange(Number(checked))
                                             }
                                         />
                                     </FieldLabel>
-                                    {invalid && (
-                                        <FieldError
-                                            errors={field.state.meta.errors}
-                                        />
-                                    )}
+                                    {invalid && <FieldError errors={field.state.meta.errors} />}
                                 </Field>
                             );
                         }}
                     </form.Field>
                     <form.Field name="data.recursive_scanning">
                         {(field) => {
-                            const invalid =
-                                field.state.meta.isTouched &&
-                                !field.state.meta.isValid;
+                            const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
                             return (
-                                <Field
-                                    data-invalid={invalid}
-                                    className="w-min self-center mt-6"
-                                >
-                                    <FieldLabel
-                                        htmlFor={field.name}
-                                        className="bg-[unset]!"
-                                    >
+                                <Field data-invalid={invalid} className="w-min self-center mt-6">
+                                    <FieldLabel htmlFor={field.name} className="bg-[unset]!">
                                         Recursive
                                         <Switch
                                             id={field.name}
@@ -263,11 +195,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                                             }
                                         />
                                     </FieldLabel>
-                                    {invalid && (
-                                        <FieldError
-                                            errors={field.state.meta.errors}
-                                        />
-                                    )}
+                                    {invalid && <FieldError errors={field.state.meta.errors} />}
                                 </Field>
                             );
                         }}
@@ -275,30 +203,20 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                 </FieldGroup>
                 <form.Field name="data.description">
                     {(field) => {
-                        const invalid =
-                            field.state.meta.isTouched &&
-                            !field.state.meta.isValid;
+                        const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
                         return (
                             <Field data-invalid={invalid}>
-                                <FieldLabel htmlFor={field.name}>
-                                    Description
-                                </FieldLabel>
+                                <FieldLabel htmlFor={field.name}>Description</FieldLabel>
                                 <Textarea
                                     id={field.name}
                                     name={field.name}
                                     value={field.state.value}
                                     onBlur={field.handleBlur}
-                                    onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                    }
+                                    onChange={(e) => field.handleChange(e.target.value)}
                                     aria-invalid={invalid}
                                     placeholder="README.md"
                                 />
-                                {invalid && (
-                                    <FieldError
-                                        errors={field.state.meta.errors}
-                                    />
-                                )}
+                                {invalid && <FieldError errors={field.state.meta.errors} />}
                             </Field>
                         );
                     }}
@@ -306,79 +224,50 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                 <FieldGroup className="w-full flex flex-row *:gap-1">
                     <form.Field name="data.scan_depth">
                         {(field) => {
-                            const invalid =
-                                field.state.meta.isTouched &&
-                                !field.state.meta.isValid;
+                            const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
                             return (
                                 <Field data-invalid={invalid} className="w-fit">
-                                    <FieldLabel htmlFor={field.name}>
-                                        Scan Depth
-                                    </FieldLabel>
+                                    <FieldLabel htmlFor={field.name}>Scan Depth</FieldLabel>
                                     <Input
                                         id={field.name}
                                         name={field.name}
                                         type="number"
                                         value={field.state.value}
                                         onBlur={field.handleBlur}
-                                        onChange={(e) =>
-                                            field.handleChange(
-                                                Number(e.target.value)
-                                            )
-                                        }
+                                        onChange={(e) => field.handleChange(Number(e.target.value))}
                                         aria-invalid={invalid}
                                     />
-                                    {invalid && (
-                                        <FieldError
-                                            errors={field.state.meta.errors}
-                                        />
-                                    )}
+                                    {invalid && <FieldError errors={field.state.meta.errors} />}
                                 </Field>
                             );
                         }}
                     </form.Field>
                     <form.Field name="data.token_budget">
                         {(field) => {
-                            const invalid =
-                                field.state.meta.isTouched &&
-                                !field.state.meta.isValid;
+                            const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
                             return (
                                 <Field data-invalid={invalid} className="w-fit">
-                                    <FieldLabel htmlFor={field.name}>
-                                        Token Budget
-                                    </FieldLabel>
+                                    <FieldLabel htmlFor={field.name}>Token Budget</FieldLabel>
                                     <Input
                                         id={field.name}
                                         name={field.name}
                                         type="number"
                                         value={field.state.value}
                                         onBlur={field.handleBlur}
-                                        onChange={(e) =>
-                                            field.handleChange(
-                                                Number(e.target.value)
-                                            )
-                                        }
+                                        onChange={(e) => field.handleChange(Number(e.target.value))}
                                         aria-invalid={invalid}
                                     />
-                                    {invalid && (
-                                        <FieldError
-                                            errors={field.state.meta.errors}
-                                        />
-                                    )}
+                                    {invalid && <FieldError errors={field.state.meta.errors} />}
                                 </Field>
                             );
                         }}
                     </form.Field>
                     <form.Field name="linkedCharacterIDs">
                         {(field) => {
-                            const invalid =
-                                field.state.meta.isTouched &&
-                                !field.state.meta.isValid;
+                            const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
                             return (
                                 <Field data-invalid={invalid}>
-                                    <FieldLabel
-                                        htmlFor={field.name}
-                                        className="bg-[unset]!"
-                                    >
+                                    <FieldLabel htmlFor={field.name} className="bg-[unset]!">
                                         Linked Characters
                                     </FieldLabel>
                                     <Combobox
@@ -391,11 +280,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                                         onBlur={field.handleBlur}
                                         onChange={field.handleChange}
                                     />
-                                    {invalid && (
-                                        <FieldError
-                                            errors={field.state.meta.errors}
-                                        />
-                                    )}
+                                    {invalid && <FieldError errors={field.state.meta.errors} />}
                                 </Field>
                             );
                         }}
@@ -408,7 +293,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
     if (!lorebook.data.entries) {
         return (
             <form
-                className="flex flex-col grow pb-2 gap-4 overflow-auto"
+                className="flex flex-col grow pt-6 pb-2 gap-4 overflow-auto"
                 onSubmit={(event) => {
                     event.preventDefault();
                     void form.handleSubmit();
@@ -424,7 +309,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
 
     return (
         <form
-            className="flex flex-col grow pb-2 gap-4 overflow-auto"
+            className="flex flex-col grow pt-6 pb-2 gap-4 overflow-auto @container"
             onSubmit={(event) => {
                 event.preventDefault();
                 void form.handleSubmit();
@@ -437,47 +322,30 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                         {() => (
                             <>
                                 <form.Subscribe
-                                    selector={(state) =>
-                                        state.values.data.entries[index]
-                                    }
+                                    selector={(state) => state.values.data.entries[index]}
                                 >
                                     {(entry) => (
-                                        <div className="flex flex-row justify-between">
-                                            <div className="flex flex-col grow gap-1">
-                                                <form.Field
-                                                    name={`data.entries[${index}].enabled`}
-                                                >
+                                        <div className="flex flex-col @max-md:flex-wrap gap-2 justify-between">
+                                            <div className="flex flex-row @max-md:flex-wrap grow gap-1 items-center">
+                                                <form.Field name={`data.entries[${index}].enabled`}>
                                                     {(field) => {
                                                         const invalid =
-                                                            field.state.meta
-                                                                .isTouched &&
-                                                            !field.state.meta
-                                                                .isValid;
+                                                            field.state.meta.isTouched &&
+                                                            !field.state.meta.isValid;
                                                         return (
                                                             <Field
-                                                                data-invalid={
-                                                                    invalid
-                                                                }
+                                                                data-invalid={invalid}
+                                                                className="w-auto grow"
                                                             >
                                                                 <FieldLabel
-                                                                    htmlFor={
-                                                                        field.name
-                                                                    }
+                                                                    htmlFor={field.name}
                                                                     className="text-base font-semibold bg-[unset]!"
                                                                 >
                                                                     {entry.name}
                                                                     <Switch
-                                                                        id={
-                                                                            field.name
-                                                                        }
-                                                                        name={
-                                                                            field.name
-                                                                        }
-                                                                        checked={
-                                                                            field
-                                                                                .state
-                                                                                .value
-                                                                        }
+                                                                        id={field.name}
+                                                                        name={field.name}
+                                                                        checked={field.state.value}
                                                                         onCheckedChange={(
                                                                             checked
                                                                         ) =>
@@ -490,10 +358,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                                                                 {invalid && (
                                                                     <FieldError
                                                                         errors={
-                                                                            field
-                                                                                .state
-                                                                                .meta
-                                                                                .errors
+                                                                            field.state.meta.errors
                                                                         }
                                                                     />
                                                                 )}
@@ -501,342 +366,242 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                                                         );
                                                     }}
                                                 </form.Field>
-                                                <FieldGroup className="flex flex-row">
-                                                    <form.Field
-                                                        name={`data.entries[${index}].case_sensitive`}
+                                                <div className="flex flex-nowrap gap-2 content-center">
+                                                    <Button onClick={addEntry}>
+                                                        <ListPlus />
+                                                        Add Entry
+                                                    </Button>
+                                                    <Button
+                                                        variant="destructive"
+                                                        onClick={deleteEntry}
                                                     >
-                                                        {(field) => {
-                                                            const invalid =
-                                                                field.state.meta
-                                                                    .isTouched &&
-                                                                !field.state
-                                                                    .meta
-                                                                    .isValid;
-                                                            return (
-                                                                <Field
-                                                                    data-invalid={
-                                                                        invalid
-                                                                    }
-                                                                    className="w-fit"
-                                                                >
-                                                                    <FieldLabel
-                                                                        htmlFor={
-                                                                            field.name
-                                                                        }
-                                                                        className="bg-[unset]!"
-                                                                    >
-                                                                        Case
-                                                                        Sensitive
-                                                                        <Switch
-                                                                            id={
-                                                                                field.name
-                                                                            }
-                                                                            name={
-                                                                                field.name
-                                                                            }
-                                                                            checked={
-                                                                                field
-                                                                                    .state
-                                                                                    .value
-                                                                            }
-                                                                            onCheckedChange={(
-                                                                                checked
-                                                                            ) =>
-                                                                                field.handleChange(
-                                                                                    checked
-                                                                                )
-                                                                            }
-                                                                        />
-                                                                    </FieldLabel>
-                                                                    {invalid && (
-                                                                        <FieldError
-                                                                            errors={
-                                                                                field
-                                                                                    .state
-                                                                                    .meta
-                                                                                    .errors
-                                                                            }
-                                                                        />
-                                                                    )}
-                                                                </Field>
-                                                            );
-                                                        }}
-                                                    </form.Field>
-                                                    <form.Field
-                                                        name={`data.entries[${index}].use_regex`}
-                                                    >
-                                                        {(field) => {
-                                                            const invalid =
-                                                                field.state.meta
-                                                                    .isTouched &&
-                                                                !field.state
-                                                                    .meta
-                                                                    .isValid;
-                                                            return (
-                                                                <Field
-                                                                    data-invalid={
-                                                                        invalid
-                                                                    }
-                                                                    className="w-fit"
-                                                                >
-                                                                    <FieldLabel
-                                                                        htmlFor={
-                                                                            field.name
-                                                                        }
-                                                                        className="bg-[unset]!"
-                                                                    >
-                                                                        Use
-                                                                        Regex
-                                                                        <Switch
-                                                                            id={
-                                                                                field.name
-                                                                            }
-                                                                            name={
-                                                                                field.name
-                                                                            }
-                                                                            checked={
-                                                                                field
-                                                                                    .state
-                                                                                    .value
-                                                                            }
-                                                                            onCheckedChange={(
-                                                                                checked
-                                                                            ) =>
-                                                                                field.handleChange(
-                                                                                    checked
-                                                                                )
-                                                                            }
-                                                                        />
-                                                                    </FieldLabel>
-                                                                    {invalid && (
-                                                                        <FieldError
-                                                                            errors={
-                                                                                field
-                                                                                    .state
-                                                                                    .meta
-                                                                                    .errors
-                                                                            }
-                                                                        />
-                                                                    )}
-                                                                </Field>
-                                                            );
-                                                        }}
-                                                    </form.Field>
-                                                    <form.Field
-                                                        name={`data.entries[${index}].constant`}
-                                                    >
-                                                        {(field) => {
-                                                            const invalid =
-                                                                field.state.meta
-                                                                    .isTouched &&
-                                                                !field.state
-                                                                    .meta
-                                                                    .isValid;
-                                                            return (
-                                                                <Field
-                                                                    data-invalid={
-                                                                        invalid
-                                                                    }
-                                                                    className="w-min"
-                                                                >
-                                                                    <FieldLabel
-                                                                        htmlFor={
-                                                                            field.name
-                                                                        }
-                                                                        className="w-min bg-[unset]!"
-                                                                    >
-                                                                        Constant
-                                                                        <Switch
-                                                                            id={
-                                                                                field.name
-                                                                            }
-                                                                            name={
-                                                                                field.name
-                                                                            }
-                                                                            checked={
-                                                                                field
-                                                                                    .state
-                                                                                    .value
-                                                                            }
-                                                                            onCheckedChange={(
-                                                                                checked
-                                                                            ) =>
-                                                                                field.handleChange(
-                                                                                    checked
-                                                                                )
-                                                                            }
-                                                                        />
-                                                                    </FieldLabel>
-                                                                    {invalid && (
-                                                                        <FieldError
-                                                                            errors={
-                                                                                field
-                                                                                    .state
-                                                                                    .meta
-                                                                                    .errors
-                                                                            }
-                                                                        />
-                                                                    )}
-                                                                </Field>
-                                                            );
-                                                        }}
-                                                    </form.Field>
-                                                    <form.Field
-                                                        name={`data.entries[${index}].selective`}
-                                                    >
-                                                        {(field) => {
-                                                            const invalid =
-                                                                field.state.meta
-                                                                    .isTouched &&
-                                                                !field.state
-                                                                    .meta
-                                                                    .isValid;
-                                                            return (
-                                                                <Field
-                                                                    data-invalid={
-                                                                        invalid
-                                                                    }
-                                                                    className="w-min"
-                                                                >
-                                                                    <FieldLabel
-                                                                        htmlFor={
-                                                                            field.name
-                                                                        }
-                                                                        className="bg-[unset]!"
-                                                                    >
-                                                                        Selective
-                                                                        <Switch
-                                                                            id={
-                                                                                field.name
-                                                                            }
-                                                                            name={
-                                                                                field.name
-                                                                            }
-                                                                            checked={
-                                                                                field
-                                                                                    .state
-                                                                                    .value
-                                                                            }
-                                                                            onCheckedChange={(
-                                                                                checked
-                                                                            ) =>
-                                                                                field.handleChange(
-                                                                                    checked
-                                                                                )
-                                                                            }
-                                                                        />
-                                                                    </FieldLabel>
-                                                                    {invalid && (
-                                                                        <FieldError
-                                                                            errors={
-                                                                                field
-                                                                                    .state
-                                                                                    .meta
-                                                                                    .errors
-                                                                            }
-                                                                        />
-                                                                    )}
-                                                                </Field>
-                                                            );
-                                                        }}
-                                                    </form.Field>
-                                                </FieldGroup>
+                                                        <Trash2 />
+                                                        Delete Entry
+                                                    </Button>
+                                                </div>
                                             </div>
-                                            <div className="content-center space-x-2 flex-nowrap">
-                                                <Button onClick={addEntry}>
-                                                    <ListPlus />
-                                                    Add Entry
-                                                </Button>
-                                                <Button
-                                                    variant="destructive"
-                                                    onClick={deleteEntry}
+                                            <FieldGroup className="flex flex-row flex-wrap">
+                                                <form.Field
+                                                    name={`data.entries[${index}].case_sensitive`}
                                                 >
-                                                    <Trash2 />
-                                                    Delete Entry
-                                                </Button>
-                                            </div>
+                                                    {(field) => {
+                                                        const invalid =
+                                                            field.state.meta.isTouched &&
+                                                            !field.state.meta.isValid;
+                                                        return (
+                                                            <Field
+                                                                data-invalid={invalid}
+                                                                className="w-fit"
+                                                            >
+                                                                <FieldLabel
+                                                                    htmlFor={field.name}
+                                                                    className="bg-[unset]!"
+                                                                >
+                                                                    Case Sensitive
+                                                                    <Switch
+                                                                        id={field.name}
+                                                                        name={field.name}
+                                                                        checked={field.state.value}
+                                                                        onCheckedChange={(
+                                                                            checked
+                                                                        ) =>
+                                                                            field.handleChange(
+                                                                                checked
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                </FieldLabel>
+                                                                {invalid && (
+                                                                    <FieldError
+                                                                        errors={
+                                                                            field.state.meta.errors
+                                                                        }
+                                                                    />
+                                                                )}
+                                                            </Field>
+                                                        );
+                                                    }}
+                                                </form.Field>
+                                                <form.Field
+                                                    name={`data.entries[${index}].use_regex`}
+                                                >
+                                                    {(field) => {
+                                                        const invalid =
+                                                            field.state.meta.isTouched &&
+                                                            !field.state.meta.isValid;
+                                                        return (
+                                                            <Field
+                                                                data-invalid={invalid}
+                                                                className="w-fit"
+                                                            >
+                                                                <FieldLabel
+                                                                    htmlFor={field.name}
+                                                                    className="bg-[unset]!"
+                                                                >
+                                                                    Use Regex
+                                                                    <Switch
+                                                                        id={field.name}
+                                                                        name={field.name}
+                                                                        checked={field.state.value}
+                                                                        onCheckedChange={(
+                                                                            checked
+                                                                        ) =>
+                                                                            field.handleChange(
+                                                                                checked
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                </FieldLabel>
+                                                                {invalid && (
+                                                                    <FieldError
+                                                                        errors={
+                                                                            field.state.meta.errors
+                                                                        }
+                                                                    />
+                                                                )}
+                                                            </Field>
+                                                        );
+                                                    }}
+                                                </form.Field>
+                                                <form.Field
+                                                    name={`data.entries[${index}].constant`}
+                                                >
+                                                    {(field) => {
+                                                        const invalid =
+                                                            field.state.meta.isTouched &&
+                                                            !field.state.meta.isValid;
+                                                        return (
+                                                            <Field
+                                                                data-invalid={invalid}
+                                                                className="w-min"
+                                                            >
+                                                                <FieldLabel
+                                                                    htmlFor={field.name}
+                                                                    className="w-min bg-[unset]!"
+                                                                >
+                                                                    Constant
+                                                                    <Switch
+                                                                        id={field.name}
+                                                                        name={field.name}
+                                                                        checked={field.state.value}
+                                                                        onCheckedChange={(
+                                                                            checked
+                                                                        ) =>
+                                                                            field.handleChange(
+                                                                                checked
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                </FieldLabel>
+                                                                {invalid && (
+                                                                    <FieldError
+                                                                        errors={
+                                                                            field.state.meta.errors
+                                                                        }
+                                                                    />
+                                                                )}
+                                                            </Field>
+                                                        );
+                                                    }}
+                                                </form.Field>
+                                                <form.Field
+                                                    name={`data.entries[${index}].selective`}
+                                                >
+                                                    {(field) => {
+                                                        const invalid =
+                                                            field.state.meta.isTouched &&
+                                                            !field.state.meta.isValid;
+                                                        return (
+                                                            <Field
+                                                                data-invalid={invalid}
+                                                                className="w-min"
+                                                            >
+                                                                <FieldLabel
+                                                                    htmlFor={field.name}
+                                                                    className="bg-[unset]!"
+                                                                >
+                                                                    Selective
+                                                                    <Switch
+                                                                        id={field.name}
+                                                                        name={field.name}
+                                                                        checked={field.state.value}
+                                                                        onCheckedChange={(
+                                                                            checked
+                                                                        ) =>
+                                                                            field.handleChange(
+                                                                                checked
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                </FieldLabel>
+                                                                {invalid && (
+                                                                    <FieldError
+                                                                        errors={
+                                                                            field.state.meta.errors
+                                                                        }
+                                                                    />
+                                                                )}
+                                                            </Field>
+                                                        );
+                                                    }}
+                                                </form.Field>
+                                            </FieldGroup>
                                         </div>
                                     )}
                                 </form.Subscribe>
                                 <FieldGroup className="flex flex-row *:gap-1">
-                                    <form.Field
-                                        name={`data.entries[${index}].name`}
-                                    >
+                                    <form.Field name={`data.entries[${index}].name`}>
                                         {(field) => {
                                             const invalid =
                                                 field.state.meta.isTouched &&
                                                 !field.state.meta.isValid;
                                             return (
                                                 <Field data-invalid={invalid}>
-                                                    <FieldLabel
-                                                        htmlFor={field.name}
-                                                    >
+                                                    <FieldLabel htmlFor={field.name}>
                                                         Name
                                                     </FieldLabel>
                                                     <Input
                                                         id={field.name}
                                                         name={field.name}
-                                                        value={
-                                                            field.state.value
-                                                        }
-                                                        onBlur={
-                                                            field.handleBlur
-                                                        }
+                                                        value={field.state.value}
+                                                        onBlur={field.handleBlur}
                                                         onChange={(e) =>
-                                                            field.handleChange(
-                                                                e.target.value
-                                                            )
+                                                            field.handleChange(e.target.value)
                                                         }
                                                         aria-invalid={invalid}
                                                     />
                                                     {invalid && (
                                                         <FieldError
-                                                            errors={
-                                                                field.state.meta
-                                                                    .errors
-                                                            }
+                                                            errors={field.state.meta.errors}
                                                         />
                                                     )}
                                                 </Field>
                                             );
                                         }}
                                     </form.Field>
-                                    <form.Field
-                                        name={`data.entries[${index}].comment`}
-                                    >
+                                    <form.Field name={`data.entries[${index}].comment`}>
                                         {(field) => {
                                             const invalid =
                                                 field.state.meta.isTouched &&
                                                 !field.state.meta.isValid;
                                             return (
                                                 <Field data-invalid={invalid}>
-                                                    <FieldLabel
-                                                        htmlFor={field.name}
-                                                    >
+                                                    <FieldLabel htmlFor={field.name}>
                                                         Comment
                                                     </FieldLabel>
                                                     <Input
                                                         id={field.name}
                                                         name={field.name}
-                                                        value={
-                                                            field.state.value
-                                                        }
-                                                        onBlur={
-                                                            field.handleBlur
-                                                        }
+                                                        value={field.state.value}
+                                                        onBlur={field.handleBlur}
                                                         onChange={(e) =>
-                                                            field.handleChange(
-                                                                e.target.value
-                                                            )
+                                                            field.handleChange(e.target.value)
                                                         }
                                                         aria-invalid={invalid}
                                                     />
                                                     {invalid && (
                                                         <FieldError
-                                                            errors={
-                                                                field.state.meta
-                                                                    .errors
-                                                            }
+                                                            errors={field.state.meta.errors}
                                                         />
                                                     )}
                                                 </Field>
@@ -845,44 +610,31 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                                     </form.Field>
                                 </FieldGroup>
                                 <FieldGroup className="flex flex-row *:gap-1">
-                                    <form.Field
-                                        name={`data.entries[${index}].keys`}
-                                    >
+                                    <form.Field name={`data.entries[${index}].keys`}>
                                         {(field) => {
                                             const invalid =
                                                 field.state.meta.isTouched &&
                                                 !field.state.meta.isValid;
                                             return (
                                                 <Field data-invalid={invalid}>
-                                                    <FieldLabel
-                                                        htmlFor={field.name}
-                                                    >
+                                                    <FieldLabel htmlFor={field.name}>
                                                         Keys
                                                     </FieldLabel>
                                                     <Input
                                                         id={field.name}
                                                         name={field.name}
-                                                        value={field.state.value.join(
-                                                            ", "
-                                                        )}
-                                                        onBlur={
-                                                            field.handleBlur
-                                                        }
+                                                        value={field.state.value.join(", ")}
+                                                        onBlur={field.handleBlur}
                                                         onChange={(e) =>
                                                             field.handleChange(
-                                                                e.target.value.split(
-                                                                    ", "
-                                                                )
+                                                                e.target.value.split(", ")
                                                             )
                                                         }
                                                         aria-invalid={invalid}
                                                     />
                                                     {invalid && (
                                                         <FieldError
-                                                            errors={
-                                                                field.state.meta
-                                                                    .errors
-                                                            }
+                                                            errors={field.state.meta.errors}
                                                         />
                                                     )}
                                                 </Field>
@@ -891,8 +643,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                                     </form.Field>
                                     <form.Subscribe
                                         selector={(state) =>
-                                            state.values.data.entries[index]
-                                                .selective
+                                            state.values.data.entries[index].selective
                                         }
                                     >
                                         {(selective) => (
@@ -901,61 +652,35 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                                             >
                                                 {(field) => {
                                                     const invalid =
-                                                        field.state.meta
-                                                            .isTouched &&
-                                                        !field.state.meta
-                                                            .isValid;
+                                                        field.state.meta.isTouched &&
+                                                        !field.state.meta.isValid;
                                                     return (
-                                                        <Field
-                                                            data-invalid={
-                                                                invalid
-                                                            }
-                                                        >
-                                                            <FieldLabel
-                                                                htmlFor={
-                                                                    field.name
-                                                                }
-                                                            >
+                                                        <Field data-invalid={invalid}>
+                                                            <FieldLabel htmlFor={field.name}>
                                                                 Secondary Keys
                                                             </FieldLabel>
                                                             <Input
                                                                 id={field.name}
-                                                                name={
-                                                                    field.name
-                                                                }
+                                                                name={field.name}
                                                                 value={
-                                                                    field.state
-                                                                        .value
+                                                                    field.state.value
                                                                         ? field.state.value.join(
                                                                               ", "
                                                                           )
                                                                         : ""
                                                                 }
-                                                                disabled={
-                                                                    !selective
-                                                                }
-                                                                onBlur={
-                                                                    field.handleBlur
-                                                                }
+                                                                disabled={!selective}
+                                                                onBlur={field.handleBlur}
                                                                 onChange={(e) =>
                                                                     field.handleChange(
-                                                                        e.target.value.split(
-                                                                            ", "
-                                                                        )
+                                                                        e.target.value.split(", ")
                                                                     )
                                                                 }
-                                                                aria-invalid={
-                                                                    invalid
-                                                                }
+                                                                aria-invalid={invalid}
                                                             />
                                                             {invalid && (
                                                                 <FieldError
-                                                                    errors={
-                                                                        field
-                                                                            .state
-                                                                            .meta
-                                                                            .errors
-                                                                    }
+                                                                    errors={field.state.meta.errors}
                                                                 />
                                                             )}
                                                         </Field>
@@ -966,39 +691,29 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                                     </form.Subscribe>
                                 </FieldGroup>
                                 <FieldGroup className="flex flex-row *:gap-1">
-                                    <form.Field
-                                        name={`data.entries[${index}].position`}
-                                    >
+                                    <form.Field name={`data.entries[${index}].position`}>
                                         {(field) => {
                                             const invalid =
                                                 field.state.meta.isTouched &&
                                                 !field.state.meta.isValid;
                                             return (
                                                 <Field data-invalid={invalid}>
-                                                    <FieldLabel
-                                                        htmlFor={field.name}
-                                                    >
+                                                    <FieldLabel htmlFor={field.name}>
                                                         Position
                                                     </FieldLabel>
                                                     <Select
                                                         name={field.name}
-                                                        value={
-                                                            field.state.value
-                                                        }
+                                                        value={field.state.value}
                                                         onValueChange={(v) =>
                                                             field.handleChange(
-                                                                v as
-                                                                    | "before_char"
-                                                                    | "after_char"
+                                                                v as "before_char" | "after_char"
                                                             )
                                                         }
                                                     >
                                                         <SelectTrigger>
                                                             <SelectValue
                                                                 placeholder="Select position..."
-                                                                aria-invalid={
-                                                                    invalid
-                                                                }
+                                                                aria-invalid={invalid}
                                                             />
                                                         </SelectTrigger>
                                                         <SelectContent>
@@ -1014,55 +729,38 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                                                     </Select>
                                                     {invalid && (
                                                         <FieldError
-                                                            errors={
-                                                                field.state.meta
-                                                                    .errors
-                                                            }
+                                                            errors={field.state.meta.errors}
                                                         />
                                                     )}
                                                 </Field>
                                             );
                                         }}
                                     </form.Field>
-                                    <form.Field
-                                        name={`data.entries[${index}].priority`}
-                                    >
+                                    <form.Field name={`data.entries[${index}].priority`}>
                                         {(field) => {
                                             const invalid =
                                                 field.state.meta.isTouched &&
                                                 !field.state.meta.isValid;
                                             return (
                                                 <Field data-invalid={invalid}>
-                                                    <FieldLabel
-                                                        htmlFor={field.name}
-                                                    >
+                                                    <FieldLabel htmlFor={field.name}>
                                                         Priority
                                                     </FieldLabel>
                                                     <Input
                                                         id={field.name}
                                                         name={field.name}
                                                         type="number"
-                                                        value={
-                                                            field.state.value
-                                                        }
-                                                        onBlur={
-                                                            field.handleBlur
-                                                        }
+                                                        value={field.state.value}
+                                                        onBlur={field.handleBlur}
                                                         onChange={(e) =>
                                                             field.handleChange(
-                                                                Number(
-                                                                    e.target
-                                                                        .value
-                                                                )
+                                                                Number(e.target.value)
                                                             )
                                                         }
                                                     />
                                                     {invalid && (
                                                         <FieldError
-                                                            errors={
-                                                                field.state.meta
-                                                                    .errors
-                                                            }
+                                                            errors={field.state.meta.errors}
                                                         />
                                                     )}
                                                 </Field>
@@ -1070,21 +768,13 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                                         }}
                                     </form.Field>
                                 </FieldGroup>
-                                <form.Field
-                                    name={`data.entries[${index}].content`}
-                                >
+                                <form.Field name={`data.entries[${index}].content`}>
                                     {(field) => {
                                         const invalid =
-                                            field.state.meta.isTouched &&
-                                            !field.state.meta.isValid;
+                                            field.state.meta.isTouched && !field.state.meta.isValid;
                                         return (
-                                            <Field
-                                                data-invalid={invalid}
-                                                className="gap-1"
-                                            >
-                                                <FieldLabel
-                                                    htmlFor={field.name}
-                                                >
+                                            <Field data-invalid={invalid} className="gap-1">
+                                                <FieldLabel htmlFor={field.name}>
                                                     Content
                                                 </FieldLabel>
                                                 <Textarea
@@ -1093,19 +783,12 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                                                     value={field.state.value}
                                                     onBlur={field.handleBlur}
                                                     onChange={(e) =>
-                                                        field.handleChange(
-                                                            e.target.value
-                                                        )
+                                                        field.handleChange(e.target.value)
                                                     }
                                                     aria-invalid={invalid}
                                                 />
                                                 {invalid && (
-                                                    <FieldError
-                                                        errors={
-                                                            field.state.meta
-                                                                .errors
-                                                        }
-                                                    />
+                                                    <FieldError errors={field.state.meta.errors} />
                                                 )}
                                             </Field>
                                         );

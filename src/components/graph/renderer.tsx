@@ -1,3 +1,4 @@
+import { ChatGraph } from "@/lib/graph";
 import {
     Simulation,
     SimulationNodeDatum,
@@ -7,14 +8,7 @@ import {
     forceManyBody,
     forceSimulation
 } from "d3-force";
-import {
-    MouseEvent,
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Background,
     Node,
@@ -28,7 +22,6 @@ import {
     useReactFlow
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { ChatGraph } from "@/lib/graph";
 
 function Graph({ graph }: { graph: ChatGraph }) {
     const [initialNodes, initialEdges] = useMemo(() => {
@@ -105,7 +98,7 @@ function Graph({ graph }: { graph: ChatGraph }) {
 
     const dragHandlers = useMemo(
         () => ({
-            start: (_event: MouseEvent, node: Node) => {
+            start: (_event: React.MouseEvent, node: Node) => {
                 const simulation = simRef.current;
                 if (!simulation) return;
 
@@ -121,7 +114,7 @@ function Graph({ graph }: { graph: ChatGraph }) {
                     simNode.fy = node.position.y;
                 }
             },
-            drag: (_event: MouseEvent, node: Node) => {
+            drag: (_event: React.MouseEvent, node: Node) => {
                 nodeRef.current = node;
                 const simNode = nodeMapRef.current.get(node.id);
                 if (simNode) {

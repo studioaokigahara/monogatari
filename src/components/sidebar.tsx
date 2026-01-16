@@ -1,14 +1,13 @@
+import { CommandMenu } from "@/components/command-menu";
+import { ChatHistory } from "@/components/sidebar/chat-history";
 import { Navigation } from "@/components/sidebar/navigation";
 import { PersonaSwitcher } from "@/components/sidebar/persona-switcher";
+import { Sidebar, SidebarContent, SidebarFooter, SidebarRail } from "@/components/ui/sidebar";
 import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarRail
-} from "@/components/ui/sidebar";
-import {
+    Anchor,
     BookMarked,
     Cog,
+    Eye,
     FileText,
     // Frame,
     // Map,
@@ -20,9 +19,6 @@ import {
     // Terminal,
     Users
 } from "lucide-react";
-import * as React from "react";
-import { ChatHistory } from "./sidebar/chat-history";
-import { CommandMenu } from "./command-menu";
 
 const data = {
     navMain: [
@@ -34,16 +30,28 @@ const data = {
         {
             title: "Characters",
             url: "/characters",
-            icon: <Users />,
-            isActive: true
+            icon: <Users />
         },
         {
             title: "Explore",
             url: "/explore",
-            icon: <Shapes />
+            icon: <Shapes />,
+            items: [
+                {
+                    title: "Character Hub",
+                    url: "/explore/chub",
+                    icon: <Eye />
+                },
+                {
+                    title: "Anchorhold",
+                    url: "/explore/anchorhold",
+                    icon: <Anchor />
+                }
+            ]
         },
         {
             title: "Settings",
+            url: "/settings",
             icon: <Cog />,
             items: [
                 {

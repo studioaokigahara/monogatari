@@ -1,6 +1,7 @@
 import { Asset } from "@/database/schema/asset";
 import { Character, CharacterCardV3Asset } from "@/database/schema/character";
 import { fetchCharacterInfo, fetchGalleryImages } from "@/lib/explore/chub/api";
+import { generateCuid2, getFileExtension } from "@/lib/utils";
 
 function extractImageURLs(text: string): string[] {
     const urlRegex = /https?:\/\/\S+\.(?:png|jpe?g|gif|webp)/gi;
@@ -13,9 +14,8 @@ async function downloadAsset(url: string) {
     if (!response.ok) throw new Error(`Failed to fetch asset from ${url}`);
 
     const blob = await response.blob();
-    const extMatch = url.match(/\.(png|jpe?g|gif|webp)(?:\?.*)?$/i);
-    const ext = (extMatch?.[1] || "unknown").toLowerCase();
-    const name = `gallery_${Date.now()}`;
+    const name = `gallery_${generateCuid2()}`;
+    const ext = getFileExtension(url);
     const file = new File([blob], `${name}.${ext}`, { type: blob.type });
 
     return {
@@ -55,17 +55,15 @@ export async function scanGallery(
         character.data.first_mes,
         character.data.description,
         ...character.data.alternate_greetings,
-        ...character.data.group_only_greetings
+        ...character.data.group_only_greetings,
+        character.data.creator_notes,
+        ...Object.values(character.data.creator_notes_multilingual ?? {})
     ].filter(Boolean);
 
-    const characterURLs = Array.from(
-        new Set(fields.flatMap((field) => extractImageURLs(field)))
-    );
+    const characterURLs = Array.from(new Set(fields.flatMap((field) => extractImageURLs(field))));
 
     if (characterURLs.length > 0) {
-        onLog(
-            `Found ${characterURLs.length} image(s) in ${character.data.name}'s card.`
-        );
+        onLog(`Found ${characterURLs.length} image(s) in ${character.data.name}'s card.`);
     } else {
         onLog("No image URLs found in character fields.");
     }
@@ -75,7 +73,7 @@ export async function scanGallery(
     onLog("Fetching chub.ai metadata...");
 
     let info = null;
-    const fullPath = character.data.extensions?.chub?.full_path;
+    const fullPath = character.data.extensions.chub?.full_path;
     if (fullPath) {
         info = await fetchCharacterInfo(fullPath);
         if (!info) {
@@ -92,9 +90,7 @@ export async function scanGallery(
 
         onLog(`Found ${chubURLs.length} image(s) in chub.ai description.`);
 
-        downloads.push(
-            ...chubURLs.map((url) => ({ type: "url" as const, url }))
-        );
+        downloads.push(...chubURLs.map((url) => ({ type: "url" as const, url })));
 
         if (info.hasGallery) {
             onLog("Fetching gallery images...");
@@ -130,15 +126,13 @@ export async function scanGallery(
                 `(${completedCount + 1}/${total}) Downloading from URL ${urlCount} of ${totalURLCount}: ${job.url}...`
             );
 
-            const download = await downloadAsset(job.url).catch(
-                (error: Error) => {
-                    const message = `✘ Failed to download ${job.url}: ${error.message}`;
-                    completedCount++;
-                    onLog(message);
-                    onProgress(completedCount, total);
-                    throw new Error(message);
-                }
-            );
+            const download = await downloadAsset(job.url).catch((error: Error) => {
+                const message = `✘ Failed to download ${job.url}: ${error.message}`;
+                completedCount++;
+                onLog(message);
+                onProgress(completedCount, total);
+                throw new Error(message);
+            });
 
             completedCount++;
             onLog(`✔ Downloaded ${job.url}.`);
@@ -156,7 +150,7 @@ export async function scanGallery(
                 `(${completedCount + 1}/${total}) Saving gallery image ${galleryCount} of ${galleryBlobs.length}...`
             );
 
-            const name = `gallery_${Date.now()}`;
+            const name = `gallery_${generateCuid2()}`;
             const ext = job.blob.type.split("/")[1] ?? "unknown";
 
             const pointer: CharacterCardV3Asset = {
@@ -179,9 +173,7 @@ export async function scanGallery(
         }
     };
 
-    const settledJobs = await Promise.allSettled(
-        downloads.map((job) => processJob(job))
-    );
+    const settledJobs = await Promise.allSettled(downloads.map((job) => processJob(job)));
 
     const fulfilledJobs = settledJobs
         .filter((result) => result.status === "fulfilled")
@@ -205,10 +197,7 @@ export async function scanGallery(
 
     fulfilledJobs.forEach((job) => {
         if (job.url) {
-            urlPointerMap.set(
-                job.url,
-                `embedded://${job.pointer.name}.${job.pointer.ext}`
-            );
+            urlPointerMap.set(job.url, `embedded://${job.pointer.name}.${job.pointer.ext}`);
         }
     });
 
@@ -223,27 +212,25 @@ export async function scanGallery(
         return output;
     };
 
-    const fieldKeys = [
-        "first_mes",
-        "description",
-        "alternate_greetings",
-        "group_only_greetings"
-    ];
+    const fieldKeys = ["first_mes", "description", "alternate_greetings", "group_only_greetings"];
 
     const updatedData = character.data;
 
     for (const key of fieldKeys) {
         const value = updatedData[key];
         if (typeof value === "string") {
-            (updatedData as Record<typeof key, string | string[]>)[key] =
-                replaceAll(value, urlPointerMap);
+            (updatedData as Record<typeof key, string | string[]>)[key] = replaceAll(
+                value,
+                urlPointerMap
+            );
         } else if (Array.isArray(value)) {
-            (updatedData as Record<typeof key, string | string[]>)[key] =
-                value.map((string) => replaceAll(string, urlPointerMap));
+            (updatedData as Record<typeof key, string | string[]>)[key] = value.map((string) =>
+                replaceAll(string, urlPointerMap)
+            );
         }
     }
 
-    await character.update({ updatedData });
+    await character.update(updatedData);
 
     onLog(
         `Scan complete. Downloaded ${fulfilledJobs.length} images, and replaced ${urlPointerMap.size} URLs with embedded images.`

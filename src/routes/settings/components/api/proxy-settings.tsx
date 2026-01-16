@@ -10,7 +10,7 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
-import { useSettingsContext } from "@/hooks/use-settings-context";
+import { useSettingsContext } from "@/contexts/settings";
 import { generateCuid2 } from "@/lib/utils";
 import { ProxyProfile } from "@/types/settings";
 import { Plus, Trash2 } from "lucide-react";
@@ -39,9 +39,7 @@ export function ProxySettings() {
     const updateProfile = (id: string, changes: Partial<ProxyProfile>) => {
         updateSettings({
             proxies: {
-                profiles: profiles.map((p) =>
-                    p.id === id ? { ...p, ...changes } : p
-                ),
+                profiles: profiles.map((p) => (p.id === id ? { ...p, ...changes } : p)),
                 selected
             }
         });
@@ -123,10 +121,7 @@ export function ProxySettings() {
             <CardContent className="space-y-2">
                 <Label>Current Profile</Label>
                 <div className="flex justify-between">
-                    <Select
-                        value={selected[provider]}
-                        onValueChange={selectProfile}
-                    >
+                    <Select value={selected[provider]} onValueChange={selectProfile}>
                         <SelectTrigger>
                             <SelectValue placeholder="Select a proxy" />
                         </SelectTrigger>

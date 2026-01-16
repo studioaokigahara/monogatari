@@ -12,7 +12,7 @@ const SettingsContext = createContext<SettingsContext | undefined>(undefined);
 function useSettingsContext() {
     const context = useContext(SettingsContext);
     if (!context) {
-        throw new Error("useSettingsContext must be within a SettingsContext.");
+        throw new Error("useSettingsContext must be within a SettingsContext.Provider.");
     }
     return context;
 }

@@ -1,5 +1,5 @@
+import { Markdown } from "@/components/markdown";
 import Password from "@/components/password-input";
-import { Prose } from "@/components/prose";
 import {
     Accordion,
     AccordionContent,
@@ -23,7 +23,7 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
-import { useSettingsContext } from "@/hooks/use-settings-context";
+import { useSettingsContext } from "@/contexts/settings";
 import { OpenRouterRegistry } from "@/lib/openrouter";
 import { Modality } from "@/types/models";
 import { PROVIDER_REGISTRY, getModel } from "@/types/registry";
@@ -45,6 +45,50 @@ function formatNumber(number: number) {
     return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+const mapModality = (modality: Modality) => {
+    switch (modality) {
+        case "text":
+            return <FileText />;
+        case "image":
+            return <FileImage />;
+        case "audio":
+            return <FileVolume2 />;
+        case "video":
+            return <FileVideo />;
+        case "pdf":
+            return <FileType />;
+    }
+};
+
+const getIcon = (provider: Settings["provider"]) => {
+    switch (provider) {
+        case "openai":
+            return <OpenAI />;
+        case "anthropic":
+            return <Anthropic />;
+        case "google":
+            return <Google />;
+        case "deepseek":
+            return <DeepSeek />;
+        case "openrouter":
+            return <OpenRouter />;
+    }
+};
+
+const getApiKeyPlaceholder = (provider: Settings["provider"]) => {
+    switch (provider) {
+        case "openai":
+        case "deepseek":
+            return "sk-" + "x".repeat(48);
+        case "anthropic":
+            return "sk-ant-api03-" + "x".repeat(45);
+        case "google":
+            return "AlaSy...";
+        case "openrouter":
+            return "sk-or-v1-" + "x".repeat(64);
+    }
+};
+
 export default function SelectModel() {
     const { settings, updateSettings } = useSettingsContext();
 
@@ -59,8 +103,7 @@ export default function SelectModel() {
     useEffect(() => {
         if (!settings.models[P]) {
             const registry = PROVIDER_REGISTRY[P].models;
-            const fallback =
-                registry[0]?.checkpoints?.[0]?.id ?? registry[0]?.id ?? "";
+            const fallback = registry[0]?.checkpoints?.[0]?.id ?? registry[0]?.id ?? "";
             updateSettings({
                 models: { ...settings.models, [P]: fallback }
             });
@@ -73,10 +116,7 @@ export default function SelectModel() {
 
     const providerModels = PROVIDER_REGISTRY[settings.provider].models;
 
-    const currentModel = getModel(
-        settings.provider,
-        (settings.models[P] as string) ?? fallback
-    );
+    const currentModel = getModel(settings.provider, (settings.models[P] as string) ?? fallback);
     const supportedFeatures = currentModel?.supports ?? {};
 
     const openRouterModels = useMemo(() => {
@@ -96,57 +136,23 @@ export default function SelectModel() {
         return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
     }, []);
 
-    const mapModality = (modality: Modality) => {
-        switch (modality) {
-            case "text":
-                return <FileText />;
-            case "image":
-                return <FileImage />;
-            case "audio":
-                return <FileVolume2 />;
-            case "video":
-                return <FileVideo />;
-            case "pdf":
-                return <FileType />;
-        }
-    };
+    const selectProvider = Object.entries(PROVIDER_REGISTRY).map(([providerID, provider]) => (
+        <SelectItem key={providerID} value={providerID}>
+            {getIcon(providerID as Settings["provider"])}
+            {provider.name}
+        </SelectItem>
+    ));
 
-    const getIcon = (provider: Settings["provider"]) => {
-        switch (provider) {
-            case "openai":
-                return <OpenAI />;
-            case "anthropic":
-                return <Anthropic />;
-            case "google":
-                return <Google />;
-            case "deepseek":
-                return <DeepSeek />;
-            case "openrouter":
-                return <OpenRouter />;
-        }
-    };
-
-    const selectProvider = Object.entries(PROVIDER_REGISTRY).map(
-        ([providerID, provider]) => (
-            <SelectItem key={providerID} value={providerID}>
-                {getIcon(providerID as Settings["provider"])}
-                {provider.name}
-            </SelectItem>
-        )
-    );
-
-    const selectModelOpenRouter = openRouterModels.map(
-        ([providerName, models]) => (
-            <SelectGroup key={providerName}>
-                <SelectLabel>{providerName}</SelectLabel>
-                {models.map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
-                        {model.name.split(":")[1] ?? model.name}
-                    </SelectItem>
-                ))}
-            </SelectGroup>
-        )
-    );
+    const selectModelOpenRouter = openRouterModels.map(([providerName, models]) => (
+        <SelectGroup key={providerName}>
+            <SelectLabel>{providerName}</SelectLabel>
+            {models.map((model) => (
+                <SelectItem key={model.id} value={model.id}>
+                    {model.name.split(":")[1] ?? model.name}
+                </SelectItem>
+            ))}
+        </SelectGroup>
+    ));
 
     const selectModel = [...providerModels].reverse().map((model) => (
         <SelectGroup key={model.id}>
@@ -165,20 +171,6 @@ export default function SelectModel() {
         </SelectGroup>
     ));
 
-    const getApiKeyPlaceholder = () => {
-        switch (P) {
-            case "openai":
-            case "deepseek":
-                return "sk-" + "x".repeat(48);
-            case "anthropic":
-                return "sk-ant-api03-" + "x".repeat(45);
-            case "google":
-                return "AlaSy...";
-            case "openrouter":
-                return "sk-or-v1-" + "x".repeat(64);
-        }
-    };
-
     return (
         <Card>
             <CardHeader>
@@ -192,10 +184,7 @@ export default function SelectModel() {
                     <div className="flex flex-col sm:flex-row gap-4">
                         <div className="flex flex-col gap-1">
                             <Label htmlFor="provider">Provider</Label>
-                            <Select
-                                value={settings.provider}
-                                onValueChange={onProviderChange}
-                            >
+                            <Select value={settings.provider} onValueChange={onProviderChange}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select a provider" />
                                 </SelectTrigger>
@@ -224,8 +213,7 @@ export default function SelectModel() {
                                 >
                                     <SelectTrigger id="model">
                                         <span className="pointer-events-none">
-                                            {(settings.models[P] as string) ||
-                                                "Select a model..."}
+                                            {(settings.models[P] as string) || "Select a model..."}
                                         </span>
                                     </SelectTrigger>
                                     {open && (
@@ -242,7 +230,7 @@ export default function SelectModel() {
                     {settings.provider && (
                         <Password
                             label="API Key"
-                            placeholder={getApiKeyPlaceholder()}
+                            placeholder={getApiKeyPlaceholder(P)}
                             value={settings.apiKeys[settings.provider] ?? ""}
                             onChange={(e) => {
                                 updateSettings({
@@ -262,32 +250,26 @@ export default function SelectModel() {
                             <AccordionItem value="model">
                                 <AccordionTrigger className="items-center [&>svg]:size-6">
                                     <div className="flex flex-col">
-                                        <h3 className="text-lg font-medium">
-                                            {currentModel.name}
-                                        </h3>
-                                        <h6 className="font-mono">
-                                            {currentModel?.id}
-                                        </h6>
+                                        <h3 className="text-lg font-medium">{currentModel.name}</h3>
+                                        <h6 className="font-mono">{currentModel?.id}</h6>
                                     </div>
                                 </AccordionTrigger>
                                 <AccordionContent>
-                                    <Prose className="text-sm text-muted-foreground mt-2">
+                                    <Markdown className="text-sm text-muted-foreground mt-2">
                                         {currentModel?.description || ""}
-                                    </Prose>
+                                    </Markdown>
                                 </AccordionContent>
                             </AccordionItem>
                         </Accordion>
                         <div className="flex flex-row gap-8">
                             {currentModel.knowledgeCutoff && (
                                 <div className="space-y-1">
-                                    <p className="text-sm font-medium">
-                                        Knowledge Cutoff
-                                    </p>
+                                    <p className="text-sm font-medium">Knowledge Cutoff</p>
                                     <p className="text-2xl font-bold">
-                                        {currentModel.knowledgeCutoff.toLocaleString(
-                                            "default",
-                                            { month: "short", year: "numeric" }
-                                        )}
+                                        {currentModel.knowledgeCutoff.toLocaleString("default", {
+                                            month: "short",
+                                            year: "numeric"
+                                        })}
                                     </p>
                                     {/*<span className="text-xs text-muted-foreground">
                                     Maximum input tokens
@@ -304,9 +286,8 @@ export default function SelectModel() {
                                 <div className="flex gap-6">
                                     <div>
                                         <div className="flex flex-row">
-                                            {currentModel.modalities?.input.map(
-                                                (modality) =>
-                                                    mapModality(modality)
+                                            {currentModel.modalities?.input.map((modality) =>
+                                                mapModality(modality)
                                             )}
                                         </div>
                                         <span className="text-xs text-muted-foreground">
@@ -314,10 +295,8 @@ export default function SelectModel() {
                                                 .map((modality) =>
                                                     modality === "pdf"
                                                         ? "PDF"
-                                                        : modality.replace(
-                                                              /^./,
-                                                              (str) =>
-                                                                  str.toUpperCase()
+                                                        : modality.replace(/^./, (str) =>
+                                                              str.toUpperCase()
                                                           )
                                                 )
                                                 .join(", ")}
@@ -325,9 +304,8 @@ export default function SelectModel() {
                                     </div>
                                     <div>
                                         <div className="flex flex-row">
-                                            {currentModel.modalities?.output.map(
-                                                (modality) =>
-                                                    mapModality(modality)
+                                            {currentModel.modalities?.output.map((modality) =>
+                                                mapModality(modality)
                                             )}
                                         </div>
                                         <span className="text-xs text-muted-foreground">
@@ -335,10 +313,8 @@ export default function SelectModel() {
                                                 .map((modality) =>
                                                     modality === "pdf"
                                                         ? "PDF"
-                                                        : modality.replace(
-                                                              /^./,
-                                                              (str) =>
-                                                                  str.toUpperCase()
+                                                        : modality.replace(/^./, (str) =>
+                                                              str.toUpperCase()
                                                           )
                                                 )
                                                 .join(", ")}
@@ -349,9 +325,7 @@ export default function SelectModel() {
                         </div>
                         <div className="flex justify-between gap-2">
                             <div className="flex flex-col">
-                                <span className="text-sm font-medium">
-                                    Context Length
-                                </span>
+                                <span className="text-sm font-medium">Context Length</span>
                                 <span className="text-2xl font-bold">
                                     {formatNumber(currentModel.contextLength)}
                                 </span>
@@ -360,9 +334,7 @@ export default function SelectModel() {
                                 </span>
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-sm font-medium">
-                                    Output Length
-                                </span>
+                                <span className="text-sm font-medium">Output Length</span>
                                 <span className="text-2xl font-bold">
                                     {formatNumber(currentModel.maxOutputTokens)}
                                 </span>
@@ -379,14 +351,8 @@ export default function SelectModel() {
                                         </span>
                                     </span>
                                     <span className="text-2xl font-bold">
-                                        $
-                                        {formatNumber(
-                                            currentModel?.price?.input
-                                        )}{" "}
-                                        • $
-                                        {formatNumber(
-                                            currentModel?.price?.output
-                                        )}
+                                        ${formatNumber(currentModel?.price?.input)} • $
+                                        {formatNumber(currentModel?.price?.output)}
                                     </span>
                                     <span className="text-xs text-muted-foreground">
                                         Per 1 million tokens
@@ -397,30 +363,18 @@ export default function SelectModel() {
                         <div className="space-y-1">
                             <p className="text-sm font-medium">Capabilities</p>
                             <div className="flex flex-wrap gap-2">
-                                {Object.entries(supportedFeatures).map(
-                                    ([key, supported]) => (
-                                        <Badge
-                                            key={key}
-                                            variant={
-                                                supported
-                                                    ? "default"
-                                                    : "outline"
-                                            }
-                                            className={`gap-1 ${supported ? "" : "text-muted-foreground"}`}
-                                        >
-                                            {supported ? (
-                                                <Check />
-                                            ) : (
-                                                <AlertCircle />
-                                            )}
-                                            {key
-                                                .replace(/([A-Z])/g, " $1")
-                                                .replace(/^./, (str) =>
-                                                    str.toUpperCase()
-                                                )}
-                                        </Badge>
-                                    )
-                                )}
+                                {Object.entries(supportedFeatures).map(([key, supported]) => (
+                                    <Badge
+                                        key={key}
+                                        variant={supported ? "default" : "outline"}
+                                        className={`gap-1 ${supported ? "" : "text-muted-foreground"}`}
+                                    >
+                                        {supported ? <Check /> : <AlertCircle />}
+                                        {key
+                                            .replace(/([A-Z])/g, " $1")
+                                            .replace(/^./, (str) => str.toUpperCase())}
+                                    </Badge>
+                                ))}
                             </div>
                         </div>
                     </div>

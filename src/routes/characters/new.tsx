@@ -2,14 +2,12 @@ import Header from "@/components/header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CharacterFormProvider } from "@/contexts/character-form-context";
 import { Asset } from "@/database/schema/asset";
 import { Character } from "@/database/schema/character";
-import {
-    characterFormOptions,
-    useCharacterForm
-} from "@/hooks/use-character-form";
+import { characterFormOptions, useCharacterForm } from "@/hooks/use-character-form";
 import { useFileDialog } from "@/hooks/use-file-dialog";
+import { getFileExtension } from "@/lib/utils";
+import { CharacterFormProvider } from "@/routes/characters/components/character-form-provider";
 import {
     DescriptionFields,
     ExampleDialogueField,
@@ -22,27 +20,27 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 function CharacterCreator() {
-    const [imageBlob, setImageBlob] = useState<Blob>();
+    const [image, setImage] = useState<File>();
     const [imageURL, setImageURL] = useState("");
 
     useEffect(() => {
-        if (!imageBlob) {
+        if (!image) {
             setImageURL("");
             return;
         }
 
-        const url = URL.createObjectURL(imageBlob);
+        const url = URL.createObjectURL(image);
         setImageURL(url);
 
         return () => URL.revokeObjectURL(url);
-    }, [imageBlob]);
+    }, [image]);
 
     const { browse, input } = useFileDialog({
         accept: "image/*",
         multiple: false,
         onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
             const file = event.target.files?.[0];
-            if (file) setImageBlob(file);
+            if (file) setImage(file);
         }
     });
 
@@ -51,7 +49,7 @@ function CharacterCreator() {
     const form = useCharacterForm({
         ...characterFormOptions,
         onSubmit: async ({ value }) => {
-            if (!imageBlob) {
+            if (!image) {
                 toast.error("Please upload an image.");
                 return;
             }
@@ -63,17 +61,26 @@ function CharacterCreator() {
                     modification_date: new Date()
                 };
 
-                const character = new Character({ data });
+                const ext = getFileExtension(image.name);
+
+                data.assets = [
+                    {
+                        type: "icon",
+                        uri: "ccdefault:",
+                        name: "main",
+                        ext: ext
+                    }
+                ];
+
+                const character = new Character(data);
                 await character.save();
 
                 const asset = new Asset({
                     category: "character",
                     parentID: character.id,
-                    file: new File(
-                        [imageBlob],
-                        `main.${imageBlob?.type.split("/")[1] ?? "png"}`,
-                        { type: imageBlob.type }
-                    )
+                    file: new File([image], `main.${ext}`, {
+                        type: image.type
+                    })
                 });
 
                 await asset.save();
@@ -94,21 +101,19 @@ function CharacterCreator() {
             <Header />
             <div className="flex flex-col w-full md:max-w-5xl mx-auto px-4">
                 <div className="flex flex-col md:flex-row gap-4 md:items-end mb-4">
-                    {imageBlob ? (
-                        <>
-                            <Avatar className="h-full md:max-w-1/6">
-                                <AvatarImage
-                                    src={imageURL}
-                                    alt={form.state.values.name}
-                                    className="object-cover rounded-xl cursor-pointer"
-                                    onClick={browse}
-                                />
-                                <AvatarFallback>
-                                    <Skeleton />
-                                </AvatarFallback>
-                            </Avatar>
+                    {image ? (
+                        <Avatar className="h-full md:max-w-1/6">
+                            <AvatarImage
+                                src={imageURL}
+                                alt={form.state.values.name}
+                                className="object-cover rounded-xl cursor-pointer"
+                                onClick={browse}
+                            />
+                            <AvatarFallback>
+                                <Skeleton />
+                            </AvatarFallback>
                             {input}
-                        </>
+                        </Avatar>
                     ) : (
                         <div
                             className="shrink-0 md:w-1/6 h-full rounded-xl bg-muted/50 flex flex-col items-center justify-center py-4 cursor-pointer border-2 border-dashed hover:bg-muted/70 transition-colors"

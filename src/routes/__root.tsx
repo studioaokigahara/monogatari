@@ -1,29 +1,29 @@
-import { SettingsProvider } from "@/contexts/settings-context";
-import { CharacterProvider } from "@/contexts/character-context";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { CharacterProvider } from "@/components/providers/character";
+import { SettingsProvider } from "@/components/providers/settings";
+import { ThemeProvider } from "@/components/providers/theme";
 import { AppSidebar } from "@/components/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
-import {
-    Outlet,
-    createRootRouteWithContext,
-    redirect,
-    HeadContent
-} from "@tanstack/react-router";
-import { Context } from "@/lib/router";
+import { Context } from "@/router";
+import { HeadContent, Outlet, createRootRouteWithContext, redirect } from "@tanstack/react-router";
+import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
 function RootLayout() {
     return (
         <>
             <HeadContent />
+            <TanStackRouterDevtools />
             <SettingsProvider>
                 <CharacterProvider>
-                    <SidebarProvider>
-                        <AppSidebar />
-                        <main className="@container flex flex-col w-full h-screen mx-4">
-                            <Outlet />
-                            <Toaster />
-                        </main>
-                    </SidebarProvider>
+                    <ThemeProvider>
+                        <SidebarProvider>
+                            <AppSidebar />
+                            <main className="@container mx-4 flex h-screen w-full flex-col">
+                                <Outlet />
+                                <Toaster />
+                            </main>
+                        </SidebarProvider>
+                    </ThemeProvider>
                 </CharacterProvider>
             </SettingsProvider>
         </>

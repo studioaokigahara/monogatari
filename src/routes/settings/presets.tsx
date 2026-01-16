@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
     Empty,
     EmptyDescription,
@@ -7,18 +7,18 @@ import {
     EmptyTitle
 } from "@/components/ui/empty";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { useSettingsContext } from "@/contexts/settings";
 import { db } from "@/database/monogatari-db";
-import { useSettingsContext } from "@/hooks/use-settings-context";
 import { createFileRoute, useLoaderData } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
-import { FileText, FileX2 } from "lucide-react";
+import { FileX2 } from "lucide-react";
 import { useState } from "react";
 import { PromptEditor } from "./components/presets/editor";
 import { PromptList } from "./components/presets/list";
 
 function EmptyPreset() {
     return (
-        <Empty className="mb-2 border border-dashed">
+        <Empty className="border border-dashed my-6">
             <EmptyHeader>
                 <EmptyMedia variant="icon">
                     <FileX2 />
@@ -54,15 +54,9 @@ function PresetSettings() {
 
     return (
         <div className="h-full pb-2 sm:overflow-hidden">
-            <Card className="pb-0 gap-0 overflow-hidden">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <FileText />
-                        Presets
-                    </CardTitle>
-                </CardHeader>
+            <Card className="sm:h-full py-0 gap-0 overflow-hidden">
                 <CardContent className="h-full flex flex-col sm:flex-row sm:overflow-hidden">
-                    <SidebarProvider className="min-h-0 flex-col sm:flex-row gap-4">
+                    <SidebarProvider className="min-h-0 max-sm:flex-col gap-4">
                         <PromptList
                             presets={presets}
                             selectedPreset={selectedPreset}

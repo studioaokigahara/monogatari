@@ -10,6 +10,7 @@ import {
     AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
 import {
     Dialog,
     DialogClose,
@@ -28,7 +29,16 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle
+} from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Kbd } from "@/components/ui/kbd";
 import { Label } from "@/components/ui/label";
 import {
     SidebarGroup,
@@ -37,18 +47,22 @@ import {
     SidebarMenu,
     SidebarMenuAction,
     SidebarMenuButton,
-    SidebarMenuItem,
-    useSidebar
+    SidebarMenuItem
 } from "@/components/ui/sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
+import { useCharacterContext } from "@/contexts/character";
+import { useSidebarContext } from "@/contexts/sidebar";
 import { db } from "@/database/monogatari-db";
 import { Chat } from "@/database/schema/chat";
-import { useCharacterContext } from "@/hooks/use-character-context";
 import { getTimeGroup, sortByTimeGroupLabel } from "@/lib/time";
+import { downloadFile } from "@/lib/utils";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { useLiveQuery } from "dexie-react-hooks";
+import { liveQuery } from "dexie";
 import {
     ChartNetwork,
     FileDown,
+    MessageCircleDashed,
     MessageCirclePlus,
     MoreHorizontal,
     PencilLine,
@@ -57,26 +71,8 @@ import {
     Trash2
 } from "lucide-react";
 import { DateTime } from "luxon";
-import {
-    ChangeEvent,
-    Fragment,
-    lazy,
-    Suspense,
-    useMemo,
-    useRef,
-    useState
-} from "react";
-import useEvent from "react-use-event-hook";
+import { Fragment, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ButtonGroup } from "../ui/button-group";
-import {
-    InputGroup,
-    InputGroupAddon,
-    InputGroupInput
-} from "../ui/input-group";
-import { Kbd } from "../ui/kbd";
-import { Skeleton } from "../ui/skeleton";
-import { Spinner } from "../ui/spinner";
 
 const GraphLoader = lazy(() => import("@/components/graph/loader"));
 
@@ -87,12 +83,7 @@ interface ChatHistoryItem {
     setGraphID: (id: string) => void;
 }
 
-function ChatHistoryItem({
-    chat,
-    isActive,
-    isMobile,
-    setGraphID
-}: ChatHistoryItem) {
+function ChatHistoryItem({ chat, isActive, isMobile, setGraphID }: ChatHistoryItem) {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [alertOpen, setAlertOpen] = useState(false);
     const navigate = useNavigate();
@@ -114,10 +105,8 @@ function ChatHistoryItem({
         setAlertOpen(false);
 
         if (isActive) {
-            await navigate({ to: "/chat" });
-            toast.warning(
-                "You were navigated here to prevent bugs. Pick another chat!"
-            );
+            void navigate({ to: "/chat" });
+            toast.warning("You were navigated here to prevent bugs. Pick another chat!");
         }
     };
 
@@ -130,19 +119,10 @@ function ChatHistoryItem({
             `${record.title || chat.id} ${new Date().toLocaleDateString()}.json`,
             { type: "application/json" }
         );
-        const url = URL.createObjectURL(file);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = file.name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        downloadFile(file);
     };
 
-    const chatTitle =
-        chat.title ??
-        DateTime.fromJSDate(chat.updatedAt).toFormat("MMM d, HH:mm");
+    const title = chat.title ?? DateTime.fromJSDate(chat.updatedAt).toFormat("MMM d, HH:mm");
 
     return (
         <SidebarMenuItem>
@@ -150,19 +130,15 @@ function ChatHistoryItem({
                 {chat.fork ? (
                     <span className="flex flex-row items-center">
                         <Link to="/chat/$id" params={{ id: chat.fork }}>
-                            <Split className="size-4 -mr-1 opacity-50 transition hover:opacity-100" />
+                            <Split className="-mr-1 size-4 opacity-50 transition hover:opacity-100" />
                         </Link>
-                        <Link
-                            to="/chat/$id"
-                            params={{ id: chat.id }}
-                            className="truncate"
-                        >
-                            {chatTitle}
+                        <Link to="/chat/$id" params={{ id: chat.id }} className="truncate">
+                            {title}
                         </Link>
                     </span>
                 ) : (
                     <Link to="/chat/$id" params={{ id: chat.id }}>
-                        <span className="truncate">{chatTitle}</span>
+                        <span className="truncate">{title}</span>
                     </Link>
                 )}
             </SidebarMenuButton>
@@ -181,7 +157,7 @@ function ChatHistoryItem({
                             align={isMobile ? "end" : "start"}
                         >
                             <DropdownMenuLabel>
-                                <span>{chatTitle}</span>
+                                <span>{title}</span>
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DialogTrigger asChild>
@@ -190,9 +166,7 @@ function ChatHistoryItem({
                                     <span>Rename...</span>
                                 </DropdownMenuItem>
                             </DialogTrigger>
-                            <DropdownMenuItem
-                                onSelect={() => setGraphID(chat.id)}
-                            >
+                            <DropdownMenuItem onSelect={() => setGraphID(chat.id)}>
                                 <ChartNetwork className="text-muted-foreground" />
                                 <span>View Graph...</span>
                             </DropdownMenuItem>
@@ -234,8 +208,7 @@ function ChatHistoryItem({
                         <AlertDialogHeader>
                             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                This will permanently delete this chat. Export
-                                your data first!
+                                This will permanently delete this chat. Export your data first!
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -256,32 +229,54 @@ function ChatHistoryItem({
     );
 }
 
+function EmptyChatHistory({ name }: { name: string }) {
+    return (
+        <Empty className="gap-4 border border-dashed md:p-2">
+            <EmptyHeader>
+                <EmptyMedia variant="icon" className="mb-0">
+                    <MessageCircleDashed />
+                </EmptyMedia>
+                <EmptyTitle>No Chat History</EmptyTitle>
+                <EmptyDescription>
+                    You haven't chatted with {name} yet. Create a new chat to get started.
+                </EmptyDescription>
+            </EmptyHeader>
+        </Empty>
+    );
+}
+
 export function ChatHistory() {
     const { character, persona } = useCharacterContext();
 
     const [graphID, setGraphID] = useState<string>("");
 
-    const [searchTerm, setSearchTerm] = useState<string>("");
-    const search = useEvent((event: ChangeEvent<HTMLInputElement>) => {
-        setSearchTerm(event.target.value);
-    });
+    const [query, setQuery] = useState<string>("");
+    const search = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setQuery(event.target.value);
+    };
 
-    const chats = useLiveQuery(
-        () =>
-            db.chats
+    const [chats, setChats] = useState<Chat[]>();
+
+    useEffect(() => {
+        setChats(undefined);
+
+        const dbQuery = liveQuery(() => {
+            return db.chats
                 .where("characterIDs")
                 .anyOf(character?.id ?? "")
                 .filter((chat) => {
-                    if (searchTerm === "") return true;
+                    if (query === "") return true;
                     if (!chat.title) return false;
-                    return chat.title
-                        .toLowerCase()
-                        .includes(searchTerm.toLowerCase());
+                    return chat.title.toLowerCase().includes(query.toLowerCase());
                 })
                 .reverse()
-                .sortBy("updatedAt"),
-        [character?.id, searchTerm]
-    );
+                .sortBy("updatedAt");
+        }).subscribe((chats) => setChats(chats));
+
+        return () => dbQuery.unsubscribe();
+    }, [character?.id, query]);
+
+    const isLoading = !!character && chats === undefined;
 
     const timeGroups = useMemo(() => {
         if (!character || !chats) return [];
@@ -308,7 +303,7 @@ export function ChatHistory() {
     };
 
     const { id } = useParams({ strict: false });
-    const { isMobile } = useSidebar();
+    const { isMobile } = useSidebarContext();
     const chatHistory = timeGroups.map(([label, chatList]) => (
         <Fragment key={label}>
             <SidebarGroupLabel>{label}</SidebarGroupLabel>
@@ -331,19 +326,17 @@ export function ChatHistory() {
     const skeletons = Array.from({
         length: Math.max(1, Math.random() * 6)
     }).map((_, index) => (
-        <Fragment key={index}>
+        <Fragment key={`skeleton-${index}`}>
             <SidebarGroupLabel>
-                <Skeleton className="w-8 h-4" />
+                <Skeleton className="h-4 w-8" />
             </SidebarGroupLabel>
             <SidebarGroupContent>
                 <SidebarMenu>
-                    {Array.from({ length: Math.max(1, Math.random() * 4) }).map(
-                        (_, index2) => (
-                            <SidebarMenuItem key={index2}>
-                                <Skeleton className="h-8" />
-                            </SidebarMenuItem>
-                        )
-                    )}
+                    {Array.from({ length: Math.max(1, Math.random() * 4) }).map((_, index2) => (
+                        <SidebarMenuItem key={`skeleton-item-${index2}`}>
+                            <Skeleton className="h-8" />
+                        </SidebarMenuItem>
+                    ))}
                 </SidebarMenu>
             </SidebarGroupContent>
         </Fragment>
@@ -356,17 +349,23 @@ export function ChatHistory() {
                     <SidebarMenu>
                         <SidebarMenuItem>
                             <ButtonGroup>
-                                <ButtonGroup className="transition-[width,margin,opacity] transition-discrete duration-200 will-change-[width,margin,opacity] group-data-[collapsible=icon]:w-[0%] group-data-[collapsible=icon]:-ml-2 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none">
+                                <ButtonGroup className="transition-[width,margin,opacity] transition-discrete duration-200 will-change-[width,margin,opacity] group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:-ml-2 group-data-[collapsible=icon]:w-[0%] group-data-[collapsible=icon]:opacity-0">
                                     <InputGroup className="h-8">
                                         <InputGroupInput
-                                            disabled={!timeGroups.length}
+                                            disabled={!chatHistory.length}
                                             placeholder="Search"
                                             onChange={search}
                                         />
-                                        <InputGroupAddon align="inline-start">
+                                        <InputGroupAddon
+                                            align="inline-start"
+                                            className="cursor-default"
+                                        >
                                             <Search />
                                         </InputGroupAddon>
-                                        <InputGroupAddon align="inline-end">
+                                        <InputGroupAddon
+                                            align="inline-end"
+                                            className="cursor-default"
+                                        >
                                             <Kbd>⌘K</Kbd>
                                         </InputGroupAddon>
                                     </InputGroup>
@@ -385,8 +384,14 @@ export function ChatHistory() {
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
-            <SidebarGroup className="group-data-[collapsible=icon]:hidden overflow-y-auto">
-                {timeGroups.length ? chatHistory : character ? skeletons : null}
+            <SidebarGroup className="overflow-y-auto group-data-[collapsible=icon]:hidden">
+                {chatHistory.length ? (
+                    chatHistory
+                ) : isLoading ? (
+                    skeletons
+                ) : character ? (
+                    <EmptyChatHistory name={character.data.name} />
+                ) : null}
             </SidebarGroup>
             <Dialog
                 open={!!graphID}
@@ -398,7 +403,7 @@ export function ChatHistory() {
                 <DialogDescription className="sr-only">
                     Directed acyclic graph of the current chat
                 </DialogDescription>
-                <DialogContent className="max-w-[90dvw]! max-h-[90dvh] w-full h-full p-0">
+                <DialogContent className="h-full max-h-[90dvh] w-full max-w-[90dvw]! p-0">
                     <Suspense
                         fallback={
                             <>

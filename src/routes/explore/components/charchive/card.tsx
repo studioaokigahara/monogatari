@@ -1,10 +1,10 @@
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { TagList } from "@/components/tags";
+import { TagList } from "@/components/tag-list";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CharacterArchiveItem } from "@/types/explore/charchive";
 import { ChevronsLeftRightEllipsis } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface Props {
     item: CharacterArchiveItem;
@@ -18,24 +18,13 @@ export function CharacterArchiveCard({ item }: Props) {
         <Card className="h-full flex flex-row md:flex-col gap-2 md:gap-0 overflow-hidden py-4 *:px-4 transition will-change-[scale,box-shadow] hover:scale-102 hover:shadow-lg hover:shadow-gray-500/50">
             <CardHeader className="relative">
                 <Avatar className="size-50 mx-auto overflow-visible">
-                    <AvatarImage
-                        src={thumbnailURL}
-                        className="absolute scale-150 blur-xl z-0"
-                    />
-                    <AvatarImage
-                        src={thumbnailURL}
-                        alt={item.name}
-                        className="rounded-xl z-1"
-                    />
+                    <AvatarImage src={thumbnailURL} className="absolute scale-150 blur-xl z-0" />
+                    <AvatarImage src={thumbnailURL} alt={item.name} className="rounded-xl z-1" />
                     <AvatarFallback className="rounded-xl">
                         <Skeleton />
                     </AvatarFallback>
                 </Avatar>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    className="backdrop-blur z-2 cursor-pointer"
-                >
+                <Button variant="outline" size="sm" className="backdrop-blur z-2 cursor-pointer">
                     Download
                 </Button>
             </CardHeader>
@@ -60,18 +49,13 @@ export function CharacterArchiveCard({ item }: Props) {
                             </a>
                         ) : (
                             <span>
-                                {item.source === "generic"
-                                    ? item.sourceSpecific
-                                    : item.source}
+                                {item.source === "generic" ? item.sourceSpecific : item.source}
                             </span>
                         )}
                     </div>
                 </div>
                 <p className="text-sm line-clamp-6 mb-2">{item.tagline}</p>
-                <TagList
-                    tags={item.tags}
-                    className="hover:bg-secondary cursor-pointer"
-                />
+                <TagList tags={item.tags} className="hover:bg-secondary cursor-pointer" />
             </CardContent>
         </Card>
     );

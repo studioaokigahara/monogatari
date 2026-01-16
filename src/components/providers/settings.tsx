@@ -1,6 +1,6 @@
-import { SettingsContext } from "@/hooks/use-settings-context";
+import { SettingsContext } from "@/contexts/settings";
 import { DEFAULT_SETTINGS, Settings } from "@/types/settings";
-import merge from "lodash.merge";
+import { toMerged } from "es-toolkit";
 import React, { useEffect, useState } from "react";
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
@@ -8,7 +8,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         const settingsString = localStorage.getItem("settings");
         const settingsJSON = settingsString ? JSON.parse(settingsString) : {};
         const parsed: Partial<Settings> = Settings.parse(settingsJSON);
-        return merge({}, DEFAULT_SETTINGS, parsed);
+        return toMerged(DEFAULT_SETTINGS, parsed);
     });
 
     const updateSettings = (update: Partial<Settings>) => {
@@ -20,8 +20,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }, [settings]);
 
     return (
-        <SettingsContext value={{ settings, setSettings, updateSettings }}>
+        <SettingsContext.Provider value={{ settings, setSettings, updateSettings }}>
             {children}
-        </SettingsContext>
+        </SettingsContext.Provider>
     );
 }

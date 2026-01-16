@@ -5,28 +5,27 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
-import { useSettingsContext } from "@/hooks/use-settings-context";
-import { Anchor, Eye, ShieldUser } from "lucide-react";
+import { useSettingsContext } from "@/contexts/settings";
+import { Anchor, Eye } from "lucide-react";
 
-const ExploreProviders = [
+const ExploreRepos = [
     { value: "chub", icon: <Eye />, label: "Character Hub" },
-    { value: "anchorhold", icon: <Anchor />, label: "Anchorhold" },
-    { value: "charchive", icon: <ShieldUser />, label: "Character Archive" }
+    { value: "anchorhold", icon: <Anchor />, label: "Anchorhold" }
 ];
 
-export function SelectExploreProvider() {
+export function SelectExploreRepo() {
     const { settings, updateSettings } = useSettingsContext();
 
     const changeExploreProvider = (value: string) => {
         updateSettings({
             explore: {
                 ...settings.explore,
-                provider: value as "chub" | "anchorhold" | "charchive"
+                repo: value as "chub" | "anchorhold"
             }
         });
     };
 
-    const selectItems = ExploreProviders.map((provider) => (
+    const selectItems = ExploreRepos.map((provider) => (
         <SelectItem key={provider.value} value={provider.value}>
             {provider.icon}
             {provider.label}
@@ -34,10 +33,7 @@ export function SelectExploreProvider() {
     ));
 
     return (
-        <Select
-            value={settings.explore.provider}
-            onValueChange={changeExploreProvider}
-        >
+        <Select value={settings.explore.repo} onValueChange={changeExploreProvider}>
             <SelectTrigger>
                 <SelectValue placeholder="Select provider..." />
             </SelectTrigger>

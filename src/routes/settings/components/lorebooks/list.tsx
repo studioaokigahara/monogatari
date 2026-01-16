@@ -98,7 +98,7 @@ export function LorebookList({
 
     return (
         <Sidebar collapsible="none" className="w-full sm:w-(--sidebar-width)">
-            <SidebarHeader>
+            <SidebarHeader className="pt-6">
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton onClick={createNewLorebook}>
@@ -116,7 +116,7 @@ export function LorebookList({
                     <SidebarMenuItem>
                         <Select
                             value={lorebookID}
-                            onValueChange={(value) => setLorebookID(value)}
+                            onValueChange={setLorebookID}
                         >
                             <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Select Lorebook..." />

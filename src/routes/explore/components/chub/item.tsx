@@ -1,6 +1,5 @@
-import { TagList } from "@/components/tags";
+import { TagList } from "@/components/tag-list";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
     Item,
     ItemActions,
@@ -12,14 +11,13 @@ import {
     ItemTitle
 } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getButtonIcon, getButtonText } from "@/lib/explore/chub/utils";
 import { cn } from "@/lib/utils";
-import { ButtonState, ChubCharacter } from "@/types/explore/chub";
+import { DownloadButton } from "@/routes/explore/components/download-button";
+import { type ChubCharacter } from "@/types/explore/chub";
 import { Heart } from "lucide-react";
 
 interface Props {
     character: ChubCharacter;
-    buttonState: ButtonState;
     isDownloaded: boolean;
     onCardClick: (character: ChubCharacter) => void;
     onDownloadClick: (character: ChubCharacter) => Promise<void>;
@@ -33,16 +31,14 @@ export function ChubCharacterItem({
     onCardClick,
     onDownloadClick,
     onCreatorClick,
-    onTagClick,
-    buttonState
+    onTagClick
 }: Props) {
     const handleCardClick = (event: React.MouseEvent) => {
         event.stopPropagation();
         onCardClick(character);
     };
 
-    const handleDownloadClick = async (event: React.MouseEvent) => {
-        event.stopPropagation();
+    const handleDownloadClick = async () => {
         await onDownloadClick(character);
     };
 
@@ -56,13 +52,12 @@ export function ChubCharacterItem({
         onTagClick(tag);
     };
 
+    const buttonState = isDownloaded ? "ready_update" : "ready_download";
+
     return (
         <Item
             variant="muted"
-            className={cn(
-                "overflow-hidden",
-                isDownloaded && "ring-2 ring-green-500/50"
-            )}
+            className={cn("overflow-hidden", isDownloaded && "ring-2 ring-green-500/50")}
         >
             <ItemHeader>
                 <ItemMedia className="mx-auto">
@@ -93,16 +88,14 @@ export function ChubCharacterItem({
                     </ItemTitle>
                     <div className="flex justify-between text-muted-foreground">
                         <span
+                            role="button"
                             className="cursor-pointer hover:underline"
                             onClick={handleCreatorClick}
                         >
                             @{character.fullPath.split("/")[0]}
                         </span>
                         <span className="flex gap-1">
-                            <Heart
-                                fill="hotpink"
-                                className="size-4 mt-px text-[hotpink]"
-                            />
+                            <Heart fill="hotpink" className="size-4 mt-px text-[hotpink]" />
                             {character.n_favorites}
                         </span>
                     </div>
@@ -119,15 +112,13 @@ export function ChubCharacterItem({
                 />
             </ItemFooter>
             <ItemActions className="w-full">
-                <Button
+                <DownloadButton
+                    initialState={buttonState}
+                    onClick={handleDownloadClick}
                     variant="outline"
                     size="sm"
-                    className="w-full backdrop-blur cursor-pointer"
-                    onClick={handleDownloadClick}
-                >
-                    {getButtonIcon(buttonState)}
-                    <span>{getButtonText(buttonState)}</span>
-                </Button>
+                    className="w-full backdrop-blur"
+                />
             </ItemActions>
         </Item>
     );

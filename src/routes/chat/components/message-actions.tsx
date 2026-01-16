@@ -1,13 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useCharacterContext } from "@/contexts/character";
+import { useChatContext } from "@/contexts/chat";
 import { Chat } from "@/database/schema/chat";
-import { useCharacterContext } from "@/hooks/use-character-context";
-import { useChatContext } from "@/hooks/use-chat-context";
 import { replaceMacros } from "@/lib/macros";
 import { cn, generateCuid2 } from "@/lib/utils";
 import { type Message } from "@/types/message";
@@ -25,13 +21,7 @@ interface MessageButton {
     className?: string;
 }
 
-function MessageButton({
-    Icon,
-    tooltip,
-    onClick,
-    disabled,
-    className
-}: MessageButton) {
+function MessageButton({ Icon, tooltip, onClick, disabled, className }: MessageButton) {
     return (
         <Tooltip>
             <TooltipTrigger asChild>
@@ -112,22 +102,13 @@ export function MessageActions({
 
     const forkChat = async () => {
         const isLastMessage = messages.length === index + 1;
-        const next = isLastMessage
-            ? undefined
-            : graphSync.vertexMap.get(messages[index + 1].id);
-        const id = await Chat.fork(
-            graphSync.graph,
-            graphSync.characterIDs,
-            graphSync.title,
-            next
-        );
+        const next = isLastMessage ? undefined : graphSync.vertexMap.get(messages[index + 1].id);
+        const id = await Chat.fork(graphSync.graph, graphSync.characterIDs, graphSync.title, next);
         void navigate({ to: "/chat/$id", params: { id } });
     };
 
     const copyMessage = async () => {
-        const messageContent = message.parts.find(
-            (part) => part.type === "text"
-        )?.text;
+        const messageContent = message.parts.find((part) => part.type === "text")?.text;
         if (messageContent) {
             await navigator.clipboard.writeText(messageContent);
             setCopied(true);
@@ -137,9 +118,7 @@ export function MessageActions({
     };
 
     const editMessage = () => {
-        const messageContent = message.parts.find(
-            (part) => part.type === "text"
-        )?.text;
+        const messageContent = message.parts.find((part) => part.type === "text")?.text;
         if (messageContent) {
             setEditing(true);
             setEditedContent(messageContent);
@@ -147,9 +126,7 @@ export function MessageActions({
     };
 
     const saveMessageEditAndRegenerate = () => {
-        const oldContent = message.parts.find(
-            (part) => part.type === "text"
-        )?.text;
+        const oldContent = message.parts.find((part) => part.type === "text")?.text;
 
         if (editedContent === oldContent) {
             setEditing(false);
@@ -191,16 +168,11 @@ export function MessageActions({
         setMessages(newMessages);
         setEditing(false);
         void regenerate();
-
-        toast.success(
-            "Message updated. Regenerating last assistant message..."
-        );
+        toast.success("Message updated. Regenerating last assistant message...");
     };
 
     const saveMessageEdit = () => {
-        const oldContent = message.parts.find(
-            (part) => part.type === "text"
-        )?.text;
+        const oldContent = message.parts.find((part) => part.type === "text")?.text;
 
         if (editedContent === oldContent) {
             setEditing(false);
@@ -242,9 +214,7 @@ export function MessageActions({
     };
 
     const cancelMessageEdit = () => {
-        const messageContent = message.parts.find(
-            (part) => part.type === "text"
-        )?.text;
+        const messageContent = message.parts.find((part) => part.type === "text")?.text;
         if (messageContent) {
             setEditing(false);
             setEditedContent(messageContent);
@@ -252,8 +222,7 @@ export function MessageActions({
     };
 
     const canRegenerate =
-        message.role === "assistant" ||
-        (message.role === "user" && index === messages.length - 1);
+        message.role === "assistant" || (message.role === "user" && index === messages.length - 1);
 
     const messageActions = editing
         ? [
@@ -267,19 +236,13 @@ export function MessageActions({
                   Icon: Check,
                   tooltip: "Save",
                   onClick: saveMessageEdit,
-                  className: cn(
-                      "text-green-500 hover:text-green-400",
-                      className
-                  )
+                  className: cn("text-green-500 hover:text-green-400", className)
               },
               {
                   Icon: X,
                   tooltip: "Cancel",
                   onClick: cancelMessageEdit,
-                  className: cn(
-                      "text-destructive hover:text-destructive",
-                      className
-                  )
+                  className: cn("text-destructive hover:text-destructive", className)
               }
           ]
         : [
@@ -325,7 +288,5 @@ export function MessageActions({
             />
         ));
 
-    return (
-        <ButtonGroup aria-label="Message Actions">{messageButtons}</ButtonGroup>
-    );
+    return <ButtonGroup aria-label="Message Actions">{messageButtons}</ButtonGroup>;
 }

@@ -1,18 +1,11 @@
 import Password from "@/components/password-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-    ChartContainer,
-    ChartTooltip,
-    ChartTooltipContent
-} from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Label } from "@/components/ui/label";
+import { useSettingsContext } from "@/contexts/settings";
 import { db } from "@/database/monogatari-db";
-import { useSettingsContext } from "@/hooks/use-settings-context";
-import { SelectExploreProvider } from "@/routes/explore/components/select-provider";
-import {
-    ExportDatabase,
-    ImportDatabase
-} from "@/routes/settings/components/database-dialog";
+import { SelectExploreRepo } from "@/routes/settings/components/api/select-provider";
+import { ExportDatabase, ImportDatabase } from "@/routes/settings/components/database-dialog";
 import { createFileRoute } from "@tanstack/react-router";
 import {
     Bird,
@@ -93,36 +86,34 @@ function StorageDisplay() {
         const sizeOfValue = (value: any, seen: WeakSet<object>): number => {
             if (value === null || value === undefined) return 0;
 
-            const t = typeof value;
+            const type = typeof value;
 
-            if (t === "string") {
-                // UTF-8 byte length
+            if (type === "string") {
                 return encoder.encode(value).length;
             }
-            if (t === "number") return 8;
-            if (t === "boolean") return 1;
+
+            if (type === "number") return 8;
+            if (type === "boolean") return 1;
             if (value instanceof Date) return 8;
 
-            // Binary types
             if (value instanceof Blob) return value.size;
             if (value instanceof File) return value.size;
             if (value instanceof ArrayBuffer) return value.byteLength;
-            if (ArrayBuffer.isView(value))
-                return (value as ArrayBufferView).byteLength;
 
-            // Arrays
+            if (ArrayBuffer.isView(value)) {
+                return (value as ArrayBufferView).byteLength;
+            }
+
             if (Array.isArray(value)) {
                 let sum = 0;
                 for (const v of value) sum += sizeOfValue(v, seen);
                 return sum;
             }
 
-            // Objects / Maps / Sets
-            if (t === "object") {
+            if (type === "object") {
                 if (seen.has(value)) return 0;
                 seen.add(value);
 
-                // Map
                 if (value instanceof Map) {
                     let sum = 0;
                     for (const [k, v] of value.entries()) {
@@ -131,7 +122,6 @@ function StorageDisplay() {
                     return sum;
                 }
 
-                // Set
                 if (value instanceof Set) {
                     let sum = 0;
                     for (const v of value.values()) {
@@ -140,10 +130,8 @@ function StorageDisplay() {
                     return sum;
                 }
 
-                // Plain object
                 let sum = 0;
                 for (const [k, v] of Object.entries(value)) {
-                    // include key bytes too
                     sum += encoder.encode(k).length + sizeOfValue(v, seen);
                 }
                 return sum;
@@ -156,30 +144,16 @@ function StorageDisplay() {
             const tables = db.tables;
             const sizes: Record<string, number> = {};
 
-            for (const table of tables) {
-                let total = 0;
-
-                // Stream through records to avoid loading entire table into memory
-                try {
-                    await table.each((record: any) => {
-                        // fresh seen set per record to handle circular refs within a single record
-                        total += sizeOfValue(record, new WeakSet<object>());
-                    });
-                } catch {
-                    // Fallback if streaming fails: try toArray (may be heavy)
-                    try {
-                        const records = await table.toArray();
-                        for (const record of records) {
-                            total += sizeOfValue(record, new WeakSet<object>());
-                        }
-                    } catch {
-                        // As a last resort, leave as 0 so we don't break the UI
-                        total = 0;
+            await Promise.all(
+                tables.map(async (table) => {
+                    const records = await table.toArray();
+                    let total = 0;
+                    for (const record of records) {
+                        total += sizeOfValue(record, new WeakSet());
                     }
-                }
-
-                sizes[table.name] = total;
-            }
+                    sizes[table.name] = total;
+                })
+            );
 
             if (!cancelled) setDBSize(sizes);
         };
@@ -237,10 +211,7 @@ function StorageDisplay() {
             </CardHeader>
             <CardContent className="flex flex-col sm:flex-row items-center">
                 <div className="mb-auto">
-                    <ChartContainer
-                        config={chartConfig}
-                        className="mx-auto aspect-square h-62.5"
-                    >
+                    <ChartContainer config={chartConfig} className="mx-auto aspect-square h-62.5">
                         <RadialBarChart
                             data={chartData}
                             startAngle={90}
@@ -255,23 +226,11 @@ function StorageDisplay() {
                                 className="first:fill-muted last:fill-background"
                                 polarRadius={[86, 74]}
                             />
-                            <RadialBar
-                                dataKey="usage"
-                                background
-                                cornerRadius={10}
-                            />
-                            <PolarRadiusAxis
-                                tick={false}
-                                tickLine={false}
-                                axisLine={false}
-                            >
+                            <RadialBar dataKey="usage" background cornerRadius={10} />
+                            <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
                                 <ChartLabel
                                     content={({ viewBox }) => {
-                                        if (
-                                            viewBox &&
-                                            "cx" in viewBox &&
-                                            "cy" in viewBox
-                                        ) {
+                                        if (viewBox && "cx" in viewBox && "cy" in viewBox) {
                                             return (
                                                 <text
                                                     x={viewBox.cx}
@@ -295,8 +254,7 @@ function StorageDisplay() {
                         </RadialBarChart>
                     </ChartContainer>
                     <div className="text-muted-foreground text-xs text-center">
-                        {formatBytes(storage?.usage)} /{" "}
-                        {formatBytes(storage?.quota)}
+                        {formatBytes(storage?.usage)} / {formatBytes(storage?.quota)}
                     </div>
                 </div>
                 {dbChartData.length > 0 && (
@@ -317,17 +275,12 @@ function StorageDisplay() {
                             </PieChart>
                         </ChartContainer>
                         <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                            {Object.entries(dbSize || {}).map(
-                                ([name, size]) => (
-                                    <div
-                                        key={name}
-                                        className="flex justify-between gap-2"
-                                    >
-                                        <span>{name}:</span>
-                                        <span>{formatBytes(size)}</span>
-                                    </div>
-                                )
-                            )}
+                            {Object.entries(dbSize || {}).map(([name, size]) => (
+                                <div key={name} className="flex justify-between gap-2">
+                                    <span>{name}:</span>
+                                    <span>{formatBytes(size)}</span>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 )}
@@ -340,18 +293,7 @@ function GeneralSettings() {
     const { settings, updateSettings } = useSettingsContext();
 
     const RandomIcon = useMemo(() => {
-        const icons = [
-            Dog,
-            Cat,
-            Rabbit,
-            Fish,
-            Squirrel,
-            Turtle,
-            Panda,
-            Bird,
-            Worm,
-            Rat
-        ];
+        const icons = [Dog, Cat, Rabbit, Fish, Squirrel, Turtle, Panda, Bird, Worm, Rat];
         return icons[Math.floor(Math.random() * icons.length)];
     }, []);
 
@@ -366,10 +308,8 @@ function GeneralSettings() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-1">
-                        <Label htmlFor="explore-provider">
-                            Explore Provider
-                        </Label>
-                        <SelectExploreProvider />
+                        <Label htmlFor="select-repo">Default Character Repo</Label>
+                        <SelectExploreRepo />
                     </div>
                     <Password
                         label="Character Hub API Key"

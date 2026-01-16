@@ -5,14 +5,14 @@ import { importCharacter, readCharacterImage } from "@/lib/character/io";
 import { scanGallery } from "@/lib/character/scanner";
 import { AnchorholdPost } from "@/lib/explore/anchorhold/api";
 import { fetchCharacterJSON } from "@/lib/explore/chub/api";
-import AnchorholdCard from "@/routes/explore/components/anchorhold/card";
-import { ButtonState, ChubCharacterResponse } from "@/types/explore/chub";
+import { AnchorholdItem } from "@/routes/explore/components/anchorhold/item";
+import { ChubCharacterResponse } from "@/types/explore/chub";
 import { useMutation } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useElementScrollRestoration, useLoaderData, useNavigate } from "@tanstack/react-router";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useLiveQuery } from "dexie-react-hooks";
 import { AlertTriangle } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 
 interface Props {
@@ -30,32 +30,30 @@ export default function AnchorholdList({
     hasNextPage,
     fetchNextPage
 }: Props) {
-    const [buttonStates, setButtonStates] = useState<
-        Record<string, { state: ButtonState; error?: string }>
-    >({});
+    const preload = useLoaderData({ from: "/explore/anchorhold" });
+    const downloadedCharacters = useLiveQuery(() => db.characters.toArray(), [], preload);
 
-    const updateButtonState = (
-        id: string,
-        state: ButtonState,
-        errorMessage = ""
-    ) => {
-        setButtonStates((prevStates) => ({
-            ...prevStates,
-            [id]: { state, error: errorMessage }
-        }));
-    };
-
-    const downloadedCharacters = useLiveQuery(
-        () => db.characters.toArray(),
-        []
-    );
+    const chubCharacters = useMemo(() => {
+        const fullPaths = new Map<string, string>();
+        for (const post of posts) {
+            for (const link of post.links) {
+                if (link.href.includes("chub.ai")) {
+                    const path = link.href.split("characters/")[1];
+                    if (path) fullPaths.set(post.id, path);
+                    break;
+                }
+            }
+        }
+        return fullPaths;
+    }, [posts]);
 
     const { anchorholdIDs, chubFullPaths } = useMemo(() => {
         const anchorholdSet = new Set<string>();
         const chubSet = new Set<string>();
 
-        if (downloadedCharacters === undefined)
+        if (downloadedCharacters === undefined) {
             return { anchorholdIDs: anchorholdSet, chubFullPaths: chubSet };
+        }
 
         for (const character of downloadedCharacters) {
             const id = character?.data?.extensions?.anchorhold?.id;
@@ -73,66 +71,30 @@ export default function AnchorholdList({
         return { anchorholdIDs: anchorholdSet, chubFullPaths: chubSet };
     }, [downloadedCharacters]);
 
-    const chubCharacters = useMemo(() => {
-        const fullPaths = new Map<string, string>();
-        for (const post of posts) {
-            for (const link of post.links) {
-                if (link.href.includes("chub.ai")) {
-                    const path = link.href.split("characters/")[1];
-                    if (path) fullPaths.set(post.id, path);
-                    break;
-                }
-            }
-        }
-        return fullPaths;
-    }, [posts]);
-
-    const getDefaultButtonState = (id: string): ButtonState => {
-        if (anchorholdIDs.has(id)) return ButtonState.READY_UPDATE;
-
-        const fullPath = chubCharacters.get(id);
-        if (fullPath && chubFullPaths.has(fullPath)) {
-            return ButtonState.READY_UPDATE;
-        }
-
-        return ButtonState.READY_DOWNLOAD;
-    };
-
     const navigate = useNavigate();
 
     const downloadMutation = useMutation({
         mutationFn: async (post: AnchorholdPost) => {
             const fullPath = chubCharacters.get(post.id);
             const isUpdate =
-                anchorholdIDs.has(post.id) ||
-                (fullPath ? chubFullPaths.has(fullPath) : false);
-
-            updateButtonState(
-                post.id,
-                isUpdate ? ButtonState.DOWNLOADING : ButtonState.IN_QUEUE
-            );
+                anchorholdIDs.has(post.id) || (fullPath ? chubFullPaths.has(fullPath) : false);
 
             let imageBlob: Blob;
             let characterInfo: ChubCharacterResponse | undefined;
 
             if (fullPath) {
-                const info = await fetch(
-                    `https://gateway.chub.ai/api/characters/${fullPath}`,
-                    { referrerPolicy: "no-referrer" }
-                );
+                const info = await fetch(`https://gateway.chub.ai/api/characters/${fullPath}`, {
+                    referrerPolicy: "no-referrer"
+                });
 
                 if (!info.ok) {
-                    throw new Error(
-                        `Failed to fetch character info for ${fullPath}`
-                    );
+                    throw new Error(`Failed to fetch character info for ${fullPath}`);
                 }
 
                 characterInfo = await info.json();
 
                 if (!characterInfo?.node.max_res_url) {
-                    throw new Error(
-                        `Return character info for ${fullPath} has no max_res_url`
-                    );
+                    throw new Error(`Return character info for ${fullPath} has no max_res_url`);
                 }
 
                 const image = await fetch(characterInfo?.node.max_res_url, {
@@ -162,9 +124,7 @@ export default function AnchorholdList({
                 ); //TODO: handle multiple image links
 
                 if (!link) {
-                    throw new Error(
-                        "No chub.ai link, image link, or images found in post."
-                    );
+                    throw new Error("No chub.ai link, image link, or images found in post.");
                 }
 
                 const image = await fetch(link.href);
@@ -185,10 +145,7 @@ export default function AnchorholdList({
 
             const character = await importCharacter(json, arrayBuffer);
 
-            const updateData: Pick<
-                (typeof character)["data"],
-                "source" | "extensions"
-            > = {
+            const updateData: Pick<(typeof character)["data"], "source" | "extensions"> = {
                 source: [...character.data.source, `anchorhold:${post.id}`],
                 extensions: {
                     ...character.data.extensions,
@@ -224,13 +181,9 @@ export default function AnchorholdList({
                 }
             });
 
-            return { post, isUpdate, record: character };
+            return { post, record: character, isUpdate };
         },
-        onMutate: (post) => {
-            updateButtonState(post.id, ButtonState.DOWNLOADING);
-        },
-        onSuccess: ({ post, isUpdate, record }) => {
-            updateButtonState(post.id, ButtonState.DONE);
+        onSuccess: ({ record, isUpdate }) => {
             toast.success(
                 `${isUpdate ? "Updated" : "Downloaded"} ${record.data.name} successfully!`,
                 {
@@ -248,30 +201,26 @@ export default function AnchorholdList({
         },
         onError: (error, post) => {
             console.error("Download failed for", post.id, error);
-            updateButtonState(post.id, ButtonState.ERROR, error.message);
             toast.error(`Download failed for ${post.id}`, {
                 description: error.message
             });
-        },
-        onSettled: (_data, _error, post) => {
-            setTimeout(() => {
-                const next =
-                    buttonStates[post.id]?.state === ButtonState.ERROR
-                        ? ButtonState.READY_DOWNLOAD
-                        : ButtonState.READY_UPDATE;
-                updateButtonState(post.id, next);
-            }, 15_000);
         }
     });
 
     const isMobile = useMobile();
     const listRef = useRef<HTMLDivElement>(null);
+
+    const scrollEntry = useElementScrollRestoration({
+        getElement: () => window
+    });
+
     const virtualizer = useWindowVirtualizer({
         count: posts.length,
         estimateSize: () => (isMobile ? 256 : 384),
         overscan: 4,
         scrollMargin: listRef.current?.offsetTop ?? 0,
-        gap: 8
+        gap: 8,
+        initialOffset: scrollEntry?.scrollY
     });
 
     const virtualItems = virtualizer.getVirtualItems();
@@ -286,10 +235,7 @@ export default function AnchorholdList({
 
     if (isFetching && !isFetchingNextPage) {
         return (
-            <div
-                ref={listRef}
-                className="relative w-full pt-2 pb-4 overflow-auto space-y-2"
-            >
+            <div ref={listRef} className="relative w-full pt-2 pb-4 overflow-auto space-y-2">
                 {[...Array(8)].map((_, index) => (
                     <Skeleton
                         key={`skeleton-${index}`}
@@ -315,27 +261,29 @@ export default function AnchorholdList({
             className="relative w-full mt-2 pt-2 pb-4 overflow-auto"
             style={{ height: virtualizer.getTotalSize() }}
         >
-            {virtualItems.map((row) => {
-                const post = posts[row.index];
+            {virtualItems.map((item) => {
+                const post = posts[item.index];
                 if (!post) return null;
+                const fullPath = chubCharacters.get(post.id);
+                const isDownloaded =
+                    anchorholdIDs.has(post.id) || (fullPath ? chubFullPaths.has(fullPath) : false);
                 return (
                     <div
-                        key={row.key}
-                        data-index={row.index}
+                        key={item.key}
+                        data-index={item.index}
                         ref={virtualizer.measureElement}
                         className="absolute top-0 left-0 w-full"
                         style={{
-                            height: row.size,
-                            transform: `translateY(${row.start - virtualizer.options.scrollMargin}px)`
+                            height: item.size,
+                            transform: `translateY(${item.start - virtualizer.options.scrollMargin}px)`
                         }}
                     >
-                        <AnchorholdCard
+                        <AnchorholdItem
                             post={post}
-                            buttonState={
-                                buttonStates[post.id]?.state ??
-                                getDefaultButtonState(post.id)
-                            }
-                            handleDownload={() => downloadMutation.mutate(post)}
+                            isDownloaded={isDownloaded}
+                            onClick={async () => {
+                                await downloadMutation.mutateAsync(post);
+                            }}
                         />
                     </div>
                 );

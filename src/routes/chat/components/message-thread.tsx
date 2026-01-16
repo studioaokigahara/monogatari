@@ -1,4 +1,4 @@
-import { useChatContext } from "@/hooks/use-chat-context";
+import { useChatContext } from "@/contexts/chat";
 import { Message } from "@/routes/chat/components/message";
 import { type Message as MessageType } from "@/types/message";
 import { useChat } from "@ai-sdk/react";
@@ -18,10 +18,12 @@ export default function MessageThread({ scrollRef }: Props) {
         .filter((message) => message.role !== "system")
         .map((message, index, array) => {
             const lastMessage = array.at(-1);
+
             const streaming =
                 status === "streaming" &&
                 lastMessage?.role === "assistant" &&
                 lastMessage.id === message.id;
+
             const showTypingIndicator =
                 status === "streaming" &&
                 lastMessage?.role === "assistant" &&
@@ -40,9 +42,9 @@ export default function MessageThread({ scrollRef }: Props) {
         });
 
     return (
-        <div className="flex flex-col sm:w-2xl @min-[1025px]:w-3xl sm:mx-auto place-center mt-4 mb-8">
+        <div className="flex flex-col grow sm:w-2xl @min-[1025px]:w-3xl sm:mx-auto place-center mt-4 mb-8">
             {uiMessages}
-            <div ref={scrollRef} id="chat-scroll-anchor" />
+            <div ref={scrollRef} id="chatScrollAnchor" />
         </div>
     );
 }

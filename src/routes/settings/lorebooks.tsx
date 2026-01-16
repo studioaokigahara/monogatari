@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
     Empty,
     EmptyDescription,
@@ -11,13 +11,13 @@ import { db } from "@/database/monogatari-db";
 import { LorebookEditor } from "@/routes/settings/components/lorebooks/editor";
 import { createFileRoute, useLoaderData } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
-import { BookDashed, BookMarked } from "lucide-react";
+import { BookDashed } from "lucide-react";
 import { useState } from "react";
 import { LorebookList } from "./components/lorebooks/list";
 
 function NoLorebookSelected() {
     return (
-        <Empty className="mb-2 border border-dashed">
+        <Empty className="border border-dashed my-6">
             <EmptyHeader>
                 <EmptyMedia variant="icon">
                     <BookDashed />
@@ -48,15 +48,9 @@ function LorebookSettings() {
 
     return (
         <div className="h-full pb-2 sm:overflow-hidden">
-            <Card className="pb-0 gap-0 overflow-hidden">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <BookMarked />
-                        Lorebooks
-                    </CardTitle>
-                </CardHeader>
+            <Card className="sm:h-full p-0 gap-0 overflow-hidden">
                 <CardContent className="h-full flex flex-col sm:flex-row sm:overflow-hidden">
-                    <SidebarProvider className="min-h-0 flex-col sm:flex-row gap-4">
+                    <SidebarProvider className="min-h-0 max-sm:flex-col gap-4">
                         <LorebookList
                             lorebooks={lorebooks}
                             selectedLorebook={selectedLorebook}

@@ -1,29 +1,20 @@
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-    InputGroup,
-    InputGroupAddon,
-    InputGroupInput
-} from "@/components/ui/input-group";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { SearchIcon } from "lucide-react";
-import { SelectExploreProvider } from "../select-provider";
 
 interface Props {
-    search: React.ChangeEventHandler<HTMLInputElement>;
+    onChange: React.ChangeEventHandler<HTMLInputElement>;
 }
 
-export function AnchorholdSearch({ search }: Props) {
+export function AnchorholdSearch({ onChange: handleChange }: Props) {
     return (
         <Card className="w-full py-4 bg-transparent border-none shadow-none">
             <CardContent>
                 <ButtonGroup className="w-full">
                     <ButtonGroup className="grow">
-                        <SelectExploreProvider />
                         <InputGroup>
-                            <InputGroupInput
-                                placeholder="Search..."
-                                onChange={search}
-                            />
+                            <InputGroupInput placeholder="Search..." onChange={handleChange} />
                             <InputGroupAddon>
                                 <SearchIcon />
                             </InputGroupAddon>

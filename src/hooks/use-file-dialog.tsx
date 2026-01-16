@@ -7,7 +7,7 @@ export interface UseFileDialogOptions {
     /** Allow selecting multiple files */
     multiple?: boolean;
     /** Callback when files are selected */
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 interface UseFileDialogReturn {

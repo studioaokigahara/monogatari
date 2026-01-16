@@ -250,8 +250,7 @@ const statusCategories = [
             "Debugging CSS", // Keep some specifics
             "Fixing bugs",
             "Stuck on a problem",
-            () =>
-                `Learning ${getRandomItem(topics)?.split(" ")[0] || "something new"}` // e.g., Learning React
+            () => `Learning ${getRandomItem(topics)?.split(" ")[0] || "something new"}` // e.g., Learning React
         ] as StatusItem[]
     },
     {
@@ -259,8 +258,7 @@ const statusCategories = [
         icons: [BookOpen, Brain, Newspaper], // Added Newspaper
         statuses: [
             () => `Reading ${getRandomItem(books) || "a book"}`,
-            () =>
-                `Learning about ${getRandomItem(topics) || "something interesting"}`,
+            () => `Learning about ${getRandomItem(topics) || "something interesting"}`,
             "Reading documentation",
             "Studying",
             "Browsing the news"
@@ -403,10 +401,7 @@ function RandomStatusBadge() {
 
     return (
         <Badge variant="outline" className={badgeClasses}>
-            <IconComponent
-                className="h-3 w-3 mr-1 flex-shrink-0"
-                aria-hidden="true"
-            />
+            <IconComponent className="h-3 w-3 mr-1 shrink-0" aria-hidden="true" />
             {status}
         </Badge>
     );

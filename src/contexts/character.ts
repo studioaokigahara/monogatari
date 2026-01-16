@@ -14,9 +14,7 @@ const CharacterContext = createContext<CharacterContext | undefined>(undefined);
 function useCharacterContext(): CharacterContext {
     const context = useContext(CharacterContext);
     if (!context) {
-        throw new Error(
-            "useCharacterContext must be used within a CharacterContext."
-        );
+        throw new Error("useCharacterContext must be used within a CharacterContext.Provider.");
     }
     return context;
 }

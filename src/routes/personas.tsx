@@ -1,12 +1,8 @@
 import Header from "@/components/header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-    Field,
-    FieldError,
-    FieldGroup,
-    FieldLabel
-} from "@/components/ui/field";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
     Sidebar,
@@ -22,18 +18,17 @@ import {
     SidebarSeparator
 } from "@/components/ui/sidebar";
 import { Textarea } from "@/components/ui/textarea";
+import { useCharacterContext } from "@/contexts/character";
 import { db } from "@/database/monogatari-db";
 import { Asset } from "@/database/schema/asset";
 import { Persona } from "@/database/schema/persona";
-import useAutosave from "@/hooks/use-autosave";
-import { useCharacterContext } from "@/hooks/use-character-context";
 import { useFileDialog } from "@/hooks/use-file-dialog";
 import { useImageURL } from "@/hooks/use-image-url";
-import { useForm, useStore } from "@tanstack/react-form";
+import { useForm } from "@tanstack/react-form";
 import { createFileRoute, useLoaderData } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Trash2, Upload, UserPlus } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface PersonaEditorProps {
@@ -49,54 +44,41 @@ function PersonaEditor({ persona }: PersonaEditorProps) {
             onSubmit: ({ value }) => persona.validate(value)
         },
         onSubmit: async ({ value }) => {
-            await persona.update(value).catch((error: Error) =>
+            try {
+                await persona.update(value);
+            } catch (error) {
                 toast.error("Failed to update persona", {
-                    description: error.message
-                })
-            );
+                    description: error instanceof Error ? error.message : ""
+                });
+            }
+        },
+        listeners: {
+            onChangeDebounceMs: 500,
+            onChange: ({ formApi: form }) => {
+                if (form.state.isValid && !form.state.isSubmitting) {
+                    form.handleSubmit();
+                }
+            }
         }
     });
 
     useEffect(() => form.reset(persona), [form, persona]);
-
-    const [isDirty, isValid, isSubmitting, values] = useStore(
-        form.store,
-        (state) => [
-            state.isDirty,
-            state.isValid,
-            state.isSubmitting,
-            state.values
-        ]
-    );
-
-    const handleSubmit = useCallback(() => form.handleSubmit(), [form]);
-
-    useAutosave({
-        isDirty,
-        isValid,
-        isSubmitting,
-        values,
-        handleSubmit
-    });
 
     const imageURL = useImageURL({
         category: "persona",
         id: persona.id
     });
 
-    const handleImageUpload = async (
-        event: React.ChangeEvent<HTMLInputElement>
-    ) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            const asset = await Asset.loadPersonaAsset(persona.id);
-            if (asset) await asset.update({ file });
-        }
-    };
-
     const { browse, input } = useFileDialog({
         accept: "image/*",
-        onChange: handleImageUpload
+        multiple: false,
+        onChange: async (event: React.ChangeEvent<HTMLInputElement>) => {
+            const file = event.target.files?.[0];
+            if (file) {
+                const asset = await Asset.loadPersonaAsset(persona.id);
+                if (asset) await asset.update({ file });
+            }
+        }
     });
 
     return (
@@ -116,70 +98,50 @@ function PersonaEditor({ persona }: PersonaEditorProps) {
                         onClick={browse}
                     />
                     <AvatarFallback className="rounded-xl">
-                        <div
+                        <Button
                             onClick={browse}
                             className="w-48 h-24 flex items-center justify-center cursor-pointer gap-2"
                         >
                             <Upload />
                             No Image
-                        </div>
+                        </Button>
                     </AvatarFallback>
                 </Avatar>
                 <FieldGroup className="flex flex-col *:gap-1">
                     <form.Field name="name">
                         {(field) => {
-                            const invalid =
-                                field.state.meta.isTouched &&
-                                !field.state.meta.isValid;
+                            const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
                             return (
                                 <Field data-invalid={invalid}>
-                                    <FieldLabel htmlFor={field.name}>
-                                        Name
-                                    </FieldLabel>
+                                    <FieldLabel htmlFor={field.name}>Name</FieldLabel>
                                     <Input
                                         id={field.name}
                                         name={field.name}
                                         value={field.state.value}
                                         onBlur={field.handleBlur}
-                                        onChange={(e) =>
-                                            field.handleChange(e.target.value)
-                                        }
+                                        onChange={(e) => field.handleChange(e.target.value)}
                                         aria-invalid={invalid}
                                     />
-                                    {invalid && (
-                                        <FieldError
-                                            errors={field.state.meta.errors}
-                                        />
-                                    )}
+                                    {invalid && <FieldError errors={field.state.meta.errors} />}
                                 </Field>
                             );
                         }}
                     </form.Field>
                     <form.Field name="description">
                         {(field) => {
-                            const invalid =
-                                field.state.meta.isTouched &&
-                                !field.state.meta.isValid;
+                            const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
                             return (
                                 <Field data-invalid={invalid}>
-                                    <FieldLabel htmlFor={field.name}>
-                                        Description
-                                    </FieldLabel>
+                                    <FieldLabel htmlFor={field.name}>Description</FieldLabel>
                                     <Textarea
                                         id={field.name}
                                         name={field.name}
                                         value={field.state.value}
                                         onBlur={field.handleBlur}
-                                        onChange={(e) =>
-                                            field.handleChange(e.target.value)
-                                        }
+                                        onChange={(e) => field.handleChange(e.target.value)}
                                         aria-invalid={invalid}
                                     />
-                                    {invalid && (
-                                        <FieldError
-                                            errors={field.state.meta.errors}
-                                        />
-                                    )}
+                                    {invalid && <FieldError errors={field.state.meta.errors} />}
                                 </Field>
                             );
                         }}
@@ -192,9 +154,7 @@ function PersonaEditor({ persona }: PersonaEditorProps) {
 
 function Personas() {
     const { persona, setPersona } = useCharacterContext();
-    const [localPersona, setLocalPersona] = useState<Persona | undefined>(
-        persona
-    );
+    const [localPersona, setLocalPersona] = useState<Persona | undefined>(persona);
 
     useEffect(() => {
         setLocalPersona(persona!);
@@ -211,53 +171,41 @@ function Personas() {
     );
 
     const newPersona = async () => {
-        const persona = new Persona();
-        await persona.save().catch((error: Error) => {
-            console.error("Failed to create persona", error);
+        try {
+            const persona = new Persona();
+            await persona.save();
+            setPersona(persona);
+            toast.success("Persona created successfully!");
+        } catch (error) {
+            console.error("Failed to create persona:", error);
             toast.error("Failed to create persona", {
-                description: error.message
+                description: error instanceof Error ? error.message : ""
             });
-        });
-        setPersona(persona);
-        toast.success("Persona created successfully!");
+        }
     };
 
     const deletePersona = async (persona: Persona) => {
-        await persona.delete().catch((error: Error) => {
+        try {
+            await persona.delete();
+            toast.success("Persona deleted.");
+        } catch (error) {
             console.error("Failed to delete persona:", error);
             toast.error("Failed to delete persona", {
-                description: error.message
+                description: error instanceof Error ? error.message : ""
             });
-        });
-        toast.success("Persona deleted.");
+        }
     };
 
     const personaItems = personas.map((persona, index) => (
-        <SidebarMenuItem
-            key={persona.id}
-            // className={cn(
-            //     "py-2 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-gray-500/50",
-            //     persona.id ===
-            //         localPersona.id
-            //         ? "ring-2 ring-green-500/50"
-            //         : ""
-            // )}
-            onClick={() => setPersona(persona)}
-        >
+        <SidebarMenuItem key={persona.id} onClick={() => setPersona(persona)}>
             <SidebarMenuButton isActive={persona.id === localPersona?.id}>
                 <Avatar>
-                    <AvatarImage
-                        src={personaImages?.[index]}
-                        className="object-cover"
-                    />
+                    <AvatarImage src={personaImages?.[index]} className="object-cover" />
                     <AvatarFallback>{persona.name.slice(0, 2)}</AvatarFallback>
                 </Avatar>
                 <span className="truncate">{persona.name}</span>
             </SidebarMenuButton>
-            <SidebarMenuAction
-                className="text-destructive"
-                onClick={() => deletePersona(persona)}
-            >
+            <SidebarMenuAction className="text-destructive" onClick={() => deletePersona(persona)}>
                 <Trash2 />
                 <span className="sr-only">Delete Persona</span>
             </SidebarMenuAction>
@@ -267,20 +215,15 @@ function Personas() {
     return (
         <>
             <Header />
-            <div className="flex flex-col grow pb-2 gap-4 sm:overflow-hidden">
-                <Card className="overflow-hidden">
-                    <CardContent className="space-y-2">
-                        <SidebarProvider className="flex-col sm:flex-row gap-6">
-                            <Sidebar
-                                collapsible="none"
-                                className="w-full sm:w-(--sidebar-width)"
-                            >
+            <div className="h-full pb-2 sm:overflow-hidden">
+                <Card className="sm:h-full overflow-hidden">
+                    <CardContent className="flex flex-col sm:flex-row sm:overflow-hidden">
+                        <SidebarProvider className="min-h-0 max-sm:flex-col gap-4">
+                            <Sidebar collapsible="none" className="w-full sm:w-(--sidebar-width)">
                                 <SidebarHeader>
                                     <SidebarMenu>
                                         <SidebarMenuItem>
-                                            <SidebarMenuButton
-                                                onClick={newPersona}
-                                            >
+                                            <SidebarMenuButton onClick={newPersona}>
                                                 <UserPlus />
                                                 New Persona
                                             </SidebarMenuButton>
@@ -291,16 +234,12 @@ function Personas() {
                                 <SidebarContent>
                                     <SidebarGroup>
                                         <SidebarGroupContent>
-                                            <SidebarMenu>
-                                                {personaItems}
-                                            </SidebarMenu>
+                                            <SidebarMenu>{personaItems}</SidebarMenu>
                                         </SidebarGroupContent>
                                     </SidebarGroup>
                                 </SidebarContent>
                             </Sidebar>
-                            {localPersona && (
-                                <PersonaEditor persona={localPersona} />
-                            )}
+                            {localPersona && <PersonaEditor persona={localPersona} />}
                         </SidebarProvider>
                     </CardContent>
                 </Card>

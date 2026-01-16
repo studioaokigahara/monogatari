@@ -1,93 +1,73 @@
-import type React from "react";
-
-import { Prose } from "@/components/prose";
-import { Button } from "@/components/ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogTitle
-} from "@/components/ui/dialog";
-import { getButtonIcon, getButtonText } from "@/lib/explore/chub/utils";
-import type { ButtonState, ChubCharacter } from "@/types/explore/chub";
-import {
-    Cake,
-    CalendarClock,
-    Download,
-    Heart,
-    Star,
-    StarHalf,
-    TextSelect
-} from "lucide-react";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Markdown } from "@/components/markdown";
+import { TagList } from "@/components/tag-list";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TagList } from "@/components/tags";
 import { cn } from "@/lib/utils";
+import { DownloadButton } from "@/routes/explore/components/download-button";
+import { type ChubCharacter } from "@/types/explore/chub";
+import { Cake, CalendarClock, Download, Heart, Star, StarHalf, TextSelect } from "lucide-react";
 
-interface CharacterPopupProps {
+function StarRating({ rating }: { rating: number }) {
+    const stars = [];
+
+    for (let i = 0; i < Math.floor(rating); i++) {
+        stars.push(
+            <Star key={`star-${i}`} fill="currentColor" className="size-4 text-yellow-500" />
+        );
+    }
+
+    if (rating % 1 >= 0.5) {
+        stars.push(<StarHalf key="half-star" className="h-4 w-4 text-yellow-500" />);
+    }
+
+    return stars;
+}
+
+interface CharacterModalProps {
     character: ChubCharacter;
     openState: [boolean, React.Dispatch<React.SetStateAction<boolean>>];
-    buttonState: ButtonState;
     isDownloaded: boolean;
-    onDownloadClick: () => void;
+    onDownloadClick: (character: ChubCharacter) => Promise<void>;
     onTagClick: (tag: string) => void;
     onCreatorClick: (creator: string) => void;
 }
 
-export default function CharacterPopup({
+export function CharacterModal({
     character,
     openState,
-    buttonState,
     isDownloaded,
     onDownloadClick,
     onTagClick,
     onCreatorClick
-}: CharacterPopupProps) {
-    const [isOpen, setIsOpen] = openState;
+}: CharacterModalProps) {
+    const [open, setOpen] = openState;
 
-    const handleTagClick = (e: React.MouseEvent, tag: string) => {
-        e.preventDefault();
+    const handleDownloadClick = async () => {
+        await onDownloadClick(character);
+        setOpen(false);
+    };
+
+    const handleTagClick = (event: React.MouseEvent, tag: string) => {
+        event.preventDefault();
         onTagClick(tag);
+        setOpen(false);
     };
 
-    const handleCreatorClick = (e: React.MouseEvent) => {
-        e.preventDefault();
+    const handleCreatorClick = () => {
         onCreatorClick(character.fullPath.split("/")[0]);
+        setOpen(false);
     };
 
-    const renderStars = (rating: number) => {
-        const stars = [];
-        const fullStars = Math.floor(rating);
-        const hasHalfStar = rating % 1 >= 0.5;
-
-        for (let i = 0; i < fullStars; i++) {
-            stars.push(
-                <Star
-                    key={`star-${i}`}
-                    fill="currentColor"
-                    className="size-4 text-yellow-500"
-                />
-            );
-        }
-
-        if (hasHalfStar) {
-            stars.push(
-                <StarHalf key="half-star" className="h-4 w-4 text-yellow-400" />
-            );
-        }
-
-        return stars;
-    };
+    const initialState = isDownloaded ? "ready_update" : "ready_download";
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={open} onOpenChange={setOpen}>
             <DialogTitle className="sr-only">Character Popup</DialogTitle>
-            <DialogDescription className="sr-only">
-                {character.name}
-            </DialogDescription>
+            <DialogDescription className="sr-only">{character.name}</DialogDescription>
             <DialogContent
                 className={cn(
-                    "flex sm:max-w-[90%] max-h-[90%]",
+                    "flex sm:max-w-[90%] max-h-[90%] before:-z-1!",
                     isDownloaded && "ring-2 ring-green-500/50"
                 )}
             >
@@ -104,31 +84,26 @@ export default function CharacterPopup({
                                     <Skeleton />
                                 </AvatarFallback>
                             </Avatar>
-                            <Button
+                            <DownloadButton
+                                initialState={initialState}
+                                onClick={handleDownloadClick}
                                 variant="secondary"
                                 className="absolute bottom-4 right-4 cursor-pointer"
-                                onClick={onDownloadClick}
-                            >
-                                {getButtonIcon(buttonState)}
-                                <span>{getButtonText(buttonState)}</span>
-                            </Button>
+                            />
                         </div>
 
                         <div className="flex flex-col space-y-2 text-sm">
                             <div className="flex items-center gap-1">
                                 <Cake className="size-4" />
                                 <span>
-                                    Created{" "}
-                                    {new Date(
-                                        character.createdAt
-                                    ).toLocaleDateString()}{" "}
-                                    by{" "}
-                                    <button
+                                    Created {new Date(character.createdAt).toLocaleDateString()} by{" "}
+                                    <span
+                                        role="button"
                                         className="font-bold cursor-pointer hover:underline"
                                         onClick={handleCreatorClick}
                                     >
                                         @{character.fullPath.split("/")[0]}
-                                    </button>
+                                    </span>
                                 </span>
                             </div>
 
@@ -136,26 +111,19 @@ export default function CharacterPopup({
                                 <CalendarClock className="size-4" />
                                 <span>
                                     Last Updated{" "}
-                                    {new Date(
-                                        character.lastActivityAt
-                                    ).toLocaleString()}
+                                    {new Date(character.lastActivityAt).toLocaleString()}
                                 </span>
                             </div>
 
                             <div className="flex flex-wrap gap-2">
                                 <div className="flex items-center gap-1">
-                                    {renderStars(character.rating)}
+                                    <StarRating rating={character.rating} />
                                     <span>{character.ratingCount} ratings</span>
                                 </div>
 
                                 <div className="flex items-center gap-1">
-                                    <Heart
-                                        fill="hotpink"
-                                        className="size-4 text-[hotpink]"
-                                    />
-                                    <span>
-                                        {character.n_favorites} favorites
-                                    </span>
+                                    <Heart fill="hotpink" className="size-4 text-[hotpink]" />
+                                    <span>{character.n_favorites} favorites</span>
                                 </div>
 
                                 <div className="flex items-center gap-1">
@@ -185,17 +153,17 @@ export default function CharacterPopup({
                         </div>
 
                         <div className="flex flex-wrap gap-1 mb-4">
-                            <TagList
-                                tags={character.topics}
-                                onTagClick={handleTagClick}
-                            />
+                            <TagList tags={character.topics} onTagClick={handleTagClick} />
                         </div>
 
-                        <p className="font-semibold mb-2">
-                            {character.tagline}
-                        </p>
+                        <p className="font-semibold mb-2">{character.tagline}</p>
                         <hr className="my-2" />
-                        <Prose>{character.description}</Prose>
+                        <Markdown>
+                            {character.description.replaceAll(
+                                /body:{1,2}before/g,
+                                "div[data-slot='dialog-content']::before"
+                            )}
+                        </Markdown>
                     </div>
                 </div>
             </DialogContent>

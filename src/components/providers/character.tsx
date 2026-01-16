@@ -1,8 +1,8 @@
+import { CharacterContext } from "@/contexts/character";
+import { useSettingsContext } from "@/contexts/settings";
 import { db } from "@/database/monogatari-db";
 import { Character } from "@/database/schema/character";
 import { Persona } from "@/database/schema/persona";
-import { CharacterContext } from "@/hooks/use-character-context";
-import { useSettingsContext } from "@/hooks/use-settings-context";
 import { ReactNode, useEffect, useState } from "react";
 
 export function CharacterProvider({ children }: { children: ReactNode }) {
@@ -15,11 +15,13 @@ export function CharacterProvider({ children }: { children: ReactNode }) {
     }, [settings.persona]);
 
     useEffect(() => {
-        updateSettings({ persona: persona?.id });
-    }, [updateSettings, persona?.id]);
+        if (persona?.id !== settings.persona) {
+            updateSettings({ persona: persona?.id });
+        }
+    }, [updateSettings, persona?.id, settings.persona]);
 
     return (
-        <CharacterContext
+        <CharacterContext.Provider
             value={{
                 character,
                 setCharacter,
@@ -28,6 +30,6 @@ export function CharacterProvider({ children }: { children: ReactNode }) {
             }}
         >
             {children}
-        </CharacterContext>
+        </CharacterContext.Provider>
     );
 }

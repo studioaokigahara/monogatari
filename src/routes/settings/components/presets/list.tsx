@@ -1,7 +1,10 @@
-import React, { SetStateAction, useEffect, useRef, useState } from "react";
-import { Preset, Prompt } from "@/database/schema/preset";
-import { toast } from "sonner";
-import { FileInput, FilePlus2 } from "lucide-react";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select";
 import {
     Sidebar,
     SidebarContent,
@@ -14,32 +17,30 @@ import {
     SidebarMenuItem,
     SidebarSeparator
 } from "@/components/ui/sidebar";
+import { Preset, Prompt } from "@/database/schema/preset";
+import { useFileDialog } from "@/hooks/use-file-dialog";
 import { cn } from "@/lib/utils";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from "@/components/ui/select";
-import {
-    DndContext,
     closestCenter,
+    DndContext,
+    DragOverlay,
+    DragStartEvent,
     MouseSensor,
     TouchSensor,
     useSensor,
     useSensors,
-    type DragEndEvent,
-    DragOverlay,
-    DragStartEvent
+    type DragEndEvent
 } from "@dnd-kit/core";
 import {
+    arrayMove,
     SortableContext,
     useSortable,
-    verticalListSortingStrategy,
-    arrayMove
+    verticalListSortingStrategy
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { FileInput, FilePlus2 } from "lucide-react";
+import React, { SetStateAction, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface SortablePromptProps {
     prompt: Prompt;
@@ -148,10 +149,6 @@ export function PromptList({
     const [activeID, setActiveID] = useState("");
     const activePrompt = prompts?.find((prompt) => prompt.id === activeID);
 
-    const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-    const handleImportClick = () => fileInputRef.current?.click();
-
     const handleFileChosen: React.ChangeEventHandler<HTMLInputElement> = async (
         e
     ) => {
@@ -168,10 +165,13 @@ export function PromptList({
             );
         });
 
-        if (fileInputRef.current) fileInputRef.current.value = "";
-
         toast.success("Preset imported successfully!");
     };
+
+    const { input, browse } = useFileDialog({
+        accept: "application/json",
+        onChange: handleFileChosen
+    });
 
     const createNewPreset = async () => {
         const preset = new Preset();
@@ -234,14 +234,7 @@ export function PromptList({
 
     return (
         <Sidebar collapsible="none" className="w-full sm:w-(--sidebar-width)">
-            <input
-                ref={fileInputRef}
-                type="file"
-                accept="application/json"
-                style={{ display: "none" }}
-                onChange={handleFileChosen}
-            />
-            <SidebarHeader>
+            <SidebarHeader className="pt-6">
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton onClick={createNewPreset}>
@@ -250,7 +243,8 @@ export function PromptList({
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton onClick={handleImportClick}>
+                        <SidebarMenuButton onClick={browse}>
+                            {input}
                             <FileInput />
                             Import from SillyTavern
                         </SidebarMenuButton>

@@ -2,11 +2,7 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
     SidebarGroup,
     SidebarMenu,
@@ -16,17 +12,16 @@ import {
     SidebarMenuSubButton,
     SidebarMenuSubItem
 } from "@/components/ui/sidebar";
-import { ReactNode } from "react";
+import { useLocation } from "@tanstack/react-router";
 
 interface NavigationItem {
     title: string;
     url?: string;
-    icon: ReactNode;
-    isActive?: boolean;
+    icon: React.ReactNode;
     items?: {
         title: string;
         url: string;
-        icon: ReactNode;
+        icon: React.ReactNode;
     }[];
 }
 
@@ -35,21 +30,38 @@ interface NavigationProps {
 }
 
 export function Navigation({ items }: NavigationProps) {
+    const pathname = useLocation({
+        select: (location) => location.pathname
+    });
+
     const sidebarItems = items.map((item) =>
         item.items ? (
             <Collapsible
                 key={item.title}
                 asChild
-                defaultOpen={item.isActive}
+                defaultOpen={item.url?.startsWith(pathname)}
                 className="group/collapsible"
             >
                 <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
-                        <SidebarMenuButton tooltip={item.title}>
-                            {item.icon}
-                            <span>{item.title}</span>
-                            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                        </SidebarMenuButton>
+                        {item.url ? (
+                            <SidebarMenuButton tooltip={item.title}>
+                                <Link
+                                    to={item.url}
+                                    className="flex items-center gap-2 [&>svg]:size-4"
+                                >
+                                    {item.icon}
+                                    <span>{item.title}</span>
+                                </Link>
+                                <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                            </SidebarMenuButton>
+                        ) : (
+                            <SidebarMenuButton tooltip={item.title}>
+                                {item.icon}
+                                <span>{item.title}</span>
+                                <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                            </SidebarMenuButton>
+                        )}
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                         <SidebarMenuSub>

@@ -1,12 +1,12 @@
-import { ChatProvider } from "@/contexts/chat-context";
 import { Character } from "@/database/schema/character";
-import { Chat as ChatSchema } from "@/database/schema/chat";
+import { Chat } from "@/database/schema/chat";
+import { ChatProvider } from "@/routes/chat/components/chat-provider";
 import { MessageInput } from "@/routes/chat/components/message-input";
 import MessageThread from "@/routes/chat/components/message-thread";
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef } from "react";
 
-function Chat() {
+function ChatLayout() {
     const scrollRef = useRef<HTMLDivElement>(null);
 
     return (
@@ -18,14 +18,14 @@ function Chat() {
 }
 
 export const Route = createFileRoute("/chat/$id")({
-    component: Chat,
+    component: ChatLayout,
     beforeLoad: async ({ params: { id } }) => {
-        const { record } = await ChatSchema.load(id);
+        const { record: chat } = await Chat.load(id);
 
-        if (record.title) {
-            return { breadcrumb: record.title };
+        if (chat.title) {
+            return { breadcrumb: chat.title };
         } else {
-            const character = await Character.load(record.characterIDs[0]);
+            const character = await Character.load(chat.characterIDs[0]);
             return { breadcrumb: `Chat with ${character.data.name}` };
         }
     },

@@ -13,7 +13,7 @@ const ChatContext = createContext<ChatContext | undefined>(undefined);
 function useChatContext() {
     const context = useContext(ChatContext);
     if (!context) {
-        throw new Error("useChatContext must be used within a ChatContext.");
+        throw new Error("useChatContext must be used within a ChatContext.Provider.");
     }
     return context;
 }

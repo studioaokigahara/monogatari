@@ -20,14 +20,7 @@ export const ChubCharacter = z.object({
     forksCount: z.int().nonnegative(),
     rating: z.number().nonnegative(),
     ratingCount: z.int().nonnegative(),
-    projectSpace: z.enum([
-        "characters",
-        "lorebooks",
-        "presets",
-        "extensions",
-        "people",
-        "tags"
-    ]),
+    projectSpace: z.enum(["characters", "lorebooks", "presets", "extensions", "people", "tags"]),
     creatorId: z.int().nonnegative().nullable(),
     nTokens: z.int().nonnegative(),
     tagline: z.string(),
@@ -111,25 +104,32 @@ export const ChubGalleryResponse = z.object({
 });
 export type ChubGalleryResponse = z.infer<typeof ChubGalleryResponse>;
 
-export enum ButtonState {
-    READY_DOWNLOAD = "ready_download",
-    READY_UPDATE = "ready_update",
-    IN_QUEUE = "in_queue",
-    DOWNLOADING = "downloading",
-    DONE = "done",
-    ERROR = "error"
-}
-
-export interface SearchOptions {
-    searchTerm: string;
-    creator: string;
-    namespace: string;
-    includedTags: string[];
-    excludedTags: string[];
-    nsfw: boolean;
-    itemsPerPage: number;
-    sort: string;
-    sortAscending: boolean;
-    page: number;
-    inclusiveOr: boolean;
-}
+export const SearchOptions = z.object({
+    searchTerm: z.string().default(""),
+    creator: z.string().default(""),
+    namespace: z.enum(["characters", "lorebooks"]).default("characters"),
+    includedTags: z.string().default(""),
+    excludedTags: z.string().default("ntr"),
+    nsfw: z.stringbool().default(true),
+    itemsPerPage: z.coerce.number().default(24),
+    sort: z
+        .enum([
+            "trending_downloads",
+            "download_count",
+            "star_count",
+            "rating",
+            "rating_count",
+            "last_activity_at",
+            "n_favorites",
+            "created_at",
+            "name",
+            "n_tokens",
+            "newcomer",
+            "random"
+        ])
+        .default("trending_downloads"),
+    sortAscending: z.preprocess((value: string) => value === "asc", z.boolean()).default(false),
+    page: z.number().default(1),
+    inclusiveOr: z.stringbool().default(false)
+});
+export type SearchOptions = z.infer<typeof SearchOptions>;

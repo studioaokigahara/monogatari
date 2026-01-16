@@ -15,6 +15,7 @@ import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { useFileDialog } from "@/hooks/use-file-dialog";
+import { downloadFile } from "@/lib/utils";
 import { ExportProgress } from "dexie-export-import";
 import { ImportProgress } from "dexie-export-import/dist/import";
 import { HardDriveDownload, HardDriveUpload } from "lucide-react";
@@ -35,8 +36,7 @@ function getOverallPercent(progress?: ExportProgress | ImportProgress) {
     const totalRows = progress?.totalRows ?? 0;
     const completedRows = progress?.completedRows ?? 0;
 
-    const rowFraction =
-        totalRows > 0 ? clamp(completedRows / totalRows, 0, 1) : 0;
+    const rowFraction = totalRows > 0 ? clamp(completedRows / totalRows, 0, 1) : 0;
 
     const overall = (completedTables + rowFraction) / totalTables;
 
@@ -64,7 +64,7 @@ export function ExportDatabase() {
 
         if (!workerRef.current) {
             workerRef.current = new Worker(
-                new URL("@/lib/worker/database-io.worker.ts", import.meta.url),
+                new URL("@/lib/workers/database-io.worker.ts", import.meta.url),
                 { type: "module" }
             );
         }
@@ -90,15 +90,15 @@ export function ExportDatabase() {
                     return;
                 }
 
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `monogatari-${DateTime.now().toFormat("yyyy-MM-dd")}.db`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                const file = new File(
+                    [blob],
+                    `monogatari-${DateTime.now().toFormat("yyyy-MM-dd")}.db`,
+                    {
+                        type: "application/json"
+                    }
+                );
 
+                downloadFile(file);
                 setExporting(false);
                 setDone(true);
             }
@@ -159,18 +159,9 @@ export function ExportDatabase() {
                 </AlertDialogHeader>
                 {exporting && <Progress value={getOverallPercent(progress)} />}
                 <AlertDialogFooter>
-                    <AlertDialogCancel disabled={exporting}>
-                        Cancel
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                        disabled={exporting}
-                        onClick={handleAction}
-                    >
-                        {exporting
-                            ? "Exporting..."
-                            : done
-                              ? "Close"
-                              : "Continue"}
+                    <AlertDialogCancel disabled={exporting}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction disabled={exporting} onClick={handleAction}>
+                        {exporting ? "Exporting..." : done ? "Close" : "Continue"}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
@@ -199,7 +190,7 @@ export function ImportDatabase() {
 
         if (!workerRef.current) {
             workerRef.current = new Worker(
-                new URL("@/lib/worker/database-io.worker.ts", import.meta.url),
+                new URL("@/lib/workers/database-io.worker.ts", import.meta.url),
                 { type: "module" }
             );
         }
@@ -276,7 +267,7 @@ export function ImportDatabase() {
                         ) : (
                             "Import Database"
                         )}
-                        <div className="flex items-center gap-2 ml-auto">
+                        <div className="ml-auto flex items-center gap-2">
                             <Switch
                                 id="replace-database"
                                 disabled={importing}
@@ -284,9 +275,7 @@ export function ImportDatabase() {
                                 onCheckedChange={setReplaceDatabase}
                             />
                             <Label htmlFor="replace-database">
-                                {replaceDatabase
-                                    ? "Mode: Replace"
-                                    : "Mode: Merge"}
+                                {replaceDatabase ? "Mode: Replace" : "Mode: Merge"}
                             </Label>
                         </div>
                     </AlertDialogTitle>
@@ -301,25 +290,14 @@ export function ImportDatabase() {
                 {importing && (
                     <Progress
                         value={Math.round(
-                            ((progress?.completedRows ?? 0) /
-                                (progress?.totalRows ?? 0)) *
-                                100
+                            ((progress?.completedRows ?? 0) / (progress?.totalRows ?? 0)) * 100
                         )}
                     />
                 )}
                 <AlertDialogFooter>
-                    <AlertDialogCancel disabled={importing}>
-                        Cancel
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                        disabled={importing}
-                        onClick={handleAction}
-                    >
-                        {importing
-                            ? "Importing..."
-                            : done
-                              ? "Close"
-                              : "Continue"}
+                    <AlertDialogCancel disabled={importing}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction disabled={importing} onClick={handleAction}>
+                        {importing ? "Importing..." : done ? "Close" : "Continue"}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

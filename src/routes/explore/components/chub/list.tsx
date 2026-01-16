@@ -10,46 +10,130 @@ import {
 } from "@/components/ui/dialog";
 import { ItemGroup } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
+import { db } from "@/database/monogatari-db";
+import { importCharacter } from "@/lib/character/io";
+import { scanGallery } from "@/lib/character/scanner";
+import { fetchCharacterImage, fetchCharacterJSON } from "@/lib/explore/chub/api";
 import { cn } from "@/lib/utils";
 import { ChubCharacterItem } from "@/routes/explore/components/chub/item";
-import CharacterPopup from "@/routes/explore/components/chub/popup";
-import { ButtonState, type ChubCharacter } from "@/types/explore/chub";
+import { CharacterModal } from "@/routes/explore/components/chub/modal";
+import { type ChubCharacter } from "@/types/explore/chub";
+import { useMutation } from "@tanstack/react-query";
+import { useElementScrollRestoration, useLoaderData, useNavigate } from "@tanstack/react-router";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
+import { useLiveQuery } from "dexie-react-hooks";
 import { AlertTriangle } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 interface CharacterListProps {
     characters: ChubCharacter[];
-    characterPaths: Set<string>;
-    buttonStates: Record<string, { state: ButtonState; error?: string }>;
     isFetching: boolean;
     isFetchingNextPage: boolean;
     hasNextPage: boolean;
     fetchNextPage: () => void;
-    onCharacterDownload: (job: ChubCharacter) => void;
     onTagClick: (tag: string) => void;
     onCreatorClick: (creator: string) => void;
 }
 
 export default function CharacterList({
     characters,
-    characterPaths,
-    buttonStates,
     isFetching,
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage,
-    onCharacterDownload,
     onTagClick,
     onCreatorClick
 }: CharacterListProps) {
     const [selectedCharacter, setSelectedCharacter] = useState<ChubCharacter>();
-    const [popupOpen, setPopupOpen] = useState(false);
+    const [modalOpen, setModalOpen] = useState(false);
     const [dialogOpen, setDialogOpen] = useState(false);
+
+    const preload = useLoaderData({ from: "/explore/chub" });
+    const downloadedCharacters = useLiveQuery(() => db.characters.toArray(), [], preload);
+
+    const characterPaths = useMemo(() => {
+        const paths = new Set<string>();
+
+        if (downloadedCharacters.length === 0) return paths;
+
+        downloadedCharacters
+            .filter((character) => character.data.extensions.chub?.full_path)
+            .forEach((character) => paths.add(character.data.extensions.chub?.full_path));
+
+        if (paths.size === 0) {
+            toast.warning(
+                "No chub info found in database. Character download button states will be broken."
+            );
+        }
+
+        return paths;
+    }, [downloadedCharacters]);
+
+    const navigate = useNavigate({ from: "/explore/chub" });
+
+    const downloadMutation = useMutation({
+        mutationFn: async (job: ChubCharacter) => {
+            const isUpdate = characterPaths.has(job.fullPath);
+
+            // we dont bother reading the image, chub stores latest JSON seperately
+            // from the card and doesnt update the card itself until who knows when.
+            // fetch the json and just use the image as main.png
+            const json = await fetchCharacterJSON(job);
+            const imageBlob = await fetchCharacterImage(job);
+            const arrayBuffer = await imageBlob.arrayBuffer();
+
+            const character = await importCharacter(json, arrayBuffer);
+
+            await character.update({
+                source: [...character.data.source, `https://chub.ai/characters/${job.fullPath}`],
+                extensions: {
+                    ...character.data.extensions,
+                    monogatari: {
+                        ...character.data.extensions.monogatari,
+                        tagline: job.tagline
+                    }
+                }
+            });
+
+            toast.promise(scanGallery(character), {
+                loading: `Scanning ${job.name} for images...`,
+                success: ({ total, replaced }) => ({
+                    message: "Scan completed successfully!",
+                    description: `Downloaded ${total} images, and replaced ${replaced} URLs with embedded images.`
+                }),
+                error: (error: Error) => {
+                    console.error("Gallery scan failed:", error);
+                    return error.message;
+                }
+            });
+
+            return { job, id: character.id, isUpdate };
+        },
+        onSuccess: ({ job, id, isUpdate }) => {
+            toast.success(`${isUpdate ? "Updated" : "Downloaded"} ${job.name} successfully!`, {
+                action: {
+                    label: "Open",
+                    onClick: () => {
+                        void navigate({
+                            to: "/characters/$id",
+                            params: { id }
+                        });
+                    }
+                }
+            });
+        },
+        onError: (error: Error, job) => {
+            console.error("Download failed for", job.fullPath, error);
+            toast.error(`Download failed for ${job.name}:`, {
+                description: error.message
+            });
+        }
+    });
 
     const handleCharacterClick = (character: ChubCharacter) => {
         setSelectedCharacter(character);
-        setPopupOpen(true);
+        setModalOpen(true);
     };
 
     const handleDownloadClick = async (character: ChubCharacter) => {
@@ -59,7 +143,7 @@ export default function CharacterList({
             setSelectedCharacter(character);
             setDialogOpen(true);
         } else {
-            onCharacterDownload(character);
+            await downloadMutation.mutateAsync(character);
         }
     };
 
@@ -86,12 +170,17 @@ export default function CharacterList({
     const columnCount = Math.max(1, Math.floor(gridWidth / 256));
     const rowCount = Math.max(0, Math.ceil(characters.length / columnCount));
 
+    const scrollEntry = useElementScrollRestoration({
+        getElement: () => window
+    });
+
     const virtualizer = useWindowVirtualizer({
         count: hasNextPage ? rowCount + 1 : rowCount,
         estimateSize: () => 448,
         overscan: 4,
         scrollMargin: gridRef.current?.offsetTop ?? 0,
-        gap: 8
+        gap: 8,
+        initialOffset: scrollEntry?.scrollY
     });
 
     const virtualItems = virtualizer.getVirtualItems();
@@ -103,13 +192,7 @@ export default function CharacterList({
         if (isLastRow && hasNextPage && !isFetchingNextPage) {
             fetchNextPage();
         }
-    }, [
-        virtualItems,
-        rowCount,
-        hasNextPage,
-        isFetchingNextPage,
-        fetchNextPage
-    ]);
+    }, [virtualItems, rowCount, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
     if (isFetching && !isFetchingNextPage) {
         return (
@@ -117,7 +200,7 @@ export default function CharacterList({
                 <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(256px,1fr))] gap-2">
                     {[...Array(columnCount * 4)].map((_, index) => (
                         <Skeleton
-                            key={index}
+                            key={`skeleton-${index}`}
                             className="rounded-xl w-auto h-44 md:h-96"
                         />
                     ))}
@@ -131,9 +214,7 @@ export default function CharacterList({
             <div ref={gridRef} className="w-full relative pt-2 pb-4 my-2">
                 <div className="col-span-full flex flex-col items-center justify-center h-64">
                     <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" />
-                    <p className="text-lg text-muted-foreground">
-                        No characters found
-                    </p>
+                    <p className="text-lg text-muted-foreground">No characters found</p>
                 </div>
             </div>
         );
@@ -165,15 +246,7 @@ export default function CharacterList({
 
                             if (!character) return null;
 
-                            const isDownloaded = characterPaths.has(
-                                character.fullPath
-                            );
-
-                            const buttonState =
-                                buttonStates[character.fullPath]?.state ??
-                                (isDownloaded
-                                    ? ButtonState.READY_UPDATE
-                                    : ButtonState.READY_DOWNLOAD);
+                            const isDownloaded = characterPaths.has(character.fullPath);
 
                             return (
                                 <ChubCharacterItem
@@ -184,7 +257,6 @@ export default function CharacterList({
                                     onDownloadClick={handleDownloadClick}
                                     onCreatorClick={onCreatorClick}
                                     onTagClick={onTagClick}
-                                    buttonState={buttonState}
                                 />
                             );
                         })}
@@ -197,8 +269,7 @@ export default function CharacterList({
                     <DialogHeader>
                         <DialogTitle>Update Character</DialogTitle>
                         <DialogDescription>
-                            This character is already downloaded. Would you like
-                            to update it?
+                            This character is already downloaded. Would you like to update it?
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -206,9 +277,10 @@ export default function CharacterList({
                             <Button variant="outline">Cancel</Button>
                         </DialogClose>
                         <Button
-                            onClick={() =>
-                                onCharacterDownload(selectedCharacter!)
-                            }
+                            onClick={() => {
+                                downloadMutation.mutate(selectedCharacter!);
+                                setDialogOpen(false);
+                            }}
                         >
                             Update
                         </Button>
@@ -217,28 +289,13 @@ export default function CharacterList({
             </Dialog>
 
             {selectedCharacter && (
-                <CharacterPopup
-                    openState={[popupOpen, setPopupOpen]}
+                <CharacterModal
+                    openState={[modalOpen, setModalOpen]}
                     character={selectedCharacter!}
-                    isDownloaded={characterPaths.has(
-                        selectedCharacter!.fullPath
-                    )}
-                    onDownloadClick={async () => {
-                        await handleDownloadClick(selectedCharacter!);
-                        setPopupOpen(false);
-                    }}
-                    onTagClick={(tag) => {
-                        onTagClick(tag);
-                        setPopupOpen(false);
-                    }}
-                    onCreatorClick={(creator) => {
-                        onCreatorClick(creator);
-                        setPopupOpen(false);
-                    }}
-                    buttonState={
-                        buttonStates[selectedCharacter!.fullPath]?.state ??
-                        ButtonState.READY_DOWNLOAD
-                    }
+                    isDownloaded={characterPaths.has(selectedCharacter!.fullPath)}
+                    onDownloadClick={handleDownloadClick}
+                    onTagClick={onTagClick}
+                    onCreatorClick={onCreatorClick}
                 />
             )}
         </>
