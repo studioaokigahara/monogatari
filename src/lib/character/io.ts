@@ -2,12 +2,11 @@ import { Asset } from "@/database/schema/asset";
 import {
     Character,
     CharacterCardV3,
-    type CharacterCardV3Asset,
+    CharacterCardV3Asset,
     CharacterCardV3Data,
-    TavernCardV2,
-    TavernCardV2Data
+    TavernCardV2
 } from "@/database/schema/character";
-import { router } from "@/lib/router";
+import { downloadFile } from "@/lib/utils";
 import {
     BlobReader,
     BlobWriter,
@@ -19,7 +18,6 @@ import {
 import { decode, encode as encodeChunk } from "png-chunk-text";
 import encode from "png-chunks-encode";
 import extractChunks from "png-chunks-extract";
-import { toast } from "sonner";
 import { z } from "zod";
 
 const base64codec = z.codec(z.base64(), z.string(), {
@@ -31,43 +29,48 @@ const base64codec = z.codec(z.base64(), z.string(), {
     }
 });
 
-const TavernCardV2Importer = TavernCardV2.extend({
-    data: z.preprocess((data: TavernCardV2Data) => {
-        const allowedKeys = new Set(Object.keys(TavernCardV2Data.shape));
-        const extensions = { ...data.extensions };
+const CharacterCardImporter = z
+    .object({
+        spec: z.enum(["chara_card_v2", "chara_card_v3"]),
+        spec_version: z.string(),
+        data: z.preprocess(
+            (input: unknown) => {
+                if (!input || typeof input !== "object") return input;
 
-        for (const key of Object.keys(data)) {
-            if (!allowedKeys.has(key)) {
-                extensions[key] = data[key];
-                delete data[key];
-            }
-        }
+                const data = input as Record<string, unknown>;
+                const allowedKeys = new Set(Object.keys(CharacterCardV3Data.shape));
 
-        data.extensions = extensions;
-        if (data.character_book === null) data.character_book = undefined;
+                const extensions: Record<string, unknown> = {
+                    ...(data.extensions as object)
+                };
+                const cleaned: Record<string, unknown> = {};
 
-        return data;
-    }, TavernCardV2Data)
-});
+                for (const [key, value] of Object.entries(data)) {
+                    if (allowedKeys.has(key)) {
+                        cleaned[key] = value;
+                    } else {
+                        extensions[key] = value;
+                    }
+                }
 
-const CharacterCardV3Importer = CharacterCardV3.extend({
-    data: z.preprocess((data: CharacterCardV3Data) => {
-        const allowedKeys = new Set(Object.keys(CharacterCardV3Data.shape));
-        const extensions = { ...data.extensions };
-
-        for (const key of Object.keys(data)) {
-            if (!allowedKeys.has(key)) {
-                extensions[key] = data[key];
-                delete data[key];
-            }
-        }
-
-        data.extensions = extensions;
-        if (data.character_book === null) data.character_book = undefined;
-
-        return data;
-    }, CharacterCardV3Data)
-});
+                return {
+                    ...cleaned,
+                    extensions,
+                    character_book: data.character_book ?? undefined
+                };
+            },
+            z.object({
+                ...CharacterCardV3Data.shape,
+                assets: z.array(CharacterCardV3Asset).default([]),
+                source: z.array(z.string()).default([]),
+                group_only_greetings: z.array(z.string()).default([])
+            })
+        )
+    })
+    .transform((card) => ({
+        ...card,
+        spec: "chara_card_v3" as const
+    }));
 
 export function readCharacterImage(image: ArrayBuffer) {
     const chunks = extractChunks(new Uint8Array(image));
@@ -80,17 +83,13 @@ export function readCharacterImage(image: ArrayBuffer) {
         throw new Error("Uploaded PNG does not contain any tEXt chunks");
     }
 
-    const ccv3Index = tEXtChunks.findIndex(
-        (chunk) => chunk.keyword.toLowerCase() === "ccv3"
-    );
+    const ccv3Index = tEXtChunks.findIndex((chunk) => chunk.keyword.toLowerCase() === "ccv3");
 
     if (ccv3Index > -1) {
         return base64codec.decode(tEXtChunks[ccv3Index].text);
     }
 
-    const charaIndex = tEXtChunks.findIndex(
-        (chunk) => chunk.keyword.toLowerCase() === "chara"
-    );
+    const charaIndex = tEXtChunks.findIndex((chunk) => chunk.keyword.toLowerCase() === "chara");
 
     if (charaIndex > -1) {
         return base64codec.decode(tEXtChunks[charaIndex].text);
@@ -165,26 +164,18 @@ async function extractAssetRecord(
                 }
                 const path = pointer.uri.split("://")[1];
                 if (!path) {
-                    throw new Error(
-                        `Invalid embedded asset URI: ${pointer.uri}`
-                    );
+                    throw new Error(`Invalid embedded asset URI: ${pointer.uri}`);
                 }
                 const resolved = await embeddedResolver(path);
                 if (!resolved) {
-                    throw new Error(
-                        `Embedded asset not found for path ${path}`
-                    );
+                    throw new Error(`Embedded asset not found for path ${path}`);
                 }
                 blob = resolved;
                 break;
             case "data":
                 const [head, base64] = pointer.uri.split(",");
                 const array = z.util.base64ToUint8Array(base64);
-
-                const mimeType =
-                    head.match(/data:(.+);base64/)?.[1] ??
-                    "application/octet-stream";
-
+                const mimeType = head.match(/data:(.+);base64/)?.[1] ?? "application/octet-stream";
                 blob = new Blob([array], { type: mimeType });
                 break;
             default:
@@ -222,10 +213,7 @@ async function extractAssetRecord(
         if (result.status === "fulfilled") {
             newPointers.push(result.value);
         } else {
-            console.error(
-                `Failed to process pointer ${pointers[index].uri}:`,
-                result.reason
-            );
+            console.error(`Failed to process pointer ${pointers[index].uri}:`, result.reason);
         }
     });
 
@@ -235,23 +223,10 @@ async function extractAssetRecord(
 export async function importCharacter(
     parsedJSON: CharacterCardV3 | TavernCardV2,
     imageBuffer?: ArrayBuffer,
-    redirect = false,
     embeddedResolver?: (path: string) => Promise<Blob | null>
 ) {
-    let data: CharacterCardV3Data;
-
-    if (parsedJSON.spec === "chara_card_v3") {
-        data = CharacterCardV3Importer.parse(parsedJSON).data;
-    } else if (parsedJSON.spec === "chara_card_v2") {
-        const v2 = TavernCardV2Importer.parse(parsedJSON).data;
-        data = CharacterCardV3Data.parse(v2);
-    } else {
-        throw new Error(
-            "Uploaded card does not conform to either the Character Card V2 or V3 schema."
-        );
-    }
-
-    const character = new Character({ data });
+    const data = CharacterCardImporter.parse(parsedJSON).data;
+    const character = new Character(data);
 
     const pointers = await extractAssetRecord(
         character.id,
@@ -262,54 +237,42 @@ export async function importCharacter(
 
     character.data.assets = pointers;
     await character.save();
-
-    if (redirect) {
-        toast.success(`${character.data.name} imported successfully!`);
-        void router.navigate({
-            to: `/characters/$id`,
-            params: { id: character.id }
-        });
-    }
-
     return character;
 }
 
-export async function handleFileChange(
-    event: React.ChangeEvent<HTMLInputElement>
-) {
+export async function importCharacterFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+        throw new Error("No file present");
+    }
     event.target.value = "";
 
     let parsedJSON;
     const rawBuffer = await file.arrayBuffer();
 
     if (file.name.endsWith(".charx")) {
-        const zipReader = new ZipReader(new BlobReader(file));
+        const blobReader = new BlobReader(file);
+        const zipReader = new ZipReader(blobReader);
         const entries = await zipReader.getEntries();
+        void zipReader.close();
 
         const card = entries.find((entry) => entry.filename === "card.json");
 
         if (!card || card.directory) {
-            toast.error("Uploaded CharX is missing card.json");
-            return;
+            throw new Error("Uploaded CharX is missing card.json");
         }
 
         const cardData = await card.getData(new TextWriter());
         parsedJSON = JSON.parse(cardData);
 
         const embeddedResolver = async (filename: string) => {
-            const file = entries.find((entry) =>
-                entry.filename.endsWith(filename)
-            );
+            const file = entries.find((entry) => entry.filename.endsWith(filename));
             if (!file || file.directory) return null;
             const blobWriter = new BlobWriter();
             return await file.getData(blobWriter);
         };
 
-        await importCharacter(parsedJSON, undefined, true, embeddedResolver);
-        zipReader.close();
-        return;
+        return await importCharacter(parsedJSON, undefined, embeddedResolver);
     }
 
     switch (file.type) {
@@ -320,24 +283,12 @@ export async function handleFileChange(
             parsedJSON = JSON.parse(new TextDecoder().decode(rawBuffer));
             break;
         default:
-            toast.error(
+            throw new Error(
                 `Unsupported file type ${file.type}. Make sure to upload a valid .json, .png, or .charx.`
             );
-            return;
     }
 
-    await importCharacter(parsedJSON, rawBuffer, true);
-}
-
-function downloadFile(file: File) {
-    const url = URL.createObjectURL(file);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = file.name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    return await importCharacter(parsedJSON, rawBuffer);
 }
 
 export async function exportCharX(character: Character) {
@@ -349,6 +300,7 @@ export async function exportCharX(character: Character) {
         spec_version: "3.0",
         data: character.data
     });
+
     await zipWriter.add("card.json", new TextReader(card));
 
     const filenames: string[] = [];
@@ -367,31 +319,27 @@ export async function exportCharX(character: Character) {
     await Promise.all(
         assets
             .filter((asset) => asset !== undefined)
-            .map((asset, index) =>
-                zipWriter.add(paths[index], new BlobReader(asset.file))
-            )
+            .map((asset, index) => zipWriter.add(paths[index], new BlobReader(asset.file)))
     );
 
-    zipWriter.close();
+    void zipWriter.close();
     const charx = await blobWriter.getData();
+
     const file = new File([charx], `${character.data.name}.charx`, {
         type: "application/zip"
     });
+
     downloadFile(file);
 }
 
 export async function exportPNG(character: Character) {
     const asset =
-        character.data.assets.find((asset) => asset.type === "icon") ??
-        character.data.assets[0];
+        character.data.assets.find((asset) => asset.type === "icon") ?? character.data.assets[0];
     const main = await Asset.load(character.id, `${asset.name}.${asset.ext}`);
 
     if (!main) {
-        toast.error(`${character.data.name} doesn't have any images!`);
-        return;
+        throw new Error(`${character.data.name} doesn't have any images!`);
     }
-
-    const arrayBuffer = await main.file.arrayBuffer();
 
     const card = JSON.stringify({
         spec: "chara_card_v3",
@@ -399,11 +347,14 @@ export async function exportPNG(character: Character) {
         data: character.data
     });
 
+    const arrayBuffer = await main.file.arrayBuffer();
     const characterImage = writeCharacterImage(arrayBuffer, card);
     const imageBlob = new Blob([characterImage]);
+
     const file = new File([imageBlob], `${character.data.name}.png`, {
         type: "image/png"
     });
+
     downloadFile(file);
 }
 
@@ -413,8 +364,10 @@ export function exportJSON(character: Character) {
         spec_version: "3.0",
         data: character.data
     });
+
     const file = new File([card], `${character.data.name}.json`, {
-        type: "image/png"
+        type: "application/json"
     });
+
     downloadFile(file);
 }
