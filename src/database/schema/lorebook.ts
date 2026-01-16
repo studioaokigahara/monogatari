@@ -18,15 +18,12 @@ const CharacterBookEntry = z.object({
     secondary_keys: z.array(z.string()).optional(),
     constant: z.boolean().optional().default(false),
     position: z
-        .preprocess(
-            (val) => {
-                if (val === "" || val == null) return undefined;
-                if (Number(val) == 0) return "before_char";
-                if (Number(val) == 1) return "after_char";
-                return undefined;
-            },
-            z.enum(["before_char", "after_char"]).optional()
-        )
+        .preprocess((val) => {
+            if (val === "" || val == null) return undefined;
+            if (Number(val) == 0) return "before_char";
+            if (Number(val) == 1) return "after_char";
+            return undefined;
+        }, z.enum(["before_char", "after_char"]).optional())
         .default("before_char")
 });
 type CharacterBookEntry = z.infer<typeof CharacterBookEntry>;
@@ -58,8 +55,7 @@ const ChubCharacterBookTransform = CharacterBook.transform((book) => {
 
             const chub = { ...extensions.chub } as Record<string, any>;
             if (typeof probability === "number") chub.probability = probability;
-            if (typeof selectiveLogic !== "undefined")
-                chub.selectiveLogic = selectiveLogic;
+            if (typeof selectiveLogic !== "undefined") chub.selectiveLogic = selectiveLogic;
 
             const realSecondary =
                 Array.isArray(secondary_keys) && secondary_keys.length
@@ -114,8 +110,7 @@ const ChubLorebookTransform = LorebookData.transform((book) => {
 
             const chub = { ...extensions.chub } as Record<string, any>;
             if (typeof probability === "number") chub.probability = probability;
-            if (typeof selectiveLogic !== "undefined")
-                chub.selectiveLogic = selectiveLogic;
+            if (typeof selectiveLogic !== "undefined") chub.selectiveLogic = selectiveLogic;
 
             const realSecondary =
                 Array.isArray(secondary_keys) && secondary_keys.length
@@ -145,32 +140,30 @@ export const LorebookV3 = z.object({
 });
 export type LorebookV3 = z.infer<typeof LorebookV3>;
 
-const LorebookRecord = z
-    .object({
-        id: z.cuid2().default(generateCuid2),
-        data: LorebookData.prefault({}),
-        enabled: z.coerce.number<boolean>().default(1),
-        global: z.coerce.number<boolean>().default(0),
-        embeddedCharacterID: z.string().optional(),
-        linkedCharacterIDs: z.array(z.string()).default([]),
-        createdAt: z.date().default(() => new Date()),
-        updatedAt: z.date().default(() => new Date())
-    })
-    .prefault({});
+const LorebookRecord = z.object({
+    id: z.cuid2().default(generateCuid2),
+    data: LorebookData.prefault({}),
+    enabled: z.union([z.literal(0), z.literal(1)]).default(1),
+    global: z.union([z.literal(0), z.literal(1)]).default(0),
+    embeddedCharacterID: z.string().optional(),
+    linkedCharacterIDs: z.array(z.string()).default([]),
+    createdAt: z.date().default(() => new Date()),
+    updatedAt: z.date().default(() => new Date())
+});
 type LorebookRecord = z.infer<typeof LorebookRecord>;
 
 export class Lorebook implements LorebookRecord {
     id: string;
     data: LorebookData;
-    enabled: number;
-    global: number;
+    enabled: 0 | 1;
+    global: 0 | 1;
     embeddedCharacterID?: string;
     linkedCharacterIDs: string[];
     createdAt: Date;
     updatedAt: Date;
 
     constructor(data?: Partial<Lorebook>) {
-        const record = LorebookRecord.parse(data);
+        const record = LorebookRecord.prefault({}).parse(data);
         this.id = record.id;
         this.data = record.data;
         this.enabled = record.enabled;
@@ -183,8 +176,8 @@ export class Lorebook implements LorebookRecord {
 
     async save() {
         const record = LorebookRecord.parse(this);
+        await db.lorebooks.put(record);
         Object.assign(this, record);
-        await db.lorebooks.put(this);
     }
 
     static async load(id: string) {
@@ -207,6 +200,7 @@ export class Lorebook implements LorebookRecord {
         throw new Error("Lorebook does not match any implemented schema.");
     }
 
+    // oxlint-disable-next-line no-redundant-type-constituents
     static async import(lorebook: File | unknown) {
         let data: LorebookData;
 
@@ -230,12 +224,15 @@ export class Lorebook implements LorebookRecord {
         return result.success ? undefined : result.error;
     }
 
-    async update(data: Partial<Lorebook>) {
+    async update(data: Partial<Lorebook["data"]>) {
         await db.transaction("rw", [db.lorebooks, db.characters], async () => {
-            const record = LorebookRecord.parse({ ...this, ...data });
-            record.updatedAt = new Date();
-            Object.assign(this, record);
-            await db.lorebooks.put(this);
+            const patch = LorebookData.partial().parse(data);
+            const update = LorebookData.parse({ ...this.data, ...patch });
+            await db.lorebooks.update(this.id, {
+                updatedAt: new Date(),
+                data: update
+            });
+            this.data = update;
             if (this.embeddedCharacterID) {
                 await db.characters
                     .where("id")

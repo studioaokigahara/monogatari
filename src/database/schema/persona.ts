@@ -2,15 +2,13 @@ import { db } from "@/database/monogatari-db";
 import { generateCuid2 } from "@/lib/utils";
 import { z } from "zod";
 
-const PersonaRecord = z
-    .object({
-        id: z.cuid2().default(generateCuid2),
-        name: z.string().default(""),
-        description: z.string().default(""),
-        createdAt: z.date().default(() => new Date()),
-        updatedAt: z.date().default(() => new Date())
-    })
-    .prefault({});
+const PersonaRecord = z.object({
+    id: z.cuid2().default(generateCuid2),
+    name: z.string().default(""),
+    description: z.string().default(""),
+    createdAt: z.date().default(() => new Date()),
+    updatedAt: z.date().default(() => new Date())
+});
 type PersonaRecord = z.infer<typeof PersonaRecord>;
 
 export class Persona implements PersonaRecord {
@@ -21,7 +19,7 @@ export class Persona implements PersonaRecord {
     updatedAt: Date;
 
     constructor(data?: Partial<Persona>) {
-        const record = PersonaRecord.parse(data);
+        const record = PersonaRecord.prefault({}).parse(data);
         this.id = record.id;
         this.name = record.name;
         this.description = record.description;
@@ -31,8 +29,8 @@ export class Persona implements PersonaRecord {
 
     async save() {
         const record = PersonaRecord.parse(this);
+        await db.personas.put(record);
         Object.assign(this, record);
-        await db.personas.put(this);
     }
 
     static async load(id: string) {
@@ -49,10 +47,10 @@ export class Persona implements PersonaRecord {
     }
 
     async update(data: Partial<Persona>) {
-        const record = PersonaRecord.parse({ ...this, ...data });
-        record.updatedAt = new Date();
-        Object.assign(this, record);
-        await db.personas.put(this);
+        const update = PersonaRecord.partial().parse(data);
+        update.updatedAt = new Date();
+        await db.personas.update(this.id, update);
+        Object.assign(this, update);
     }
 
     async delete() {

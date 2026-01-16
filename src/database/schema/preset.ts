@@ -11,7 +11,7 @@ export const Prompt = z
         content: z.string().default(""),
         enabled: z.boolean().default(true),
         position: z.enum(["before", "after"]).default("before"),
-        depth: z.number().int().nonnegative().default(0)
+        depth: z.int().nonnegative().default(0)
     })
     .prefault({});
 export type Prompt = z.infer<typeof Prompt>;
@@ -56,18 +56,14 @@ const defaultPrompts = [
     }
 ];
 
-const PresetRecord = z
-    .object({
-        id: z.cuid2().default(generateCuid2),
-        name: z.string().default("New Preset"),
-        description: z.string().default("readme.md"),
-        prompts: z
-            .array(Prompt)
-            .default(defaultPrompts.map((prompt) => Prompt.parse(prompt))),
-        createdAt: z.date().default(new Date()),
-        updatedAt: z.date().default(new Date())
-    })
-    .prefault({});
+const PresetRecord = z.object({
+    id: z.cuid2().default(generateCuid2),
+    name: z.string().default("New Preset"),
+    description: z.string().default("readme.md"),
+    prompts: z.array(Prompt).default(defaultPrompts.map((prompt) => Prompt.parse(prompt))),
+    createdAt: z.date().default(new Date()),
+    updatedAt: z.date().default(new Date())
+});
 type PresetRecord = z.infer<typeof PresetRecord>;
 
 export class Preset implements PresetRecord {
@@ -79,7 +75,7 @@ export class Preset implements PresetRecord {
     updatedAt: Date;
 
     constructor(data?: Partial<Preset>) {
-        const record = PresetRecord.parse(data);
+        const record = PresetRecord.prefault({}).parse(data);
         this.id = record.id;
         this.name = record.name;
         this.description = record.description;
@@ -90,12 +86,16 @@ export class Preset implements PresetRecord {
 
     async save() {
         const record = PresetRecord.parse(this);
+        await db.presets.put(record);
         Object.assign(this, record);
-        await db.presets.put(this);
     }
 
     static async load(id: string) {
-        return db.presets.get(id);
+        const preset = await db.presets.get(id);
+        if (!preset) {
+            throw new Error(`Invalid preset ID ${id}`);
+        }
+        return preset;
     }
 
     static validate(data: Partial<Preset>) {
@@ -104,10 +104,10 @@ export class Preset implements PresetRecord {
     }
 
     async update(data: Partial<Preset>) {
-        const record = PresetRecord.parse({ ...this, ...data });
-        record.updatedAt = new Date();
-        Object.assign(this, record);
-        await db.presets.put(this);
+        const update = PresetRecord.partial().parse(data);
+        update.updatedAt = new Date();
+        await db.presets.update(this.id, update);
+        Object.assign(this, update);
     }
 
     static async import(file: File) {

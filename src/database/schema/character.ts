@@ -1,26 +1,20 @@
 import { db } from "@/database/monogatari-db";
 import { Asset } from "@/database/schema/asset";
-import {
-    CharacterBook,
-    Lorebook,
-    LorebookData
-} from "@/database/schema/lorebook";
-import { generateCuid2 } from "@/lib/utils";
+import { CharacterBook, Lorebook, LorebookData } from "@/database/schema/lorebook";
+import { generateCuid2, getFileExtension } from "@/lib/utils";
 import { z } from "zod";
 
-// TODO: extract transforms for normalizing chub/sillytavern imports, leave schemas pure
-
-const TavernCard = z.looseObject({
-    name: z.string().default(""),
-    description: z.string().default(""),
-    personality: z.string().default(""),
-    scenario: z.string().default(""),
-    first_mes: z.string().default(""),
-    mes_example: z.string().default("")
+const TavernCard = z.object({
+    name: z.string(),
+    description: z.string(),
+    personality: z.string(),
+    scenario: z.string(),
+    first_mes: z.string(),
+    mes_example: z.string()
 });
 export type TavernCard = z.infer<typeof TavernCard>;
 
-export const TavernCardV2Data = z.looseObject({
+export const TavernCardV2Data = z.object({
     ...TavernCard.shape,
     creator_notes: z.string(),
     system_prompt: z.string(),
@@ -30,7 +24,7 @@ export const TavernCardV2Data = z.looseObject({
     tags: z.array(z.string()),
     creator: z.string(),
     character_version: z.string(),
-    extensions: z.record(z.string(), z.any()).default({})
+    extensions: z.record(z.string(), z.any())
 });
 export type TavernCardV2Data = z.infer<typeof TavernCardV2Data>;
 
@@ -41,12 +35,14 @@ export const TavernCardV2 = z.object({
 });
 export type TavernCardV2 = z.infer<typeof TavernCardV2>;
 
-export const CharacterCardV3AssetType = z.union([
+const CharacterCardV3AssetType = z.union([
     z.enum(["icon", "background", "user_icon", "emotion"]),
-    z.string().regex(/^x_[a-z0-9_]+$/, {
-        message:
+    z
+        .string()
+        .regex(
+            /^x_[a-z0-9_]+$/,
             "Custom asset types must begin with `x_` and contain only lowercase letters, digits or underscores."
-    })
+        )
 ]);
 
 export const CharacterCardV3Asset = z
@@ -56,48 +52,34 @@ export const CharacterCardV3Asset = z
         name: z.string().min(1),
         ext: z
             .string()
-            .regex(
-                /^[a-z0-9]+$|^unknown$/,
-                "File extension must be all lowercase without the dot."
-            )
+            .regex(/^[a-z0-9]+$|^unknown$/, "File extension must be all lowercase without the dot.")
     })
-    .refine(
-        (a) =>
-            a.uri === "ccdefault:" ||
-            a.uri.endsWith(`.${a.ext}`) ||
-            a.ext === "unknown",
-        {
-            message: "URI must end with the file extension."
-        }
-    );
+    .refine((a) => a.uri === "ccdefault:" || a.uri.endsWith(`.${a.ext}`) || a.ext === "unknown", {
+        message: "URI must end with the file extension."
+    });
 export type CharacterCardV3Asset = z.infer<typeof CharacterCardV3Asset>;
 
-export const CharacterCardV3Data = z.looseObject({
+export const CharacterCardV3Data = z.object({
     ...TavernCardV2Data.shape,
     character_book: LorebookData.optional(),
-    assets: z.array(CharacterCardV3Asset).default([
-        {
-            type: "icon",
-            uri: "ccdefault:",
-            name: "main",
-            ext: "png"
-        }
-    ]),
+    assets: z.array(CharacterCardV3Asset),
     nickname: z.string().optional(),
     creator_notes_multilingual: z
         .record(z.string().regex(/^[a-z]{2}(-[A-Z]{2})?$/), z.string())
         .optional(),
-    source: z.array(z.union([z.string(), z.url()])).default([]),
-    group_only_greetings: z.array(z.string()).default([]),
-    creation_date: z.union([z.date(), z.coerce.date()]).optional(),
-    modification_date: z
-        .union([
-            z.date(),
-            z.coerce
-                .date()
-                .transform((date) => (date < new Date() ? new Date() : date))
+    source: z.array(
+        z.union([
+            z.url({
+                protocol: /^https?$/,
+                hostname: z.regexes.domain,
+                normalize: true
+            }),
+            z.string()
         ])
-        .optional()
+    ),
+    group_only_greetings: z.array(z.string()),
+    creation_date: z.union([z.date(), z.coerce.date()]).optional(),
+    modification_date: z.union([z.date(), z.coerce.date()]).optional()
 });
 export type CharacterCardV3Data = z.infer<typeof CharacterCardV3Data>;
 
@@ -105,10 +87,7 @@ export const CharacterCardV3 = z.object({
     spec: z.literal("chara_card_v3"),
     spec_version: z
         .literal("3.0")
-        .refine(
-            (version) => parseFloat(version) >= 3.0,
-            "spec_version must be a string ≥ 3.0"
-        ),
+        .refine((version) => parseFloat(version) >= 3.0, "spec_version must be a string ≥ 3.0"),
     data: CharacterCardV3Data
 });
 export type CharacterCardV3 = z.infer<typeof CharacterCardV3>;
@@ -116,7 +95,7 @@ export type CharacterCardV3 = z.infer<typeof CharacterCardV3>;
 const CharacterRecord = z.object({
     id: z.cuid2().default(generateCuid2),
     data: CharacterCardV3Data,
-    favorite: z.coerce.number<boolean>().default(0),
+    favorite: z.union([z.literal(0), z.literal(1)]).default(0),
     createdAt: z.date().default(() => new Date()),
     updatedAt: z.date().default(() => new Date())
 });
@@ -125,12 +104,12 @@ type CharacterRecord = z.infer<typeof CharacterRecord>;
 export class Character implements CharacterRecord {
     id: string;
     data: CharacterCardV3Data;
-    favorite: number;
+    favorite: 0 | 1;
     createdAt: Date;
     updatedAt: Date;
 
-    constructor(data: Partial<Character>) {
-        const record = CharacterRecord.parse(data);
+    constructor(data: Character["data"]) {
+        const record = CharacterRecord.parse({ data });
         this.id = record.id;
         this.data = record.data;
         this.favorite = record.favorite;
@@ -140,99 +119,97 @@ export class Character implements CharacterRecord {
 
     async save() {
         const record = CharacterRecord.parse(this);
-        Object.assign(this, record);
         await db.transaction("rw", [db.characters, db.lorebooks], async () => {
-            await db.characters.put(this);
+            await db.characters.put(record);
             const lorebook = await db.lorebooks.get({
-                embeddedCharacterID: this.id
+                embeddedCharacterID: record.id
             });
             if (
                 !lorebook &&
-                this.data.character_book &&
-                this.data.character_book.entries.length > 0
+                record.data.character_book &&
+                record.data.character_book.entries.length > 0
             ) {
-                const newLorebook = await Lorebook.import(
-                    this.data.character_book
-                );
-                newLorebook.data.name = this.data.name;
-                newLorebook.embeddedCharacterID = this.id;
+                const newLorebook = await Lorebook.import(record.data.character_book);
+                newLorebook.data.name = record.data.name;
+                newLorebook.embeddedCharacterID = record.id;
                 await newLorebook.save();
             }
         });
+        Object.assign(this, record);
     }
 
     static async load(id: string) {
         const character = await db.characters.get(id);
         if (!character) {
-            throw new Error(`Unable to load character ${id}: id invalid.`);
+            throw new Error(`Invalid character ID ${id}`);
         }
         return character;
     }
 
     async update(data: Partial<Character["data"]>) {
-        const record = CharacterRecord.parse({
-            ...this,
-            data: { ...this.data, ...data }
+        const patch = CharacterCardV3Data.partial().parse(data);
+        const update = CharacterCardV3Data.parse({ ...this.data, ...patch });
+        const now = new Date();
+        update.modification_date = now;
+        await db.characters.update(this.id, {
+            data: update,
+            updatedAt: now
         });
-        record.updatedAt = new Date();
-        record.data.modification_date = new Date();
-        Object.assign(this, record);
-        await db.characters.put(this);
+        this.data = update;
+        this.updatedAt = now;
     }
 
     async toggleFavorite() {
-        this.favorite = Number(!this.favorite);
-        this.updatedAt = new Date();
-        await db.characters.put(this);
+        const favorite = this.favorite ? 0 : 1;
+        const now = new Date();
+        await db.characters.update(this.id, {
+            favorite: favorite,
+            updatedAt: now
+        });
+        this.favorite = favorite;
+        this.updatedAt = now;
     }
 
-    async replaceAsset(assetName: string, file: File) {
-        const ext = file.name.split(".").pop() ?? file.type.split("/")[1];
+    async replaceMainAsset(file: File) {
+        const ext = getFileExtension(file.name);
         await db.transaction("rw", [db.characters, db.assets], async () => {
-            const updatedAssets = this.data.assets.map((pointer) =>
-                pointer.name === assetName
-                    ? {
-                          ...pointer,
-                          uri:
-                              pointer.uri === "ccdefault:"
-                                  ? pointer.uri
-                                  : `embedded://${pointer.name}.${ext}`
-                      }
-                    : pointer
+            const pointer = this.data.assets.find(
+                (asset) => asset.type === "icon" && asset.name === "main"
             );
+            if (!pointer) throw new Error("Failed to update asset, pointer not found");
+            const index = this.data.assets.indexOf(pointer);
+            if (index === -1) throw new Error("Failed to update asset, pointer index not found");
+            const updatedAssets = this.data.assets.toSpliced(index, 1, {
+                ...pointer,
+                uri:
+                    pointer.uri === "ccdefault:"
+                        ? pointer.uri
+                        : `embedded://${pointer.name}.${ext}`,
+                ext: ext
+            });
             await this.update({ assets: updatedAssets });
-            const asset = await Asset.load(this.id, assetName);
-            if (asset) {
-                await asset.update({
-                    file: new File([file], `${assetName}.${ext}`, {
-                        type: file.type
-                    })
-                });
-            }
+            const asset = await Asset.load(this.id, `main.${pointer.ext}`);
+            await asset.update({
+                file: new File([file], `main.${ext}`, {
+                    type: file.type
+                })
+            });
         });
     }
 
     async delete() {
-        await db.transaction(
-            "rw",
-            [db.characters, db.lorebooks, db.assets],
-            async () => {
-                await db.characters.delete(this.id);
-                await db.lorebooks
-                    .where("embeddedCharacterID")
-                    .equals(this.id)
-                    .delete();
-                await db.lorebooks
-                    .where("linkedCharacterIDs")
-                    .anyOf([this.id])
-                    .modify((lorebook) => {
-                        lorebook.linkedCharacterIDs =
-                            lorebook.linkedCharacterIDs.filter(
-                                (id) => id !== this.id
-                            );
-                    });
-                await db.assets.where("parentID").equals(this.id).delete();
-            }
-        );
+        await db.transaction("rw", [db.characters, db.lorebooks, db.assets], async () => {
+            await db.characters.delete(this.id);
+            await db.lorebooks.where("embeddedCharacterID").equals(this.id).delete();
+            await db.lorebooks
+                .where("linkedCharacterIDs")
+                .anyOf([this.id])
+                .modify((lorebook) => {
+                    lorebook.linkedCharacterIDs = lorebook.linkedCharacterIDs.filter(
+                        (id) => id !== this.id
+                    );
+                });
+            await db.assets.where("parentID").equals(this.id).delete();
+        });
     }
 }

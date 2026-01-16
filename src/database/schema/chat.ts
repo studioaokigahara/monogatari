@@ -40,10 +40,7 @@ export class Chat implements ChatRecord {
         const graph = new ChatGraph();
         const now = new Date();
 
-        const greetings = [
-            character.data.first_mes,
-            ...character.data.alternate_greetings
-        ];
+        const greetings = [character.data.first_mes, ...character.data.alternate_greetings];
 
         for (let i = 0; i < greetings.length; i++) {
             const message: Message = {
@@ -83,15 +80,11 @@ export class Chat implements ChatRecord {
 
     async save() {
         const record = await ChatRecord.parseAsync(this);
+        await db.chats.put(record);
         Object.assign(this, record);
-        await db.chats.put(this);
     }
 
-    static async saveGraph(
-        graph: ChatGraph,
-        characterIDs: string[],
-        title?: string
-    ) {
+    static async saveGraph(graph: ChatGraph, characterIDs: string[], title?: string) {
         const now = new Date();
         const snapshot = graph.save();
         const existing = await db.chats.get(snapshot.id);
@@ -154,15 +147,9 @@ export class Chat implements ChatRecord {
         await db.chats.put(record);
 
         if (vertexToDelete) {
-            const { graph: newGraph, record: newRecord } = await this.load(
-                record.id
-            );
+            const { graph: newGraph, record: newRecord } = await this.load(record.id);
             newGraph.deleteVertex(vertexToDelete);
-            await this.saveGraph(
-                newGraph,
-                newRecord.characterIDs,
-                newRecord.title
-            );
+            await this.saveGraph(newGraph, newRecord.characterIDs, newRecord.title);
         }
 
         return record.id;
@@ -171,8 +158,8 @@ export class Chat implements ChatRecord {
     async updateTitle(title: string) {
         this.title = title;
         const record = await ChatRecord.parseAsync(this);
+        await db.chats.put(record);
         Object.assign(this, record);
-        await db.chats.put(this);
     }
 
     async delete() {

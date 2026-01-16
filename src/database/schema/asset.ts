@@ -6,7 +6,7 @@ const AssetRecord = z.object({
     id: z.cuid2().default(generateCuid2),
     category: z.enum(["character", "persona"]),
     parentID: z.cuid2(),
-    file: z.instanceof(File),
+    file: z.file(),
     createdAt: z.date().default(() => new Date())
 });
 type AssetRecord = z.infer<typeof AssetRecord>;
@@ -29,24 +29,32 @@ export class Asset implements AssetRecord {
 
     async save() {
         const record = AssetRecord.parse(this);
+        await db.assets.put(record);
         Object.assign(this, record);
-        await db.assets.put(this);
     }
 
-    static async load(id: string, fileName: string) {
-        return db.assets.get({
-            "[parentID+file.name]": [id, fileName]
+    static async load(id: string, filename: string) {
+        const asset = await db.assets.get({
+            "[parentID+file.name]": [id, filename]
         });
+        if (!asset) {
+            throw new Error(`Invalid asset parent ID ${id}`);
+        }
+        return asset;
     }
 
     static async loadPersonaAsset(id: string) {
-        return db.assets.get({ "[category+parentID]": ["persona", id] });
+        const asset = db.assets.get({ "[category+parentID]": ["persona", id] });
+        if (!asset) {
+            throw new Error(`Invalid asset ID ${id}`);
+        }
+        return asset;
     }
 
     async update(data: Partial<Asset>) {
-        const record = AssetRecord.parse({ ...this, ...data });
-        Object.assign(this, record);
-        await db.assets.put(this);
+        const update = AssetRecord.partial().parse(data);
+        await db.assets.update(this.id, update);
+        Object.assign(this, update);
     }
 
     async delete() {
