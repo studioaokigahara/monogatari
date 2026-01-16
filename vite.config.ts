@@ -13,8 +13,8 @@ export default defineConfig({
         tanstackRouter({
             target: "react",
             autoCodeSplitting: true,
-            generatedRouteTree: "./src/lib/router/route-tree.gen.ts",
-            routeFileIgnorePattern: "components|anchorhold|charchive|chub"
+            generatedRouteTree: "./src/route-tree.gen.ts",
+            routeFileIgnorePattern: "components|charchive"
         }),
         react({ babel: { plugins: ["babel-plugin-react-compiler"] } }),
         reactScan(),
