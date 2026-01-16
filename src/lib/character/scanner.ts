@@ -49,14 +49,14 @@ export async function scanGallery(
     character: Character,
     { onLog = () => {}, onProgress = () => {} }: ScanCallbacks = {}
 ): Promise<ScanResult> {
+    const stringFieldKeys = ["first_mes", "description", "creator_notes"] as const;
+    const arrayFieldKeys = ["alternate_greetings", "group_only_greetings"] as const;
+
     onLog("Starting scan...");
 
     const fields = [
-        character.data.first_mes,
-        character.data.description,
-        ...character.data.alternate_greetings,
-        ...character.data.group_only_greetings,
-        character.data.creator_notes,
+        ...stringFieldKeys.map((key) => character.data[key]),
+        ...arrayFieldKeys.flatMap((key) => character.data[key]),
         ...Object.values(character.data.creator_notes_multilingual ?? {})
     ].filter(Boolean);
 
@@ -212,22 +212,28 @@ export async function scanGallery(
         return output;
     };
 
-    const fieldKeys = ["first_mes", "description", "alternate_greetings", "group_only_greetings"];
+    const updatedData = { ...character.data };
 
-    const updatedData = character.data;
-
-    for (const key of fieldKeys) {
+    for (const key of stringFieldKeys) {
         const value = updatedData[key];
-        if (typeof value === "string") {
-            (updatedData as Record<typeof key, string | string[]>)[key] = replaceAll(
-                value,
-                urlPointerMap
-            );
-        } else if (Array.isArray(value)) {
-            (updatedData as Record<typeof key, string | string[]>)[key] = value.map((string) =>
-                replaceAll(string, urlPointerMap)
-            );
+        if (value) {
+            updatedData[key] = replaceAll(value, urlPointerMap);
         }
+    }
+
+    for (const key of arrayFieldKeys) {
+        const value = updatedData[key];
+        if (value) {
+            updatedData[key] = value.map((s) => replaceAll(s, urlPointerMap));
+        }
+    }
+
+    if (updatedData.creator_notes_multilingual) {
+        const multilingual: Record<string, string> = {};
+        for (const [lang, text] of Object.entries(updatedData.creator_notes_multilingual)) {
+            multilingual[lang] = replaceAll(text, urlPointerMap);
+        }
+        updatedData.creator_notes_multilingual = multilingual;
     }
 
     await character.update(updatedData);
