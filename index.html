@@ -1,25 +1,22 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <title>Monogatari</title>
-        <link rel="icon" type="image/png" href="/favicon.png" />
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta name="color-scheme" content="light dark" />
-        <script>
-            const setTheme = () => {
-                let theme = localStorage.getItem("theme");
-                const darkMode = window.matchMedia(
-                    "(prefers-color-scheme: dark)"
-                ).matches;
-                theme = darkMode ? "dark" : "light";
-                document.documentElement.classList.add(theme);
-            };
-            setTheme();
-        </script>
-    </head>
-    <body>
-        <div id="root"></div>
-        <script type="module" src="/src/main.tsx"></script>
-    </body>
+  <head>
+    <title>Monogatari</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      let theme = localStorage.getItem("theme");
+      const darkMode = window.matchMedia(
+        "(prefers-color-scheme: dark)",
+      ).matches;
+      theme = darkMode ? "dark" : "light";
+      document.documentElement.classList.add(theme);
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
