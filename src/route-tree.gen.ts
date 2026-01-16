@@ -8,21 +8,24 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './../../routes/__root'
-import { Route as SettingsRouteImport } from './../../routes/settings'
-import { Route as PersonasRouteImport } from './../../routes/personas'
-import { Route as ExploreRouteImport } from './../../routes/explore'
-import { Route as ChatRouteImport } from './../../routes/chat'
-import { Route as CharactersRouteImport } from './../../routes/characters'
-import { Route as SettingsIndexRouteImport } from './../../routes/settings/index'
-import { Route as ChatIndexRouteImport } from './../../routes/chat/index'
-import { Route as CharactersIndexRouteImport } from './../../routes/characters/index'
-import { Route as SettingsPresetsRouteImport } from './../../routes/settings/presets'
-import { Route as SettingsLorebooksRouteImport } from './../../routes/settings/lorebooks'
-import { Route as SettingsApiRouteImport } from './../../routes/settings/api'
-import { Route as ChatIdRouteImport } from './../../routes/chat/$id'
-import { Route as CharactersNewRouteImport } from './../../routes/characters/new'
-import { Route as CharactersIdRouteImport } from './../../routes/characters/$id'
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as PersonasRouteImport } from './routes/personas'
+import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as ChatRouteImport } from './routes/chat'
+import { Route as CharactersRouteImport } from './routes/characters'
+import { Route as SettingsIndexRouteImport } from './routes/settings/index'
+import { Route as ExploreIndexRouteImport } from './routes/explore/index'
+import { Route as ChatIndexRouteImport } from './routes/chat/index'
+import { Route as CharactersIndexRouteImport } from './routes/characters/index'
+import { Route as SettingsPresetsRouteImport } from './routes/settings/presets'
+import { Route as SettingsLorebooksRouteImport } from './routes/settings/lorebooks'
+import { Route as SettingsApiRouteImport } from './routes/settings/api'
+import { Route as ExploreChubRouteImport } from './routes/explore/chub'
+import { Route as ExploreAnchorholdRouteImport } from './routes/explore/anchorhold'
+import { Route as ChatIdRouteImport } from './routes/chat/$id'
+import { Route as CharactersNewRouteImport } from './routes/characters/new'
+import { Route as CharactersIdRouteImport } from './routes/characters/$id'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -54,6 +57,11 @@ const SettingsIndexRoute = SettingsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SettingsRoute,
 } as any)
+const ExploreIndexRoute = ExploreIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ExploreRoute,
+} as any)
 const ChatIndexRoute = ChatIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -79,6 +87,16 @@ const SettingsApiRoute = SettingsApiRouteImport.update({
   path: '/api',
   getParentRoute: () => SettingsRoute,
 } as any)
+const ExploreChubRoute = ExploreChubRouteImport.update({
+  id: '/chub',
+  path: '/chub',
+  getParentRoute: () => ExploreRoute,
+} as any)
+const ExploreAnchorholdRoute = ExploreAnchorholdRouteImport.update({
+  id: '/anchorhold',
+  path: '/anchorhold',
+  getParentRoute: () => ExploreRoute,
+} as any)
 const ChatIdRoute = ChatIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -98,47 +116,55 @@ const CharactersIdRoute = CharactersIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/characters': typeof CharactersRouteWithChildren
   '/chat': typeof ChatRouteWithChildren
-  '/explore': typeof ExploreRoute
+  '/explore': typeof ExploreRouteWithChildren
   '/personas': typeof PersonasRoute
   '/settings': typeof SettingsRouteWithChildren
   '/characters/$id': typeof CharactersIdRoute
   '/characters/new': typeof CharactersNewRoute
   '/chat/$id': typeof ChatIdRoute
+  '/explore/anchorhold': typeof ExploreAnchorholdRoute
+  '/explore/chub': typeof ExploreChubRoute
   '/settings/api': typeof SettingsApiRoute
   '/settings/lorebooks': typeof SettingsLorebooksRoute
   '/settings/presets': typeof SettingsPresetsRoute
   '/characters/': typeof CharactersIndexRoute
   '/chat/': typeof ChatIndexRoute
+  '/explore/': typeof ExploreIndexRoute
   '/settings/': typeof SettingsIndexRoute
 }
 export interface FileRoutesByTo {
-  '/explore': typeof ExploreRoute
   '/personas': typeof PersonasRoute
   '/characters/$id': typeof CharactersIdRoute
   '/characters/new': typeof CharactersNewRoute
   '/chat/$id': typeof ChatIdRoute
+  '/explore/anchorhold': typeof ExploreAnchorholdRoute
+  '/explore/chub': typeof ExploreChubRoute
   '/settings/api': typeof SettingsApiRoute
   '/settings/lorebooks': typeof SettingsLorebooksRoute
   '/settings/presets': typeof SettingsPresetsRoute
   '/characters': typeof CharactersIndexRoute
   '/chat': typeof ChatIndexRoute
+  '/explore': typeof ExploreIndexRoute
   '/settings': typeof SettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/characters': typeof CharactersRouteWithChildren
   '/chat': typeof ChatRouteWithChildren
-  '/explore': typeof ExploreRoute
+  '/explore': typeof ExploreRouteWithChildren
   '/personas': typeof PersonasRoute
   '/settings': typeof SettingsRouteWithChildren
   '/characters/$id': typeof CharactersIdRoute
   '/characters/new': typeof CharactersNewRoute
   '/chat/$id': typeof ChatIdRoute
+  '/explore/anchorhold': typeof ExploreAnchorholdRoute
+  '/explore/chub': typeof ExploreChubRoute
   '/settings/api': typeof SettingsApiRoute
   '/settings/lorebooks': typeof SettingsLorebooksRoute
   '/settings/presets': typeof SettingsPresetsRoute
   '/characters/': typeof CharactersIndexRoute
   '/chat/': typeof ChatIndexRoute
+  '/explore/': typeof ExploreIndexRoute
   '/settings/': typeof SettingsIndexRoute
 }
 export interface FileRouteTypes {
@@ -152,24 +178,29 @@ export interface FileRouteTypes {
     | '/characters/$id'
     | '/characters/new'
     | '/chat/$id'
+    | '/explore/anchorhold'
+    | '/explore/chub'
     | '/settings/api'
     | '/settings/lorebooks'
     | '/settings/presets'
     | '/characters/'
     | '/chat/'
+    | '/explore/'
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/explore'
     | '/personas'
     | '/characters/$id'
     | '/characters/new'
     | '/chat/$id'
+    | '/explore/anchorhold'
+    | '/explore/chub'
     | '/settings/api'
     | '/settings/lorebooks'
     | '/settings/presets'
     | '/characters'
     | '/chat'
+    | '/explore'
     | '/settings'
   id:
     | '__root__'
@@ -181,18 +212,21 @@ export interface FileRouteTypes {
     | '/characters/$id'
     | '/characters/new'
     | '/chat/$id'
+    | '/explore/anchorhold'
+    | '/explore/chub'
     | '/settings/api'
     | '/settings/lorebooks'
     | '/settings/presets'
     | '/characters/'
     | '/chat/'
+    | '/explore/'
     | '/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   CharactersRoute: typeof CharactersRouteWithChildren
   ChatRoute: typeof ChatRouteWithChildren
-  ExploreRoute: typeof ExploreRoute
+  ExploreRoute: typeof ExploreRouteWithChildren
   PersonasRoute: typeof PersonasRoute
   SettingsRoute: typeof SettingsRouteWithChildren
 }
@@ -241,6 +275,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/explore/': {
+      id: '/explore/'
+      path: '/'
+      fullPath: '/explore/'
+      preLoaderRoute: typeof ExploreIndexRouteImport
+      parentRoute: typeof ExploreRoute
+    }
     '/chat/': {
       id: '/chat/'
       path: '/'
@@ -275,6 +316,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings/api'
       preLoaderRoute: typeof SettingsApiRouteImport
       parentRoute: typeof SettingsRoute
+    }
+    '/explore/chub': {
+      id: '/explore/chub'
+      path: '/chub'
+      fullPath: '/explore/chub'
+      preLoaderRoute: typeof ExploreChubRouteImport
+      parentRoute: typeof ExploreRoute
+    }
+    '/explore/anchorhold': {
+      id: '/explore/anchorhold'
+      path: '/anchorhold'
+      fullPath: '/explore/anchorhold'
+      preLoaderRoute: typeof ExploreAnchorholdRouteImport
+      parentRoute: typeof ExploreRoute
     }
     '/chat/$id': {
       id: '/chat/$id'
@@ -328,6 +383,21 @@ const ChatRouteChildren: ChatRouteChildren = {
 
 const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
 
+interface ExploreRouteChildren {
+  ExploreAnchorholdRoute: typeof ExploreAnchorholdRoute
+  ExploreChubRoute: typeof ExploreChubRoute
+  ExploreIndexRoute: typeof ExploreIndexRoute
+}
+
+const ExploreRouteChildren: ExploreRouteChildren = {
+  ExploreAnchorholdRoute: ExploreAnchorholdRoute,
+  ExploreChubRoute: ExploreChubRoute,
+  ExploreIndexRoute: ExploreIndexRoute,
+}
+
+const ExploreRouteWithChildren =
+  ExploreRoute._addFileChildren(ExploreRouteChildren)
+
 interface SettingsRouteChildren {
   SettingsApiRoute: typeof SettingsApiRoute
   SettingsLorebooksRoute: typeof SettingsLorebooksRoute
@@ -349,7 +419,7 @@ const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   CharactersRoute: CharactersRouteWithChildren,
   ChatRoute: ChatRouteWithChildren,
-  ExploreRoute: ExploreRoute,
+  ExploreRoute: ExploreRouteWithChildren,
   PersonasRoute: PersonasRoute,
   SettingsRoute: SettingsRouteWithChildren,
 }
