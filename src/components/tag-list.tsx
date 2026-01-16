@@ -1,10 +1,12 @@
 import { Badge, badgeVariants } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn, FNV1a } from "@/lib/utils";
 import { VariantProps } from "class-variance-authority";
 import { MoreHorizontal } from "lucide-react";
 import { useLayoutEffect, useRef, useState, useTransition } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Skeleton } from "./ui/skeleton";
+
+const TAG_CACHE = new Map<string, number>();
 
 type BadgeVariants = VariantProps<typeof badgeVariants>["variant"];
 
@@ -12,7 +14,7 @@ interface TagListProps extends React.ComponentProps<"span"> {
     tags: string[];
     maxRows?: number;
     variant?: BadgeVariants;
-    onTagClick?: (e: React.MouseEvent<HTMLSpanElement>, tag: string) => void;
+    onTagClick?: (event: React.MouseEvent<HTMLSpanElement>, tag: string) => void;
 }
 
 export function TagList({
@@ -24,22 +26,57 @@ export function TagList({
     ...props
 }: TagListProps) {
     const containerRef = useRef<HTMLDivElement | null>(null);
+    const [containerWidth, setContainerWidth] = useState(0);
+
+    const [visibleCount, setVisibleCount] = useState(tags.length);
+    const hiddenCount = tags.length - visibleCount;
+    const tagSignature = FNV1a(tags.join("\u001f"));
 
     const [isPending, startTransition] = useTransition();
-    const [visibleCount, setVisibleCount] = useState(tags.length);
-
-    const hiddenCount = tags.length - visibleCount;
 
     useLayoutEffect(() => {
         const container = containerRef.current;
         if (!container) return;
 
-        const measureTags = () => {
-            const width = container.clientWidth;
-            if (width <= 0) return;
+        let raf = 0;
 
+        const updateWidth = () => {
+            const next = container.clientWidth;
+            if (next <= 0) return;
+            setContainerWidth((prev) => (prev === next ? prev : next));
+        };
+
+        updateWidth();
+
+        const observer = new ResizeObserver(() => {
+            cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(updateWidth);
+        });
+
+        observer.observe(container);
+
+        return () => {
+            cancelAnimationFrame(raf);
+            observer.disconnect();
+        };
+    }, []);
+
+    useLayoutEffect(() => {
+        const container = containerRef.current;
+        if (!container || containerWidth <= 0) return;
+
+        const key = `${tagSignature}::${containerWidth}::${maxRows}::${variant}::${className}`;
+        const cached = TAG_CACHE.get(key);
+
+        if (cached !== undefined) {
+            const next = Math.min(cached, tags.length);
+            setVisibleCount((prev) => (prev === next ? prev : next));
+            return;
+        }
+
+        const getVisibleCount = (container: HTMLDivElement) => {
             const children = Array.from(container.children) as HTMLElement[];
-            if (children.length === 0) return;
+            if (children.length === 0) return tags.length;
 
             const style = getComputedStyle(container);
             const rowGap = parseFloat(style.rowGap || "0");
@@ -47,37 +84,38 @@ export function TagList({
             const rowHeight = children[0].offsetHeight;
             const maxTop = firstTop + (maxRows - 1) * (rowHeight + rowGap);
 
-            let max = -1;
+            let maxIndex = -1;
             for (let i = 0; i < children.length; i++) {
-                if (children[i].offsetTop <= maxTop) max = i;
+                if (children[i].offsetTop <= maxTop) maxIndex = i;
                 else break;
             }
 
-            if (max < 0 || max === tags.length - 1) return;
+            const maxCount = maxIndex + 1;
+            const allTagsFit = maxCount >= tags.length;
 
-            setVisibleCount(max);
+            // reserve 1 slot for the "X more" badge
+            const visibleCount = allTagsFit ? tags.length : Math.max(0, maxCount - 1);
+
+            return Math.min(visibleCount, tags.length);
         };
 
-        startTransition(measureTags);
-
-        const observer = new ResizeObserver(() => {
-            startTransition(measureTags);
+        startTransition(() => {
+            const next = getVisibleCount(container);
+            TAG_CACHE.set(key, next);
+            setVisibleCount((prev) => (prev === next ? prev : next));
         });
-        observer.observe(container);
-
-        return () => observer.disconnect();
-    }, [tags, maxRows]);
+    }, [containerWidth, tagSignature, maxRows, variant, className, tags.length]);
 
     const handleTagClick = (event: React.MouseEvent<HTMLSpanElement>) => {
         event.stopPropagation();
-        const tagValue = event.currentTarget.dataset.value!;
+        const tagValue = event.currentTarget.dataset.tag!;
         onTagClick?.(event, tagValue);
     };
 
     const tagList = tags.map((tag, index) => (
         <Badge
             key={`${tag}-${index}`}
-            data-value={tag}
+            data-tag={tag}
             variant={variant}
             className={className}
             onClick={handleTagClick}
@@ -90,11 +128,8 @@ export function TagList({
     const visibleTags = tagList.slice(0, visibleCount);
     const hiddenTags = tagList.slice(visibleCount);
 
-    const skeletons = Array.from({ length: 6 }).map((_, index) => (
-        <Skeleton
-            key={`skeleton-${index}`}
-            className="w-16 h-5.5 rounded-full"
-        />
+    const skeletons = Array.from({ length: 4 * maxRows }).map((_, index) => (
+        <Skeleton key={`skeleton-${index}`} className="w-16 h-5.5 rounded-full" />
     ));
 
     return (
@@ -107,7 +142,6 @@ export function TagList({
                             <Badge
                                 variant={variant}
                                 className={cn(
-                                    // hiddenVariant === "outline" &&
                                     "hover:brightness-150 transition-all cursor-pointer",
                                     className
                                 )}
