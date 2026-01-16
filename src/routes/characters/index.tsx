@@ -2,186 +2,31 @@ import Header from "@/components/header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-    InputGroup,
-    InputGroupAddon,
-    InputGroupInput
-} from "@/components/ui/input-group";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { db } from "@/database/monogatari-db";
 import { Character } from "@/database/schema/character";
 import { useFileDialog } from "@/hooks/use-file-dialog";
 import { useImageURL } from "@/hooks/use-image-url";
-import { handleFileChange } from "@/lib/character/io";
+import { importCharacterFile } from "@/lib/character/io";
+import { characterSearchSchema, listCharacters } from "@/lib/character/search";
 import { cn } from "@/lib/utils";
 import CharacterItem from "@/routes/characters/components/item";
+import { Search } from "@/routes/characters/components/search";
 import {
-    Link,
     createFileRoute,
+    Link,
+    stripSearchParams,
+    useElementScrollRestoration,
     useLoaderData,
-    useNavigate
+    useNavigate,
+    useSearch
 } from "@tanstack/react-router";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
-import { Collection } from "dexie";
 import { useLiveQuery } from "dexie-react-hooks";
-import {
-    ArrowDownAZ,
-    ArrowUpAZ,
-    CalendarArrowDown,
-    CalendarArrowUp,
-    ClockArrowDown,
-    ClockArrowUp,
-    Dices,
-    Import,
-    SearchIcon,
-    UserPlus
-} from "lucide-react";
+import { Import, UserPlus } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
-import useEvent from "react-use-event-hook";
-
-type SearchOrders =
-    | "a-z"
-    | "z-a"
-    | "createdAt_asc"
-    | "createdAt_desc"
-    | "updatedAt_asc"
-    | "updatedAt_desc"
-    | "random";
-
-async function listCharacters(query?: string, order: SearchOrders = "a-z") {
-    let collection: Collection;
-
-    switch (order) {
-        case "a-z":
-            collection = db.characters.orderBy("data.name");
-            break;
-        case "z-a":
-            collection = db.characters.orderBy("data.name").reverse();
-            break;
-        case "createdAt_asc":
-            collection = db.characters.orderBy("createdAt");
-            break;
-        case "createdAt_desc":
-            collection = db.characters.orderBy("createdAt").reverse();
-            break;
-        case "updatedAt_asc":
-            collection = db.characters.orderBy("updatedAt");
-            break;
-        case "updatedAt_desc":
-            collection = db.characters.orderBy("updatedAt").reverse();
-            break;
-        case "random":
-            collection = db.characters.toCollection();
-            break;
-        default:
-            collection = db.characters.orderBy("data.name");
-    }
-
-    if (query) {
-        collection = collection.filter((character: Character) =>
-            character.data.name.toLowerCase().includes(query.toLowerCase())
-        );
-    }
-
-    const array = (await collection.toArray()) as Character[];
-
-    if (order === "random") {
-        return array.sort(() => Math.random() - 0.5);
-    }
-
-    return array;
-}
-
-interface SearchProps {
-    searchTermState: [string, React.Dispatch<React.SetStateAction<string>>];
-    searchOrderState: [
-        SearchOrders,
-        React.Dispatch<React.SetStateAction<SearchOrders>>
-    ];
-}
-
-function Search({ searchTermState, searchOrderState }: SearchProps) {
-    const [searchTerm, setSearchTerm] = searchTermState;
-    const [searchOrder, setSearchOrder] = searchOrderState;
-
-    const sortOptions = [
-        { label: "A-Z", icon: <ArrowDownAZ />, value: "a-z" },
-        { label: "Z-A", icon: <ArrowUpAZ />, value: "z-a" },
-        { label: "Newest", icon: <CalendarArrowUp />, value: "createdAt_asc" },
-        {
-            label: "Oldest",
-            icon: <CalendarArrowDown />,
-            value: "createdAt_desc"
-        },
-        {
-            label: "Recent",
-            icon: <ClockArrowUp />,
-            value: "updatedAt_desc"
-        },
-        {
-            label: "Stale",
-            icon: <ClockArrowDown />,
-            value: "updatedAt_asc"
-        },
-        { label: "Random", icon: <Dices />, value: "random" }
-    ];
-
-    const changeSearchOrder = (value: string) => {
-        setSearchOrder(value as SearchOrders);
-    };
-
-    const changeSearchTerm = useEvent(
-        (event: React.ChangeEvent<HTMLInputElement>) => {
-            setSearchTerm(event.target.value);
-        }
-    );
-
-    const selectItems = sortOptions.map((option) => (
-        <SelectItem key={option.value} value={option.value}>
-            {option.icon}
-            {option.label}
-        </SelectItem>
-    ));
-
-    return (
-        <div className="sticky top-2 z-50 w-full">
-            <Card className="w-full py-4 bg-background/66 backdrop-blur">
-                <CardContent className="px-4">
-                    <ButtonGroup className="w-full">
-                        <Select
-                            value={searchOrder}
-                            onValueChange={changeSearchOrder}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Sort By..." />
-                            </SelectTrigger>
-                            <SelectContent>{selectItems}</SelectContent>
-                        </Select>
-                        <InputGroup>
-                            <InputGroupInput
-                                placeholder="Search..."
-                                value={searchTerm}
-                                onChange={changeSearchTerm}
-                            />
-                            <InputGroupAddon>
-                                <SearchIcon />
-                            </InputGroupAddon>
-                        </InputGroup>
-                    </ButtonGroup>
-                </CardContent>
-            </Card>
-        </div>
-    );
-}
+import { toast } from "sonner";
 
 function Favorites({ favorites }: { favorites: Character[] }) {
     const imageURLs = useImageURL(
@@ -193,19 +38,15 @@ function Favorites({ favorites }: { favorites: Character[] }) {
     );
 
     const favoriteCards = favorites.map((character, index) => (
-        <Link
-            key={character.id}
-            to="/characters/$id"
-            params={{ id: character.id }}
-        >
-            <Avatar className="w-full h-36 rounded-md transition duration-75 scale-95 hover:scale-100">
+        <Link key={character.id} to="/characters/$id" params={{ id: character.id }}>
+            <Avatar className="h-36 w-full scale-95 rounded-md transition duration-75 hover:scale-100">
                 <AvatarImage
                     src={imageURLs[index]}
                     alt={character.data.name}
-                    className="aspect-2/3 object-cover sm:brightness-50 sm:saturate-75 hover:brightness-100 hover:saturate-100"
+                    className="aspect-2/3 object-cover hover:brightness-100 hover:saturate-100 sm:brightness-50 sm:saturate-75"
                 />
                 <AvatarFallback className="rounded-md">
-                    <Skeleton className="h-full aspect-2/3" />
+                    <Skeleton className="aspect-2/3 h-full" />
                 </AvatarFallback>
             </Avatar>
         </Link>
@@ -213,7 +54,7 @@ function Favorites({ favorites }: { favorites: Character[] }) {
 
     return (
         <ScrollArea className="-mb-1">
-            <div className="w-max flex flex-row gap-2">{favoriteCards}</div>
+            <div className="flex w-max flex-row gap-2">{favoriteCards}</div>
             <ScrollBar orientation="horizontal" />
         </ScrollArea>
     );
@@ -240,12 +81,17 @@ function CharacterList({ characters }: { characters: Character[] }) {
     const columns = Math.max(1, Math.floor(gridWidth / 384));
     const rows = Math.ceil(characters.length / columns);
 
+    const scrollEntry = useElementScrollRestoration({
+        getElement: () => window
+    });
+
     const virtualizer = useWindowVirtualizer({
         count: rows,
         estimateSize: () => 192,
         overscan: 4,
         scrollMargin: gridRef.current?.offsetTop ?? 0,
-        gap: 8
+        gap: 8,
+        initialOffset: scrollEntry?.scrollY
     });
 
     const characterItems = characters.map((character) => (
@@ -253,13 +99,17 @@ function CharacterList({ characters }: { characters: Character[] }) {
     ));
 
     if (!characters?.length) {
-        return <p>Ain't nobody here but us chickens.</p>;
+        return (
+            <div ref={gridRef} className="relative mb-2 w-full">
+                <p>Ain't nobody here but us chickens.</p>
+            </div>
+        );
     }
 
     return (
         <div
             ref={gridRef}
-            className="relative w-full mb-2"
+            className="relative mb-2 w-full"
             style={{ height: virtualizer.getTotalSize() }}
         >
             {virtualizer.getVirtualItems().map((row) => (
@@ -288,25 +138,45 @@ function CharacterList({ characters }: { characters: Character[] }) {
 }
 
 function Characters() {
+    const navigate = useNavigate();
+
+    const handleFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+        toast.promise(importCharacterFile(event), {
+            loading: "Importing character card...",
+            success: (character) => {
+                void navigate({
+                    to: `/characters/$id`,
+                    params: { id: character.id }
+                });
+                return `${character?.data.name} imported successfully!`;
+            },
+            error: (error: Error) => {
+                console.log(error);
+                return {
+                    message: "Failed to import character card",
+                    description: error.message
+                };
+            }
+        });
+    };
+
     const { browse, input } = useFileDialog({
         accept: ".png, .json, .charx",
-        onChange: handleFileChange
+        onChange: handleFile
     });
 
     const [loadedCharacters, favorites] = useLoaderData({
         from: "/characters/"
     });
 
-    const [searchTerm, setSearchTerm] = useState<string>("");
-    const [searchOrder, setSearchOrder] = useState<SearchOrders>("a-z");
+    const { search, page, sort, limit } = useSearch({ from: "/characters/" });
 
     const characters = useLiveQuery(
-        () => listCharacters(searchTerm, searchOrder),
-        [searchTerm, searchOrder],
+        () => listCharacters(page, limit, sort, search),
+        [page, limit, search, sort],
         loadedCharacters
     );
 
-    const navigate = useNavigate();
     const createNewCharacter = () => navigate({ to: "/characters/new" });
 
     return (
@@ -326,10 +196,7 @@ function Characters() {
             </Header>
             <div className="flex flex-col gap-2">
                 <Favorites favorites={favorites} />
-                <Search
-                    searchTermState={[searchTerm, setSearchTerm]}
-                    searchOrderState={[searchOrder, setSearchOrder]}
-                />
+                <Search />
                 <CharacterList characters={characters} />
             </div>
         </>
@@ -338,12 +205,27 @@ function Characters() {
 
 export const Route = createFileRoute("/characters/")({
     component: Characters,
+    validateSearch: characterSearchSchema,
     beforeLoad: () => ({
         breadcrumb: null
     }),
-    loader: async () =>
-        await Promise.all([
-            listCharacters(),
+    loaderDeps: ({ search: { search, page, limit, sort } }) => ({
+        search,
+        page,
+        limit,
+        sort
+    }),
+    loader: async ({ deps: { search, page, limit, sort } }) => {
+        return await Promise.all([
+            listCharacters(page, limit, sort, search),
             db.characters.where("favorite").equals(1).reverse().toArray()
-        ])
+        ]);
+    },
+    search: {
+        middlewares: [
+            stripSearchParams({
+                search: ""
+            })
+        ]
+    }
 });
