@@ -28,7 +28,7 @@ export default defineConfig({
             injectManifest: {
                 injectionPoint: undefined
             },
-            srcDir: "src/",
+            srcDir: "src/lib/workers",
             filename: "service.worker.ts",
             devOptions: {
                 enabled: true,
