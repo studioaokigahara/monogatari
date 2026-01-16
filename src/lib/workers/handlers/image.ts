@@ -47,7 +47,7 @@ export async function handleImage(request: Request) {
 
     if (!file) return new Response("Asset not found", { status: 404 });
 
-    const etag = `W/"${file.lastModified}-${file.size}"`;
+    const etag = `W/"${file.lastModified}${file.size}"`;
     const noneMatch = request.headers.get("If-None-Match");
 
     if (noneMatch === etag) {
@@ -67,11 +67,16 @@ export async function handleImage(request: Request) {
         return cachedResponse;
     }
 
+    const isAscii = /^[\x20-\x7E]*$/.test(file.name);
+    const contentDisposition = isAscii
+        ? `inline; filename="${file.name}"`
+        : `inline; filename="${file.name.replace(/[^\x20-\x7E]/g, "_")}"; filename*=UTF-8''${encodeURIComponent(file.name)}`;
+
     const response = new Response(file, {
         status: 200,
         headers: {
             "Cache-Control": CACHE_CONTROL,
-            // "Content-Disposition": `inline; filename="${file.name}"`,
+            "Content-Disposition": contentDisposition,
             "Content-Length": String(file.size),
             "Content-Type": file.type || "application/octet-stream",
             ETag: etag,
