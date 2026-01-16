@@ -1,4 +1,4 @@
-import { TagList } from "@/components/tags";
+import { TagList } from "@/components/tag-list";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     Item,
@@ -14,24 +14,20 @@ import { useImageURL } from "@/hooks/use-image-url";
 import { Link } from "@tanstack/react-router";
 
 export default function CharacterItem({ character }: { character: Character }) {
+    const portrait = character.data.assets.find((asset) => asset.name === "portrait");
     const imageURL = useImageURL({
         category: "character",
         id: character.id,
-        assets: character.data.assets
+        assets: character.data.assets,
+        filename: portrait ? `portrait.${portrait.ext}` : undefined
     });
 
     return (
-        <Item
-            variant="outline"
-            className="h-48 flex-nowrap p-2 gap-2 overflow-hidden"
-        >
+        <Item variant="outline" className="h-48 flex-nowrap p-2 gap-2 overflow-hidden">
             <ItemMedia className="h-full aspect-2/3 translate-y-[unset]!">
                 <Link to="/characters/$id" params={{ id: character.id }}>
                     <Avatar className="size-[unset] overflow-visible">
-                        <AvatarImage
-                            src={imageURL}
-                            className="absolute blur-3xl saturate-200"
-                        />
+                        <AvatarImage src={imageURL} className="absolute blur-3xl saturate-200" />
                         <AvatarImage
                             src={imageURL}
                             alt={character.data.name}
@@ -57,7 +53,7 @@ export default function CharacterItem({ character }: { character: Character }) {
                         character?.data.creator_notes}
                 </ItemDescription>
                 <ItemFooter className="mt-auto basis-0">
-                    <TagList tags={character.data.tags} />
+                    {character.data.tags.length > 0 && <TagList tags={character.data.tags} />}
                 </ItemFooter>
             </ItemContent>
         </Item>

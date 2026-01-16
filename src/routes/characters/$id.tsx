@@ -12,17 +12,16 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CharacterFormProvider } from "@/contexts/character-form-context";
+import { useCharacterContext } from "@/contexts/character";
+import { useCharacterFormContext } from "@/contexts/character-form";
+import { Asset } from "@/database/schema/asset";
 import { Character } from "@/database/schema/character";
-import { useCharacterContext } from "@/hooks/use-character-context";
-import {
-    characterFormOptions,
-    useCharacterForm
-} from "@/hooks/use-character-form";
-import { useCharacterFormContext } from "@/hooks/use-character-form-context";
+import { characterFormOptions, useCharacterForm } from "@/hooks/use-character-form";
 import { useFileDialog } from "@/hooks/use-file-dialog";
 import { useImageURL } from "@/hooks/use-image-url";
 import { cn } from "@/lib/utils";
+import { AvatarCropper } from "@/routes/characters/components/avatar-cropper";
+import { CharacterFormProvider } from "@/routes/characters/components/character-form-provider";
 import { Description } from "@/routes/characters/components/description";
 import { ExampleDialogue } from "@/routes/characters/components/example-dialogue";
 import {
@@ -42,20 +41,12 @@ import {
     useSearch
 } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
-import {
-    Edit,
-    Images,
-    MessageCircleMore,
-    MessagesSquare,
-    Text,
-    Upload
-} from "lucide-react";
-import { useEffect } from "react";
+import { Edit, Images, MessageCircleMore, MessagesSquare, Text, Upload } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import z from "zod";
 
 function CharacterProfile({ character }: { character: Character }) {
-    const { setCharacter } = useCharacterContext();
     const { editing } = useCharacterFormContext();
 
     const imageURL = useImageURL({
@@ -64,19 +55,37 @@ function CharacterProfile({ character }: { character: Character }) {
         assets: character.data.assets
     });
 
-    useEffect(() => {
-        setCharacter(character);
-    }, [character, setCharacter]);
+    const portrait = character.data.assets.find((asset) => asset.name === "portrait");
+    const portraitURL = useImageURL({
+        category: "character",
+        id: character.id,
+        assets: character.data.assets,
+        filename: portrait ? `portrait.${portrait.ext}` : undefined
+    });
+
+    const [imageOpen, setImageOpen] = useState(false);
+    const [cropperOpen, setCropperOpen] = useState(false);
+    const [cropperImage, setCropperImage] = useState<File>();
 
     const replaceImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
 
-        const pointer =
-            character.data.assets.find((asset) => asset.type === "icon") ??
-            character.data.assets[0];
-        const fileName = `${pointer.name}.${pointer.ext}`;
-        await character.replaceAsset(fileName, file);
+        await character.replaceMainAsset(file);
+
+        setCropperImage(file);
+        setImageOpen(false);
+        setCropperOpen(true);
+    };
+
+    const editImage = async () => {
+        const pointer = character.data.assets.find((asset) => asset.name === "main");
+        if (pointer) {
+            const asset = await Asset.load(character.id, `main.${pointer.ext}`);
+            setCropperImage(asset.file);
+            setImageOpen(false);
+            setCropperOpen(true);
+        }
     };
 
     const { browse, input } = useFileDialog({
@@ -87,7 +96,7 @@ function CharacterProfile({ character }: { character: Character }) {
 
     const form = useCharacterForm({
         ...characterFormOptions,
-        defaultValues: { ...character.data, image: undefined },
+        defaultValues: { ...character.data },
         onSubmit: async ({ value }) => {
             await character.update(value);
             toast.success(`${character.data.name} saved.`);
@@ -100,11 +109,7 @@ function CharacterProfile({ character }: { character: Character }) {
     const setTab = (value: string) => {
         void navigate({
             search: {
-                tab: value as
-                    | "description"
-                    | "greetings"
-                    | "example"
-                    | "gallery"
+                tab: value as "description" | "greetings" | "example" | "gallery"
             },
             mask: { search: undefined },
             replace: true
@@ -113,76 +118,73 @@ function CharacterProfile({ character }: { character: Character }) {
 
     return (
         <form
-            className="flex flex-col w-full"
+            className="flex w-full flex-col"
             onSubmit={(event) => {
                 event.preventDefault();
                 void form.handleSubmit();
             }}
         >
             <Header />
-            <div className="flex flex-col md:flex-row gap-4 md:items-end mb-4">
-                <Dialog>
+            <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end">
+                <Dialog open={imageOpen} onOpenChange={setImageOpen}>
                     <DialogTrigger asChild>
                         <Avatar className="size-[unset] h-64 overflow-visible">
                             <AvatarImage
-                                src={imageURL}
+                                src={portraitURL}
                                 className={cn(
-                                    "absolute blur-3xl saturate-200 -z-1",
+                                    "absolute -z-1 blur-3xl saturate-200",
                                     editing && "self-center"
                                 )}
                             />
                             <AvatarImage
-                                src={imageURL}
+                                src={portraitURL}
                                 alt={character.data.name}
                                 className={cn(
-                                    "aspect-[unset] object-cover rounded-xl cursor-pointer",
+                                    "aspect-[unset] cursor-pointer rounded-xl object-cover",
                                     editing && "self-center"
                                 )}
                             />
                             <AvatarFallback className="rounded-xl">
-                                <Skeleton className="h-full aspect-square" />
+                                <Skeleton className="aspect-square h-full" />
                             </AvatarFallback>
                         </Avatar>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="w-max sm:max-w-[80dvw]">
                         <DialogHeader className="sr-only">
                             <DialogTitle>Main Character Image</DialogTitle>
-                            <DialogDescription>
-                                Replace or edit main image
-                            </DialogDescription>
+                            <DialogDescription>Replace or edit main image</DialogDescription>
                         </DialogHeader>
                         <img
                             src={imageURL}
                             alt={character.data.name}
-                            className="max-h-[80dvh] rounded-xl mx-auto"
+                            className="mx-auto max-h-[80dvh] rounded-xl"
                         />
                         <DialogFooter>
-                            <Button className="w-1/2" onClick={browse}>
+                            <Button onClick={browse}>
                                 {input}
                                 <Upload />
                                 Replace
                             </Button>
-                            <Button className="w-1/2">
+                            <Button onClick={editImage}>
                                 <Edit />
                                 Edit
                             </Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
-                {editing ? (
-                    <HeaderFields form={form} />
-                ) : (
-                    <ProfileHeader character={character} />
+                {cropperImage && (
+                    <AvatarCropper
+                        open={cropperOpen}
+                        onOpenChange={setCropperOpen}
+                        image={cropperImage}
+                        imageURL={imageURL}
+                        character={character}
+                    />
                 )}
+                {editing ? <HeaderFields form={form} /> : <ProfileHeader character={character} />}
             </div>
-
-            {/* Main Content */}
-            <Tabs
-                value={tab ?? "description"}
-                onValueChange={setTab}
-                className="gap-4 mb-2"
-            >
-                <TabsList className="sticky top-18 sm:top-2 w-full">
+            <Tabs value={tab ?? "description"} onValueChange={setTab} className="mb-2 gap-4">
+                <TabsList className="sticky top-18 w-full sm:top-2">
                     <TabsTrigger value="description">
                         <Text />
                         Description
@@ -210,11 +212,7 @@ function CharacterProfile({ character }: { character: Character }) {
                     )}
                 </TabsContent>
                 <TabsContent value="greetings">
-                    {editing ? (
-                        <GreetingsField form={form} />
-                    ) : (
-                        <Greetings character={character} />
-                    )}
+                    {editing ? <GreetingsField form={form} /> : <Greetings character={character} />}
                 </TabsContent>
                 <TabsContent value="example">
                     {editing ? (
@@ -241,10 +239,13 @@ function CharacterProfileLayout() {
 
     const fallback = useRouteContext({
         from: "/characters/$id",
-        select: (context) => context.character!
+        select: (context) => context.character
     });
 
-    const character = useLiveQuery(() => Character.load(id), [], fallback);
+    const character = useLiveQuery(() => Character.load(id), [id], fallback);
+
+    const { setCharacter } = useCharacterContext();
+    useEffect(() => setCharacter(character), [setCharacter, character]);
 
     return (
         <CharacterFormProvider mode="edit">
@@ -256,9 +257,7 @@ function CharacterProfileLayout() {
 export const Route = createFileRoute("/characters/$id")({
     component: CharacterProfileLayout,
     validateSearch: z.object({
-        tab: z
-            .enum(["description", "greetings", "example", "gallery"])
-            .optional()
+        tab: z.enum(["description", "greetings", "example", "gallery"]).optional()
     }),
     beforeLoad: async ({ params: { id } }) => {
         const character = await Character.load(id);

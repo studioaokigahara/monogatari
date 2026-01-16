@@ -8,25 +8,27 @@ import {
     DialogTitle,
     DialogTrigger
 } from "@/components/ui/dialog";
-import { useCharacterContext } from "@/hooks/use-character-context";
+import { useCharacterContext } from "@/contexts/character";
 import { useImageURL } from "@/hooks/use-image-url";
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 
 function ChatLayout() {
     const { character } = useCharacterContext();
 
+    const avatar = character?.data.assets.find((asset) => asset.name === "avatar");
     const imageURL = useImageURL(
         character
             ? {
                   category: "character",
                   id: character.id,
-                  assets: character.data.assets
+                  assets: character.data.assets,
+                  filename: avatar ? `avatar.${avatar.ext}` : undefined
               }
             : undefined
     );
 
     return (
-        <div className="flex flex-col relative">
+        <div className="flex flex-col grow relative">
             <Header className="sticky top-0 z-1 border-b bg-background/33 backdrop-blur max-sm:-mx-4 max-sm:px-4 group-has-data-[collapsible=icon]/sidebar-wrapper:h-16 **:data-[slot='breadcrumb']:hidden">
                 {character && (
                     <div className="flex w-full justify-center items-center gap-2">
@@ -45,12 +47,8 @@ function ChatLayout() {
                             </DialogTrigger>
                             <DialogContent>
                                 <DialogHeader className="sr-only">
-                                    <DialogTitle>
-                                        {character?.data.name}
-                                    </DialogTitle>
-                                    <DialogDescription>
-                                        {character?.data.name}
-                                    </DialogDescription>
+                                    <DialogTitle>{character?.data.name}</DialogTitle>
+                                    <DialogDescription>{character?.data.name}</DialogDescription>
                                 </DialogHeader>
                                 <img
                                     src={imageURL}
@@ -59,10 +57,7 @@ function ChatLayout() {
                                 />
                             </DialogContent>
                         </Dialog>
-                        <Link
-                            to={"/characters/$id"}
-                            params={{ id: character?.id }}
-                        >
+                        <Link to={"/characters/$id"} params={{ id: character?.id }}>
                             {character?.data.name}
                         </Link>
                     </div>
