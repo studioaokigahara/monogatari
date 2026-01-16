@@ -130,7 +130,7 @@ module.exports = {
                         }
                     }
                 },
-                blockquoteless: {
+                greentext: {
                     css: {
                         blockquote: {
                             marginBottom: "0",
