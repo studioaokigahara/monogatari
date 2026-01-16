@@ -1,6 +1,6 @@
 // import { StatusBadge } from "@/components/status-badge";
-import { Prose } from "@/components/prose";
-import { TagList } from "@/components/tags";
+import { Markdown } from "@/components/markdown";
+import { TagList } from "@/components/tag-list";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -9,24 +9,24 @@ import {
     AlertDialogDescription,
     AlertDialogFooter,
     AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger
+    AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
-import {
-    ButtonGroup,
-    ButtonGroupSeparator
-} from "@/components/ui/button-group";
+import { ButtonGroup } from "@/components/ui/button-group";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { useCharacterContext } from "@/contexts/character";
+import { useCharacterFormContext } from "@/contexts/character-form";
 import { Character } from "@/database/schema/character";
 import { Chat } from "@/database/schema/chat";
-import { useCharacterContext } from "@/hooks/use-character-context";
-import { useCharacterFormContext } from "@/hooks/use-character-form-context";
 import { exportCharX, exportJSON, exportPNG } from "@/lib/character/io";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
@@ -34,17 +34,22 @@ import {
     Edit,
     FileArchive,
     FileBracesCorner,
+    FileDown,
     FileImage,
     Heart,
     MessageCirclePlus,
     MoreVertical,
     Trash2
 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 export function Header({ character }: { character: Character }) {
     const { persona } = useCharacterContext();
     const { setEditing } = useCharacterFormContext();
+
+    const [dialogOpen, setDialogOpen] = useState(false);
+
     const navigate = useNavigate();
 
     const startNewChat = async () => {
@@ -54,8 +59,8 @@ export function Header({ character }: { character: Character }) {
     };
 
     const deleteCharacter = async () => {
+        void navigate({ to: "/characters" });
         await character.delete();
-        await navigate({ to: "/characters" });
         toast.success(`${character.data.name} deleted successfully.`);
     };
 
@@ -64,123 +69,85 @@ export function Header({ character }: { character: Character }) {
     };
 
     return (
-        <div className="flex flex-col md:flex-row w-full justify-between items-start md:items-end gap-4 rounded-xl z-1">
+        <div className="z-1 flex w-full flex-col items-start justify-between gap-4 rounded-xl md:flex-row md:items-end">
             <div className="grow">
                 <p className="text-3xl font-bold">
                     {character?.data.name}
-                    <span className="text-xl text-muted-foreground font-medium">
+                    <span className="text-xl font-medium text-muted-foreground">
                         {" "}
                         {character.data.nickname}
                     </span>
                 </p>
                 <p className="text-muted-foreground">
-                    by{" "}
-                    <span className="font-medium">
-                        {character.data.creator}
-                    </span>
+                    by <span className="font-medium">{character.data.creator}</span>
                     {character.data.character_version && (
                         <>
                             , version{" "}
-                            <span className="font-medium">
-                                {character.data.character_version}
-                            </span>
+                            <span className="font-medium">{character.data.character_version}</span>
                         </>
                     )}
                 </p>
                 {/* TODO: better styling, allow user defined statuses (store in extensions) */}
                 {/*<StatusBadge />*/}
-                <Prose className="text-sm text-foreground my-[0.5lh] max-w-[unset]">
-                    {character.data.extensions.monogatari?.tagline ??
-                        character.data.creator_notes}
-                </Prose>
-                <TagList tags={character.data.tags} maxRows={1} />
+                <Markdown className="my-[0.5lh] max-w-[unset] text-sm text-foreground">
+                    {character.data.extensions.monogatari?.tagline ?? character.data.creator_notes}
+                </Markdown>
+                {character.data.tags.length > 0 && (
+                    <TagList tags={character.data.tags} maxRows={1} />
+                )}
             </div>
             <ButtonGroup className="[--radius:999rem]">
-                <ButtonGroup>
-                    <Button
-                        type="button"
-                        size="icon"
-                        variant="secondary"
-                        onClick={toggleFavorite}
-                    >
+                <ButtonGroup className="rounded-full! bg-secondary">
+                    <Button type="button" size="icon" variant="outline" onClick={toggleFavorite}>
                         <Heart
                             className={cn(
-                                character.favorite
-                                    ? "text-pink-400 animate-icon-bounce"
-                                    : ""
+                                character.favorite ? "animate-icon-bounce text-pink-400" : ""
                             )}
                             fill={character.favorite ? "currentColor" : "none"}
                         />
                     </Button>
-                    <ButtonGroupSeparator />
                     <Button
                         type="button"
-                        variant="secondary"
+                        variant="outline"
                         size="icon"
                         onClick={() => setEditing(true)}
                     >
                         <Edit />
                     </Button>
-                    <ButtonGroupSeparator />
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="secondary" size="icon">
-                                <Trash2 className="text-destructive" />
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                    Are you absolutely sure?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This will permanently delete{" "}
-                                    {character.data.name}. This cannot be
-                                    undone.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                    className={buttonVariants({
-                                        variant: "destructive"
-                                    })}
-                                    onClick={deleteCharacter}
-                                >
-                                    Delete!
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                    <ButtonGroupSeparator />
-                    <DropdownMenu>
+                    <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild>
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                size="icon"
-                            >
+                            <Button type="button" variant="outline" size="icon">
                                 <MoreVertical className="mr-1" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                            <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                    <FileDown />
+                                    Export
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent>
+                                    <DropdownMenuItem onClick={() => exportCharX(character)}>
+                                        <FileArchive />
+                                        CharX
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => exportPNG(character)}>
+                                        <FileImage />
+                                        PNG
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => exportJSON(character)}>
+                                        <FileBracesCorner />
+                                        JSON
+                                    </DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                            </DropdownMenuSub>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem
-                                onClick={() => exportCharX(character)}
+                                variant="destructive"
+                                onClick={() => setDialogOpen(true)}
                             >
-                                <FileArchive />
-                                Export as CharX
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onClick={() => exportPNG(character)}
-                            >
-                                <FileImage />
-                                Export as PNG
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onClick={() => exportJSON(character)}
-                            >
-                                <FileBracesCorner />
-                                Export as JSON
+                                <Trash2 />
+                                Delete
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -191,6 +158,28 @@ export function Header({ character }: { character: Character }) {
                     </Button>
                 </ButtonGroup>
             </ButtonGroup>
+            <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will permanently delete {character.data.name} and all associated
+                            chats, lorebooks, and assets. This cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className={buttonVariants({
+                                variant: "destructive"
+                            })}
+                            onClick={deleteCharacter}
+                        >
+                            Delete!
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
