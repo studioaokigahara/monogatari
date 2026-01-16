@@ -1,0 +1,41 @@
+{
+  "languages": {
+    "TypeScript": {
+      "code_actions_on_format": {
+        "source.organizeImports": true,
+      },
+      "language_servers": ["!eslint", "!typescript-language-server", "..."],
+      "format_on_save": "on",
+      "formatter": [
+        {
+          "language_server": {
+            "name": "oxfmt",
+          },
+        },
+      ],
+    },
+    "TSX": {
+      "code_actions_on_format": {
+        "source.organizeImports": true,
+      },
+      "language_servers": ["!eslint", "!typescript-language-server", "..."],
+      "format_on_save": "on",
+      "formatter": [
+        {
+          "language_server": {
+            "name": "oxfmt",
+          },
+        },
+      ],
+    },
+  },
+  "lsp": {
+    "oxlint": {
+      "initialization_options": {
+        "settings": {
+          "typeAware": true,
+        },
+      },
+    },
+  },
+}

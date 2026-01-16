@@ -1,0 +1,9 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "tabWidth": 4,
+  "trailingComma": "none",
+  "experimentalTailwindcss": {
+    "functions": ["clsx", "cn", "cva", "tw"],
+    "stylesheet": "./src/index.css"
+  }
+}
