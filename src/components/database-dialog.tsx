@@ -49,7 +49,11 @@ type WorkerMessage =
     | { type: "importDone"; payload: null }
     | { type: "error"; payload: string };
 
-export function ExportDatabase() {
+interface ExportProps {
+    size?: "default" | "sm";
+}
+
+export function ExportDatabase({ size = "sm" }: ExportProps) {
     const workerRef = useRef<Worker | null>(null);
     const [open, setOpen] = useState(false);
     const [exporting, setExporting] = useState(false);
@@ -130,7 +134,7 @@ export function ExportDatabase() {
     return (
         <AlertDialog open={open} onOpenChange={setOpen}>
             <AlertDialogTrigger asChild>
-                <Button size="sm" onClick={() => setOpen(true)}>
+                <Button size={size} onClick={() => setOpen(true)}>
                     <HardDriveUpload />
                     Export
                 </Button>

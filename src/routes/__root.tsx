@@ -1,3 +1,4 @@
+import { BackupStatus } from "@/components/backup-status";
 import { CharacterProvider } from "@/components/providers/character";
 import { SettingsProvider } from "@/components/providers/settings";
 import { ThemeProvider } from "@/components/providers/theme";
@@ -13,6 +14,7 @@ function RootLayout() {
         <>
             <HeadContent />
             <TanStackRouterDevtools />
+            <BackupStatus />
             <SettingsProvider>
                 <CharacterProvider>
                     <ThemeProvider>

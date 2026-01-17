@@ -1,3 +1,5 @@
+import { BackupStatus } from "@/components/backup-status";
+import { ExportDatabase, ImportDatabase } from "@/components/database-dialog";
 import Password from "@/components/password-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -5,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { useSettingsContext } from "@/contexts/settings";
 import { db } from "@/database/monogatari-db";
 import { SelectExploreRepo } from "@/routes/settings/components/api/select-provider";
-import { ExportDatabase, ImportDatabase } from "@/routes/settings/components/database-dialog";
 import { createFileRoute } from "@tanstack/react-router";
 import {
     Bird,
@@ -206,10 +207,11 @@ function StorageDisplay() {
                     <div className="flex gap-2">
                         <ExportDatabase />
                         <ImportDatabase />
+                        <BackupStatus showDialogTrigger />
                     </div>
                 </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col sm:flex-row items-center">
+            <CardContent className="flex flex-col items-center sm:flex-row">
                 <div className="mb-auto">
                     <ChartContainer config={chartConfig} className="mx-auto aspect-square h-62.5">
                         <RadialBarChart
@@ -253,7 +255,7 @@ function StorageDisplay() {
                             </PolarRadiusAxis>
                         </RadialBarChart>
                     </ChartContainer>
-                    <div className="text-muted-foreground text-xs text-center">
+                    <div className="text-center text-xs text-muted-foreground">
                         {formatBytes(storage?.usage)} / {formatBytes(storage?.quota)}
                     </div>
                 </div>
