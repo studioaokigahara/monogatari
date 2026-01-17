@@ -7,10 +7,19 @@ import {
     AlertDialogDescription,
     AlertDialogFooter,
     AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger
+    AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
     Select,
     SelectContent,
@@ -18,7 +27,7 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
-import { generateCuid2 } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
 import { createCollection, localStorageCollectionOptions, useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
@@ -36,7 +45,6 @@ const INTERVALS = {
 };
 
 const BackupSettings = z.object({
-    id: z.cuid2().default(generateCuid2),
     enabled: z.boolean().default(true),
     interval: z.enum(["daily", "weekly", "biweekly", "monthly", "never"]).default("weekly"),
     lastBackup: z.number().default(0),
@@ -45,17 +53,17 @@ const BackupSettings = z.object({
 });
 type BackupSettings = z.infer<typeof BackupSettings>;
 
-const backupSettingsCollection = createCollection(
+export const backupSettingsCollection = createCollection(
     localStorageCollectionOptions({
-        id: "backup",
+        id: "backup-settings",
         storageKey: "backup-settings",
-        getKey: (item) => item.id,
+        getKey: () => "backup-settings",
         schema: BackupSettings
     })
 );
 
 backupSettingsCollection.onFirstReady(() => {
-    if (backupSettingsCollection.size === 0) {
+    if (!backupSettingsCollection.get("backup-settings")) {
         backupSettingsCollection.insert(BackupSettings.parse({}));
     }
 });
@@ -83,7 +91,9 @@ export function BackupStatus({ showDialogTrigger = false }: Props) {
 
     useEffect(() => {
         navigator.storage.persist().then((persisted) => {
-            if (!persisted) console.warn("Storage persistence denied");
+            if (!persisted) {
+                console.warn("Storage persistence denied");
+            }
         });
     }, []);
 
@@ -99,7 +109,7 @@ export function BackupStatus({ showDialogTrigger = false }: Props) {
 
         if (timeSinceLastBackup >= intervalMs) {
             setDialogOpen(true);
-            backupSettingsCollection.update(settings.id, (draft) => {
+            backupSettingsCollection.update("backup-settings", (draft) => {
                 draft.lastReminder = Date.now();
             });
         }
@@ -122,88 +132,117 @@ export function BackupStatus({ showDialogTrigger = false }: Props) {
     }, []);
 
     const handleSnooze = () => {
-        backupSettingsCollection.update(settings?.id, (draft) => {
+        backupSettingsCollection.update("backup-settings", (draft) => {
             draft.snoozeUntil = Date.now() * INTERVALS.daily;
         });
-        setDialogOpen(false);
         toast.info("Reminder Snoozed", {
             description: "We'll remind you again tomorrow"
         });
     };
 
     const handleDisable = () => {
-        backupSettingsCollection.update(settings?.id, (draft) => {
+        backupSettingsCollection.update("backup-settings", (draft) => {
             draft.enabled = false;
         });
-        setDialogOpen(false);
         toast.error("Reminders Disabled", {
             description: "You won't receive backup reminders anymore. Your data is at risk."
         });
     };
 
     const handleIntervalChange = (interval: BackupSettings["interval"]) => {
-        backupSettingsCollection.update(settings?.id, (draft) => {
+        backupSettingsCollection.update("backup-settings", (draft) => {
             draft.interval = interval;
         });
     };
 
+    const handleCheckedChange = (checked: boolean) => {
+        backupSettingsCollection.update("backup-settings", (settings) => {
+            settings.enabled = checked;
+        });
+    };
+
     return (
-        <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            {showDialogTrigger && (
-                <AlertDialogTrigger>
-                    <Button type="button" size="sm" onClick={() => setDialogOpen(true)}>
-                        <DatabaseBackup />
-                        Backup Settings
-                    </Button>
-                </AlertDialogTrigger>
-            )}
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle className="flex items-center gap-2">
-                        <AlertTriangle />
-                        Backup Reminder
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                        {settings?.lastBackup
-                            ? `It's been ${formatDistanceToNow(settings.lastBackup, { addSuffix: true })} since your last backup.`
-                            : "You've never backed up your data!"}
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <Select value={settings?.interval} onValueChange={handleIntervalChange}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Backup every..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="daily">Backup Daily</SelectItem>
-                        <SelectItem value="weekly">Backup Weekly</SelectItem>
-                        <SelectItem value="biweekly">Backup Bi-Weekly</SelectItem>
-                        <SelectItem value="monthy">Backup Monthly</SelectItem>
-                        <SelectItem value="never">Never Backup</SelectItem>
-                    </SelectContent>
-                </Select>
-                <AlertDialogFooter>
-                    <AlertDialogCancel asChild>
-                        <Button type="button" variant="outline" onClick={handleSnooze}>
-                            <AlarmClock />
-                            Snooze
+        <>
+            <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-1">
+                            <AlertTriangle />
+                            Backup Reminder
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {settings?.lastBackup
+                                ? `It's been ${formatDistanceToNow(settings.lastBackup, { addSuffix: true })} since your last backup.`
+                                : "You've never backed up your data!"}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel asChild>
+                            <Button type="button" variant="outline" onClick={handleSnooze}>
+                                <AlarmClock />
+                                Snooze
+                            </Button>
+                        </AlertDialogCancel>
+                        <AlertDialogCancel asChild>
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                className="text-foreground"
+                                onClick={handleDisable}
+                            >
+                                <AlarmClockOff />
+                                Don't remind me again
+                            </Button>
+                        </AlertDialogCancel>
+                        <AlertDialogAction asChild>
+                            <ExportDatabase size="default" />
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <Dialog>
+                {showDialogTrigger && (
+                    <DialogTrigger>
+                        <Button type="button" size="sm">
+                            <DatabaseBackup />
+                            Backup Settings
                         </Button>
-                    </AlertDialogCancel>
-                    <AlertDialogAction asChild>
-                        <Button
-                            type="button"
-                            variant="destructive"
-                            className="text-foreground"
-                            onClick={handleDisable}
-                        >
-                            <AlarmClockOff />
-                            Don't remind me again
-                        </Button>
-                    </AlertDialogAction>
-                    <AlertDialogAction asChild>
-                        <ExportDatabase size="default" />
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+                    </DialogTrigger>
+                )}
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-1">
+                            <DatabaseBackup />
+                            Backup Settings
+                        </DialogTitle>
+                        <DialogDescription className="sr-only">
+                            Change Backup Reminder Settings
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="justify-around!">
+                        <Select value={settings?.interval} onValueChange={handleIntervalChange}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Backup every..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="daily">Backup Daily</SelectItem>
+                                <SelectItem value="weekly">Backup Weekly</SelectItem>
+                                <SelectItem value="biweekly">Backup Bi-Weekly</SelectItem>
+                                <SelectItem value="monthy">Backup Monthly</SelectItem>
+                                <SelectItem value="never">Never Backup</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Label htmlFor="reminders">
+                            Reminders
+                            <Switch
+                                id="reminders"
+                                checked={settings?.enabled}
+                                onCheckedChange={handleCheckedChange}
+                            />
+                        </Label>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }

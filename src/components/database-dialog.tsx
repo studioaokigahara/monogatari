@@ -1,3 +1,4 @@
+import { backupSettingsCollection } from "@/components/backup-status";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -105,6 +106,10 @@ export function ExportDatabase({ size = "sm" }: ExportProps) {
                 downloadFile(file);
                 setExporting(false);
                 setDone(true);
+
+                backupSettingsCollection.update("backup-settings", (settings) => {
+                    settings.lastBackup = Date.now();
+                });
             }
         };
 
