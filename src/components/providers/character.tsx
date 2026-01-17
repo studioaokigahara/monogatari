@@ -1,18 +1,17 @@
 import { CharacterContext } from "@/contexts/character";
-import { db } from "@/database/monogatari-db";
 import { Character } from "@/database/schema/character";
 import { Persona } from "@/database/schema/persona";
 import { useSettings } from "@/hooks/use-settings";
+import { useLoaderData } from "@tanstack/react-router";
 import { ReactNode, useEffect, useState } from "react";
 
 export function CharacterProvider({ children }: { children: ReactNode }) {
     const { settings, updateSettings } = useSettings();
     const [character, setCharacter] = useState<Character>();
-    const [persona, setPersona] = useState<Persona>();
 
-    useEffect(() => {
-        void db.personas.get(settings.persona).then(setPersona);
-    }, [settings.persona]);
+    const personas = useLoaderData({ from: "__root__" });
+    const initialPersona = personas.find((persona) => persona.id === settings.persona);
+    const [persona, setPersona] = useState<Persona | undefined>(initialPersona);
 
     useEffect(() => {
         if (persona?.id && persona.id !== settings.persona) {

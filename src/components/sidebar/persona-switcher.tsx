@@ -13,7 +13,7 @@ import { useCharacterContext } from "@/contexts/character";
 import { useSidebarContext } from "@/contexts/sidebar";
 import { db } from "@/database/monogatari-db";
 import { useImageURL } from "@/hooks/use-image-url";
-import { Link } from "@tanstack/react-router";
+import { Link, useLoaderData } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronsUpDown, UserPen, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -24,7 +24,8 @@ export function PersonaSwitcher() {
     const { persona, setPersona } = useCharacterContext();
     const { isMobile } = useSidebarContext();
 
-    const personas = useLiveQuery(() => db.personas.toArray(), [], []);
+    const loadedPersonas = useLoaderData({ from: "__root__" });
+    const personas = useLiveQuery(() => db.personas.toArray(), [], loadedPersonas);
 
     const imageURLs = useImageURL(
         personas?.map((persona) => ({

@@ -4,6 +4,7 @@ import { ThemeProvider } from "@/components/providers/theme";
 import { AppSidebar } from "@/components/sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
+import { db } from "@/database/monogatari-db";
 import { settingsCollection } from "@/hooks/use-settings";
 import { Context } from "@/router";
 import { HeadContent, Outlet, createRootRouteWithContext, redirect } from "@tanstack/react-router";
@@ -43,6 +44,6 @@ export const Route = createRootRouteWithContext<Context>()({
     },
     loader: async () => {
         await settingsCollection.preload();
-        return null;
+        return db.personas.toArray();
     }
 });

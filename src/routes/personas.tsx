@@ -83,24 +83,24 @@ function PersonaEditor({ persona }: PersonaEditorProps) {
 
     return (
         <form
-            className="flex grow pb-2 gap-4 overflow-auto"
+            className="flex grow gap-4 overflow-auto pb-2"
             onSubmit={(event) => {
                 event.preventDefault();
                 void form.handleSubmit();
             }}
         >
-            <FieldGroup className="flex flex-col sm:flex-row gap-6">
+            <FieldGroup className="flex flex-col gap-6 sm:flex-row">
                 <Avatar className="size-[unset] h-64 rounded-xl">
                     {input}
                     <AvatarImage
                         src={imageURL}
-                        className="w-full aspect-[unset] object-cover cursor-pointer transition-all hover:brightness-75"
+                        className="aspect-[unset] w-full cursor-pointer object-cover transition-all hover:brightness-75"
                         onClick={browse}
                     />
                     <AvatarFallback className="rounded-xl">
                         <Button
                             onClick={browse}
-                            className="w-48 h-24 flex items-center justify-center cursor-pointer gap-2"
+                            className="flex h-24 w-48 cursor-pointer items-center justify-center gap-2"
                         >
                             <Upload />
                             No Image
@@ -160,7 +160,7 @@ function Personas() {
         setLocalPersona(persona!);
     }, [persona]);
 
-    const preload = useLoaderData({ from: "/personas" });
+    const preload = useLoaderData({ from: "__root__" });
     const personas = useLiveQuery(() => db.personas.toArray(), [], preload);
 
     const personaImages = useImageURL(
@@ -216,9 +216,9 @@ function Personas() {
         <>
             <Header />
             <div className="h-full pb-2 sm:overflow-hidden">
-                <Card className="sm:h-full overflow-hidden">
+                <Card className="overflow-hidden sm:h-full">
                     <CardContent className="flex flex-col sm:flex-row sm:overflow-hidden">
-                        <SidebarProvider className="min-h-0 max-sm:flex-col gap-4">
+                        <SidebarProvider className="min-h-0 gap-4 max-sm:flex-col">
                             <Sidebar collapsible="none" className="w-full sm:w-(--sidebar-width)">
                                 <SidebarHeader>
                                     <SidebarMenu>
@@ -255,6 +255,5 @@ export const Route = createFileRoute("/personas")({
     }),
     beforeLoad: () => ({
         breadcrumb: "Personas"
-    }),
-    loader: () => db.personas.toArray()
+    })
 });
