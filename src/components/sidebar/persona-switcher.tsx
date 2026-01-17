@@ -8,11 +8,7 @@ import {
     DropdownMenuShortcut,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import {
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem
-} from "@/components/ui/sidebar";
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { useCharacterContext } from "@/contexts/character";
 import { useSidebarContext } from "@/contexts/sidebar";
 import { db } from "@/database/monogatari-db";
@@ -47,9 +43,7 @@ export function PersonaSwitcher() {
 
     const activeIndex = personas.findIndex((p) => p.id === persona?.id);
     const activeImageURL =
-        activeIndex !== -1 && Array.isArray(imageURLs)
-            ? imageURLs[activeIndex]
-            : "";
+        activeIndex !== -1 && Array.isArray(imageURLs) ? imageURLs[activeIndex] : "";
 
     useEffect(() => {
         const down = (e: KeyboardEvent) => {
@@ -108,9 +102,7 @@ export function PersonaSwitcher() {
                                 <AvatarFallback>?</AvatarFallback>
                             </Avatar>
                             <div className="grid flex-1 text-left text-sm leading-tight">
-                                <span className="truncate font-medium">
-                                    I AM ERROR.
-                                </span>
+                                <span className="truncate font-medium">I AM ERROR.</span>
                             </div>
                             <UserPlus className="ml-auto" />
                         </SidebarMenuButton>
@@ -140,9 +132,7 @@ export function PersonaSwitcher() {
                                 </AvatarFallback>
                             </Avatar>
                             <div className="grid flex-1 text-left text-sm leading-tight">
-                                <span className="truncate font-medium">
-                                    {persona.name}
-                                </span>
+                                <span className="truncate font-medium">{persona.name}</span>
                             </div>
                             <ChevronsUpDown className="ml-auto" />
                         </SidebarMenuButton>
@@ -153,17 +143,17 @@ export function PersonaSwitcher() {
                         side={isMobile ? "bottom" : "right"}
                         sideOffset={4}
                     >
-                        <DropdownMenuLabel className="text-muted-foreground text-xs">
+                        <DropdownMenuLabel className="text-xs text-muted-foreground">
                             Personas
                         </DropdownMenuLabel>
                         {personaDropdownItems}
                         <DropdownMenuSeparator />
                         <Link to="/personas">
-                            <DropdownMenuItem className="gap-2 p-2 cursor-pointer">
+                            <DropdownMenuItem className="cursor-pointer gap-2 p-2">
                                 <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
                                     <UserPen className="size-4" />
                                 </div>
-                                <div className="text-muted-foreground font-medium">
+                                <div className="font-medium text-muted-foreground">
                                     Edit Personas
                                 </div>
                             </DropdownMenuItem>

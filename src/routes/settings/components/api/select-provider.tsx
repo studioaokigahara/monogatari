@@ -5,7 +5,7 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
-import { useSettingsContext } from "@/contexts/settings";
+import { useSettings } from "@/hooks/use-settings";
 import { Anchor, Eye } from "lucide-react";
 
 const ExploreRepos = [
@@ -14,14 +14,11 @@ const ExploreRepos = [
 ];
 
 export function SelectExploreRepo() {
-    const { settings, updateSettings } = useSettingsContext();
+    const { settings, updateSettings } = useSettings();
 
     const changeExploreProvider = (value: string) => {
-        updateSettings({
-            explore: {
-                ...settings.explore,
-                repo: value as "chub" | "anchorhold"
-            }
+        updateSettings((settings) => {
+            settings.explore.repo = value as "chub" | "anchorhold";
         });
     };
 

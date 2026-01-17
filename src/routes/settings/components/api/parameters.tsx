@@ -4,14 +4,14 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useSettingsContext } from "@/contexts/settings";
+import { useSettings } from "@/hooks/use-settings";
 import { getModel, PROVIDER_REGISTRY } from "@/types/registry";
 import { Settings } from "@/types/settings";
 import { Info, Settings2 } from "lucide-react";
 import { useEffect } from "react";
 
 export default function Parameters() {
-    const { settings, updateSettings } = useSettingsContext();
+    const { settings, updateSettings } = useSettings();
     const provider = settings.provider as Settings["provider"];
 
     const model = getModel(provider, settings.models[provider] as string);
@@ -27,15 +27,14 @@ export default function Parameters() {
     // TODO: per-provider sampler settings
     useEffect(() => {
         if (model && settings.maxOutputTokens > model.maxOutputTokens) {
-            updateSettings({ maxOutputTokens: model.maxOutputTokens });
+            updateSettings((settings) => {
+                settings.maxOutputTokens = model.maxOutputTokens;
+            });
         }
 
         if (lowTemp && settings.samplers.temperature > 1) {
-            updateSettings({
-                samplers: {
-                    ...settings.samplers,
-                    temperature: 1
-                }
+            updateSettings((settings) => {
+                settings.samplers.temperature = 1;
             });
         }
     });
@@ -56,7 +55,7 @@ export default function Parameters() {
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Info className="size-4 ml-2 text-muted-foreground" />
+                                        <Info className="ml-2 size-4 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs">
                                         Stream tokens as they're generated instead of waiting for
@@ -68,11 +67,11 @@ export default function Parameters() {
                         <Switch
                             id="streaming"
                             checked={settings.streaming}
-                            onCheckedChange={(value) =>
-                                updateSettings({
-                                    streaming: value
-                                })
-                            }
+                            onCheckedChange={(value) => {
+                                updateSettings((settings) => {
+                                    settings.streaming = value;
+                                });
+                            }}
                         />
                     </div>
                 )}
@@ -82,7 +81,7 @@ export default function Parameters() {
                             <Label htmlFor="max-tokens">Maximum Output Tokens</Label>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Info className="size-4 ml-2 text-muted-foreground" />
+                                    <Info className="ml-2 size-4 text-muted-foreground" />
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
                                     One token is roughly 4 characters of English text.
@@ -97,11 +96,11 @@ export default function Parameters() {
                         max={model?.maxOutputTokens}
                         step={256}
                         value={[settings.maxOutputTokens]}
-                        onValueChange={(value) =>
-                            updateSettings({
-                                maxOutputTokens: value[0]
-                            })
-                        }
+                        onValueChange={(value) => {
+                            updateSettings((settings) => {
+                                settings.maxOutputTokens = value[0];
+                            });
+                        }}
                         className="w-full"
                     />
                 </div>
@@ -112,7 +111,7 @@ export default function Parameters() {
                                 <Label htmlFor="temperature">Temperature</Label>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Info className="size-4 ml-2 text-muted-foreground" />
+                                        <Info className="ml-2 size-4 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs">
                                         Lower values produce more deterministic outputs, higher
@@ -130,14 +129,11 @@ export default function Parameters() {
                             max={lowTemp ? 1 : 2}
                             step={0.01}
                             value={[settings.samplers.temperature]}
-                            onValueChange={(value) =>
-                                updateSettings({
-                                    samplers: {
-                                        ...settings.samplers,
-                                        temperature: value[0]
-                                    }
-                                })
-                            }
+                            onValueChange={(value) => {
+                                updateSettings((settings) => {
+                                    settings.samplers.temperature = value[0];
+                                });
+                            }}
                             className="w-full"
                         />
                     </div>
@@ -149,7 +145,7 @@ export default function Parameters() {
                                 <Label htmlFor="freqPen">Frequency Penalty</Label>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Info className="h-4 w-4 ml-2 text-muted-foreground" />
+                                        <Info className="ml-2 h-4 w-4 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs">
                                         Penalizes token probabilities proportionate to the number of
@@ -167,14 +163,11 @@ export default function Parameters() {
                             max={2}
                             step={0.01}
                             value={[settings.samplers.frequencyPenalty]}
-                            onValueChange={(value) =>
-                                updateSettings({
-                                    samplers: {
-                                        ...settings.samplers,
-                                        frequencyPenalty: value[0]
-                                    }
-                                })
-                            }
+                            onValueChange={(value) => {
+                                updateSettings((settings) => {
+                                    settings.samplers.frequencyPenalty = value[0];
+                                });
+                            }}
                             className="w-full"
                         />
                     </div>
@@ -186,7 +179,7 @@ export default function Parameters() {
                                 <Label htmlFor="presPen">Presence Penalty</Label>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Info className="h-4 w-4 ml-2 text-muted-foreground" />
+                                        <Info className="ml-2 h-4 w-4 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="w-fit">
                                         Applies a flat penalty to tokens that have already appeared
@@ -204,14 +197,11 @@ export default function Parameters() {
                             max={2}
                             step={0.01}
                             value={[settings.samplers.presencePenalty]}
-                            onValueChange={(value) =>
-                                updateSettings({
-                                    samplers: {
-                                        ...settings.samplers,
-                                        presencePenalty: value[0]
-                                    }
-                                })
-                            }
+                            onValueChange={(value) => {
+                                updateSettings((settings) => {
+                                    settings.samplers.presencePenalty = value[0];
+                                });
+                            }}
                             className="w-full"
                         />
                     </div>
@@ -223,7 +213,7 @@ export default function Parameters() {
                                 <Label htmlFor="top_k">Top-K</Label>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Info className="h-4 w-4 ml-2 text-muted-foreground" />
+                                        <Info className="ml-2 h-4 w-4 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs">
                                         Only select from the top_k options for each token.
@@ -238,14 +228,11 @@ export default function Parameters() {
                             max={Infinity}
                             step={1}
                             value={[settings.samplers.topK]}
-                            onValueChange={(value) =>
-                                updateSettings({
-                                    samplers: {
-                                        ...settings.samplers,
-                                        topK: value[0]
-                                    }
-                                })
-                            }
+                            onValueChange={(value) => {
+                                updateSettings((settings) => {
+                                    settings.samplers.topK = value[0];
+                                });
+                            }}
                             className="w-full"
                         />
                     </div>
@@ -257,7 +244,7 @@ export default function Parameters() {
                                 <Label htmlFor="topP">Top-P</Label>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Info className="h-4 w-4 ml-2 text-muted-foreground" />
+                                        <Info className="ml-2 h-4 w-4 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs">
                                         Nucleus sampling. Sums the probabilities of every option for
@@ -274,14 +261,11 @@ export default function Parameters() {
                             max={1}
                             step={0.01}
                             value={[settings.samplers.topP]}
-                            onValueChange={(value) =>
-                                updateSettings({
-                                    samplers: {
-                                        ...settings.samplers,
-                                        topP: value[0]
-                                    }
-                                })
-                            }
+                            onValueChange={(value) => {
+                                updateSettings((settings) => {
+                                    settings.samplers.topP = value[0];
+                                });
+                            }}
                             className="w-full"
                         />
                     </div>
@@ -310,14 +294,11 @@ export default function Parameters() {
                             max={2}
                             step={0.01}
                             value={[settings.samplers.repetitionPenalty]}
-                            onValueChange={(value) =>
-                                updateSettings({
-                                    samplers: {
-                                        ...settings.samplers,
-                                        repetitionPenalty: value[0]
-                                    }
-                                })
-                            }
+                            onValueChange={(value) => {
+                                updateSettings((settings) => {
+                                    settings.samplers.repetitionPenalty = value[0];
+                                });
+                            }}
                             className="w-full"
                         />
                     </div>
@@ -329,7 +310,7 @@ export default function Parameters() {
                                 <Label htmlFor="min_p">Min-P</Label>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Info className="h-4 w-4 ml-2 text-muted-foreground" />
+                                        <Info className="ml-2 h-4 w-4 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs">
                                         Only considers tokens whose probabilities are at least min_p
@@ -345,14 +326,11 @@ export default function Parameters() {
                             max={1}
                             step={0.01}
                             value={[settings.samplers.minP]}
-                            onValueChange={(value) =>
-                                updateSettings({
-                                    samplers: {
-                                        ...settings.samplers,
-                                        minP: value[0]
-                                    }
-                                })
-                            }
+                            onValueChange={(value) => {
+                                updateSettings((settings) => {
+                                    settings.samplers.minP = value[0];
+                                });
+                            }}
                             className="w-full"
                         />
                     </div>
@@ -379,14 +357,11 @@ export default function Parameters() {
                             max={1}
                             step={0.01}
                             value={[settings.samplers.topA]}
-                            onValueChange={(value) =>
-                                updateSettings({
-                                    samplers: {
-                                        ...settings.samplers,
-                                        topA: value[0]
-                                    }
-                                })
-                            }
+                            onValueChange={(value) => {
+                                updateSettings((settings) => {
+                                    settings.samplers.topA = value[0];
+                                });
+                            }}
                             className="w-full"
                         />
                     </div>
@@ -397,7 +372,7 @@ export default function Parameters() {
                             <Label htmlFor="cacheDepth">Cache Depth</Label>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Info className="size-4 ml-2 text-muted-foreground" />
+                                    <Info className="ml-2 size-4 text-muted-foreground" />
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
                                     Set the cache breakpoint depth. A depth of 2 will insert the
@@ -414,11 +389,11 @@ export default function Parameters() {
                             max={1000}
                             step={2}
                             value={settings.cacheDepth}
-                            onChange={(e) =>
-                                updateSettings({
-                                    cacheDepth: Number(e.target.value)
-                                })
-                            }
+                            onChange={(event) => {
+                                updateSettings((settings) => {
+                                    settings.cacheDepth = Number(event.target.value);
+                                });
+                            }}
                             className="w-min"
                         />
                     </div>

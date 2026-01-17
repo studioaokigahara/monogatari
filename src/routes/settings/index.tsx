@@ -4,8 +4,8 @@ import Password from "@/components/password-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Label } from "@/components/ui/label";
-import { useSettingsContext } from "@/contexts/settings";
 import { db } from "@/database/monogatari-db";
+import { useSettings } from "@/hooks/use-settings";
 import { SelectExploreRepo } from "@/routes/settings/components/api/select-provider";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -292,7 +292,7 @@ function StorageDisplay() {
 }
 
 function GeneralSettings() {
-    const { settings, updateSettings } = useSettingsContext();
+    const { settings, updateSettings } = useSettings();
 
     const RandomIcon = useMemo(() => {
         const icons = [Dog, Cat, Rabbit, Fish, Squirrel, Turtle, Panda, Bird, Worm, Rat];
@@ -317,12 +317,9 @@ function GeneralSettings() {
                         label="Character Hub API Key"
                         tooltip={chubTooltip}
                         value={settings.apiKeys.chub}
-                        onChange={(e) => {
-                            updateSettings({
-                                apiKeys: {
-                                    ...settings.apiKeys,
-                                    chub: e.target.value
-                                }
+                        onChange={(event) => {
+                            updateSettings((settings) => {
+                                settings.apiKeys.chub = event.target.value;
                             });
                         }}
                     />

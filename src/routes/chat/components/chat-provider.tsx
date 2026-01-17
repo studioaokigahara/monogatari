@@ -1,11 +1,11 @@
 import { Spinner } from "@/components/ui/spinner";
 import { useCharacterContext } from "@/contexts/character";
 import { ChatContext } from "@/contexts/chat";
-import { useSettingsContext } from "@/contexts/settings";
 import { db } from "@/database/monogatari-db";
 import { Character } from "@/database/schema/character";
 import { Persona } from "@/database/schema/persona";
 import { Preset } from "@/database/schema/preset";
+import { useSettings } from "@/hooks/use-settings";
 import { buildContext } from "@/lib/build-context";
 import { GraphSyncManager } from "@/lib/graph/sync";
 import type { Message } from "@/types/message";
@@ -25,7 +25,7 @@ interface Dependencies {
 }
 
 export function ChatProvider({ children }: { children: ReactNode }) {
-    const { settings } = useSettingsContext();
+    const { settings } = useSettings();
     const { character, setCharacter, persona } = useCharacterContext();
 
     const preset = useLiveQuery(() => db.presets.get(settings.preset), [settings.preset]);
@@ -113,8 +113,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     if (!chatState) {
         return (
-            <div className="h-full flex shrink-0 mx-auto">
-                <div className="flex flex-row grow my-auto gap-1">
+            <div className="mx-auto flex h-full shrink-0">
+                <div className="my-auto flex grow flex-row gap-1">
                     <Spinner className="size-6" />
                     Loading...
                 </div>

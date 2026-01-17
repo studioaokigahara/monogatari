@@ -10,14 +10,14 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
-import { useSettingsContext } from "@/contexts/settings";
+import { useSettings } from "@/hooks/use-settings";
 import { generateCuid2 } from "@/lib/utils";
 import { ProxyProfile } from "@/types/settings";
 import { Plus, Trash2 } from "lucide-react";
 import { Fragment } from "react";
 
 export function ProxySettings() {
-    const { settings, updateSettings } = useSettingsContext();
+    const { settings, updateSettings } = useSettings();
     const { profiles, selected } = settings.proxies;
     const provider = settings.provider;
 
@@ -28,20 +28,18 @@ export function ProxySettings() {
             baseURL: "",
             password: ""
         };
-        updateSettings({
-            proxies: {
-                profiles: [...profiles, newProfile],
-                selected: { ...selected, [provider]: newProfile.id }
-            }
+        updateSettings((settings) => {
+            settings.proxies.profiles = [...profiles, newProfile];
+            settings.proxies.selected = { ...selected, [provider]: newProfile.id };
         });
     };
 
     const updateProfile = (id: string, changes: Partial<ProxyProfile>) => {
-        updateSettings({
-            proxies: {
-                profiles: profiles.map((p) => (p.id === id ? { ...p, ...changes } : p)),
-                selected
-            }
+        const updatedProfiles = profiles.map((profile) =>
+            profile.id === id ? { ...profile, ...changes } : profile
+        );
+        updateSettings((settings) => {
+            settings.proxies.profiles = updatedProfiles;
         });
     };
 
@@ -53,20 +51,15 @@ export function ProxySettings() {
             newSelected[provider] = "";
         }
 
-        updateSettings({
-            proxies: {
-                profiles: newProfiles,
-                selected: newSelected
-            }
+        updateSettings((settings) => {
+            settings.proxies.profiles = newProfiles;
+            settings.proxies.selected = newSelected;
         });
     };
 
     const selectProfile = (id: string) => {
-        updateSettings({
-            proxies: {
-                profiles,
-                selected: { ...selected, [provider]: id }
-            }
+        updateSettings((settings) => {
+            settings.proxies.selected = { ...selected, [provider]: id };
         });
     };
 
@@ -111,7 +104,7 @@ export function ProxySettings() {
 
     return (
         <Card>
-            <CardHeader className="flex flex-row justify-between items-center">
+            <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Proxy Profiles</CardTitle>
                 <Button onClick={addProfile}>
                     <Plus />

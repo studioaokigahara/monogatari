@@ -7,8 +7,8 @@ import {
     EmptyTitle
 } from "@/components/ui/empty";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { useSettingsContext } from "@/contexts/settings";
 import { db } from "@/database/monogatari-db";
+import { useSettings } from "@/hooks/use-settings";
 import { createFileRoute, useLoaderData } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { FileX2 } from "lucide-react";
@@ -18,22 +18,20 @@ import { PromptList } from "./components/presets/list";
 
 function EmptyPreset() {
     return (
-        <Empty className="border border-dashed my-6">
+        <Empty className="my-6 border border-dashed">
             <EmptyHeader>
                 <EmptyMedia variant="icon">
                     <FileX2 />
                 </EmptyMedia>
                 <EmptyTitle>No Presets</EmptyTitle>
-                <EmptyDescription>
-                    Click "New Preset" to get started.
-                </EmptyDescription>
+                <EmptyDescription>Click "New Preset" to get started.</EmptyDescription>
             </EmptyHeader>
         </Empty>
     );
 }
 
 function PresetSettings() {
-    const { settings, updateSettings } = useSettingsContext();
+    const { settings, updateSettings } = useSettings();
 
     const loadedPresets = useLoaderData({ from: "/settings/presets" });
     const presets = useLiveQuery(
@@ -42,21 +40,21 @@ function PresetSettings() {
         loadedPresets
     );
 
-    const selectedPreset = presets.find(
-        (preset) => preset.id === settings.preset
-    );
+    const selectedPreset = presets.find((preset) => preset.id === settings?.preset);
 
     const updateSelectedPreset = (presetID: string) => {
-        updateSettings({ preset: presetID });
+        updateSettings((settings) => {
+            settings.preset = presetID;
+        });
     };
 
     const [promptIndex, setPromptIndex] = useState(0);
 
     return (
         <div className="h-full pb-2 sm:overflow-hidden">
-            <Card className="sm:h-full py-0 gap-0 overflow-hidden">
-                <CardContent className="h-full flex flex-col sm:flex-row sm:overflow-hidden">
-                    <SidebarProvider className="min-h-0 max-sm:flex-col gap-4">
+            <Card className="gap-0 overflow-hidden py-0 sm:h-full">
+                <CardContent className="flex h-full flex-col sm:flex-row sm:overflow-hidden">
+                    <SidebarProvider className="min-h-0 gap-4 max-sm:flex-col">
                         <PromptList
                             presets={presets}
                             selectedPreset={selectedPreset}

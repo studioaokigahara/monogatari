@@ -23,7 +23,7 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
-import { useSettingsContext } from "@/contexts/settings";
+import { useSettings } from "@/hooks/use-settings";
 import { OpenRouterRegistry } from "@/lib/openrouter";
 import { Modality } from "@/types/models";
 import { PROVIDER_REGISTRY, getModel } from "@/types/registry";
@@ -90,7 +90,7 @@ const getApiKeyPlaceholder = (provider: Settings["provider"]) => {
 };
 
 export default function SelectModel() {
-    const { settings, updateSettings } = useSettingsContext();
+    const { settings, updateSettings } = useSettings();
 
     const [open, setOpen] = useState(false);
 
@@ -104,14 +104,16 @@ export default function SelectModel() {
         if (!settings.models[P]) {
             const registry = PROVIDER_REGISTRY[P].models;
             const fallback = registry[0]?.checkpoints?.[0]?.id ?? registry[0]?.id ?? "";
-            updateSettings({
-                models: { ...settings.models, [P]: fallback }
+            updateSettings((settings) => {
+                settings.models = { ...settings.models, [P]: fallback };
             });
         }
     }, [settings.models, P, updateSettings]);
 
     const onProviderChange = (provider: Settings["provider"]) => {
-        updateSettings({ provider });
+        updateSettings((settings) => {
+            settings.provider = provider;
+        });
     };
 
     const providerModels = PROVIDER_REGISTRY[settings.provider].models;
@@ -181,7 +183,7 @@ export default function SelectModel() {
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex flex-col gap-4 sm:flex-row">
                         <div className="flex flex-col gap-1">
                             <Label htmlFor="provider">Provider</Label>
                             <Select value={settings.provider} onValueChange={onProviderChange}>
@@ -200,14 +202,9 @@ export default function SelectModel() {
                                     onOpenChange={(open) => setOpen(open)}
                                     disabled={!settings.provider}
                                     value={settings.models[P] as string}
-                                    onValueChange={(m) => {
-                                        const P = settings.provider;
-
-                                        updateSettings({
-                                            models: {
-                                                ...settings.models,
-                                                [P]: m
-                                            }
+                                    onValueChange={(model) => {
+                                        updateSettings((settings) => {
+                                            settings.models[P] = model;
                                         });
                                     }}
                                 >
@@ -232,12 +229,9 @@ export default function SelectModel() {
                             label="API Key"
                             placeholder={getApiKeyPlaceholder(P)}
                             value={settings.apiKeys[settings.provider] ?? ""}
-                            onChange={(e) => {
-                                updateSettings({
-                                    apiKeys: {
-                                        ...settings.apiKeys,
-                                        [settings.provider]: e.target.value
-                                    }
+                            onChange={(event) => {
+                                updateSettings((settings) => {
+                                    settings.apiKeys[P] = event.target.value;
                                 });
                             }}
                         />
@@ -255,7 +249,7 @@ export default function SelectModel() {
                                     </div>
                                 </AccordionTrigger>
                                 <AccordionContent>
-                                    <Markdown className="text-sm text-muted-foreground mt-2">
+                                    <Markdown className="mt-2 text-sm text-muted-foreground">
                                         {currentModel?.description || ""}
                                     </Markdown>
                                 </AccordionContent>
@@ -279,7 +273,7 @@ export default function SelectModel() {
                             <div className="space-y-1">
                                 <p className="text-sm font-medium">
                                     Modalities
-                                    <span className="text-xs text-muted-foreground ml-2">
+                                    <span className="ml-2 text-xs text-muted-foreground">
                                         Input • Output
                                     </span>
                                 </p>
@@ -346,7 +340,7 @@ export default function SelectModel() {
                                 <div className="flex flex-col">
                                     <span className="text-sm font-medium">
                                         Price
-                                        <span className="text-xs text-muted-foreground ml-2">
+                                        <span className="ml-2 text-xs text-muted-foreground">
                                             Input • Output
                                         </span>
                                     </span>
