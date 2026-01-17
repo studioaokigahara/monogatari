@@ -1,3 +1,4 @@
+import { settingsCollection } from "@/hooks/use-settings";
 import {
     ChubCharacterResponse,
     ChubGalleryResponse,
@@ -120,8 +121,8 @@ export async function fetchCharacters(searchOptions: SearchOptions): Promise<Chu
     searchParams.append("tags", searchOptions.includedTags);
     searchParams.append("exclude_tags", searchOptions.excludedTags);
 
-    const settings = JSON.parse(localStorage.getItem("settings") ?? "");
-    const apiKey = settings.apiKeys.chub ?? "";
+    const settings = settingsCollection.toArray[0];
+    const apiKey = settings.apiKeys.chub;
 
     const response = await fetch(`https://gateway.chub.ai/search?${String(searchParams)}`, {
         headers: new Headers({
