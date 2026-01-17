@@ -17,10 +17,10 @@ import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { useFileDialog } from "@/hooks/use-file-dialog";
 import { downloadFile } from "@/lib/utils";
+import { format } from "date-fns";
 import { ExportProgress } from "dexie-export-import";
 import { ImportProgress } from "dexie-export-import/dist/import";
 import { HardDriveDownload, HardDriveUpload } from "lucide-react";
-import { DateTime } from "luxon";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -95,13 +95,9 @@ export function ExportDatabase({ size = "sm" }: ExportProps) {
                     return;
                 }
 
-                const file = new File(
-                    [blob],
-                    `monogatari-${DateTime.now().toFormat("yyyy-MM-dd")}.db`,
-                    {
-                        type: "application/json"
-                    }
-                );
+                const file = new File([blob], `monogatari-${format(Date.now(), "dd-MM-yyyy")}.db`, {
+                    type: "application/json"
+                });
 
                 downloadFile(file);
                 setExporting(false);

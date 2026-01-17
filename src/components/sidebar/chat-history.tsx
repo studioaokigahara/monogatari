@@ -58,6 +58,7 @@ import { Chat } from "@/database/schema/chat";
 import { getTimeGroup, sortByTimeGroupLabel } from "@/lib/time";
 import { downloadFile } from "@/lib/utils";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
+import { format } from "date-fns";
 import { liveQuery } from "dexie";
 import {
     ChartNetwork,
@@ -70,7 +71,6 @@ import {
     Split,
     Trash2
 } from "lucide-react";
-import { DateTime } from "luxon";
 import { Fragment, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -122,7 +122,7 @@ function ChatHistoryItem({ chat, isActive, isMobile, setGraphID }: ChatHistoryIt
         downloadFile(file);
     };
 
-    const title = chat.title ?? DateTime.fromJSDate(chat.updatedAt).toFormat("MMM d, HH:mm");
+    const title = chat.title ?? format(chat.updatedAt, "MMM d, HH:mm");
 
     return (
         <SidebarMenuItem>
@@ -283,8 +283,7 @@ export function ChatHistory() {
 
         const groups: Record<string, typeof chats> = {};
         for (const chat of chats) {
-            const time = DateTime.fromJSDate(chat.updatedAt);
-            const group = getTimeGroup(time);
+            const group = getTimeGroup(chat.updatedAt);
             if (!groups[group]) groups[group] = [];
             groups[group].push(chat);
         }

@@ -1,6 +1,6 @@
 import { FNV1a } from "@/lib/utils";
 import { MacroContext, MacroRuntime } from "@/types/macros";
-import { DateTime } from "luxon";
+import { format } from "date-fns";
 
 function splitValues(string: string): string[] {
     let value = "";
@@ -147,9 +147,9 @@ function processMacroBody(body: string, runtime: MacroRuntime, context?: MacroCo
         case "reverse":
             return Array.from(payload).reverse().join("");
         case "date":
-            return DateTime.now().toLocaleString(DateTime.DATE_FULL);
+            return format(Date.now(), "PPP");
         case "time":
-            return DateTime.now().toLocaleString(DateTime.TIME_SIMPLE);
+            return format(Date.now(), "p");
         default:
             return macro;
     }

@@ -1,4 +1,4 @@
-import { DateTime } from "luxon";
+import { format } from "date-fns";
 
 const splashes = [
     "desu~",
@@ -186,11 +186,7 @@ const splashes = [
 
 const newYearsSplashes = ["Happy New Years!", "ことよろ！", "明けおめこと！"];
 
-const halloweenSplashes = [
-    "What if she got stuck in the TV?",
-    "Po!",
-    "August 9th!"
-];
+const halloweenSplashes = ["What if she got stuck in the TV?", "Po!", "August 9th!"];
 
 const christmasSplashes = [
     "Merry Christmas!",
@@ -200,23 +196,15 @@ const christmasSplashes = [
 ];
 
 export function getSplashText() {
-    const today = DateTime.now()
-        .toLocaleString(DateTime.DATE_MED)
-        .split(",")[0];
+    const today = format(Date.now(), "PP").split(",")[0];
 
     switch (today) {
         case "Jan 1":
-            return newYearsSplashes[
-                Math.floor(Math.random() * newYearsSplashes.length)
-            ];
+            return newYearsSplashes[Math.floor(Math.random() * newYearsSplashes.length)];
         case "Oct 31":
-            return halloweenSplashes[
-                Math.floor(Math.random() * halloweenSplashes.length)
-            ];
+            return halloweenSplashes[Math.floor(Math.random() * halloweenSplashes.length)];
         case "Dec 25":
-            return christmasSplashes[
-                Math.floor(Math.random() * christmasSplashes.length)
-            ];
+            return christmasSplashes[Math.floor(Math.random() * christmasSplashes.length)];
         default:
             return splashes[Math.floor(Math.random() * splashes.length)];
     }
