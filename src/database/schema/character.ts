@@ -52,9 +52,18 @@ export const CharacterCardV3Asset = z
         name: z.string().min(1),
         ext: z.union([z.literal("unknown"), z.string().toLowerCase()])
     })
-    .refine((a) => a.uri === "ccdefault:" || a.uri.endsWith(`.${a.ext}`) || a.ext === "unknown", {
-        message: "URI must end with the file extension."
-    });
+    .refine(
+        (asset) => {
+            return (
+                asset.uri === "ccdefault:" ||
+                asset.uri.endsWith(`.${asset.ext}`) ||
+                asset.ext === "unknown"
+            );
+        },
+        {
+            message: "URI must end with the file extension."
+        }
+    );
 export type CharacterCardV3Asset = z.infer<typeof CharacterCardV3Asset>;
 
 export const CharacterCardV3Data = z.object({
