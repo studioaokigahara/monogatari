@@ -50,9 +50,7 @@ export const CharacterCardV3Asset = z
         type: CharacterCardV3AssetType,
         uri: z.url({ protocol: /^ccdefault|embeded|embedded$/ }),
         name: z.string().min(1),
-        ext: z
-            .string()
-            .regex(/^[a-z0-9]+$|^unknown$/, "File extension must be all lowercase without the dot.")
+        ext: z.union([z.literal("unknown"), z.string().toLowerCase()])
     })
     .refine((a) => a.uri === "ccdefault:" || a.uri.endsWith(`.${a.ext}`) || a.ext === "unknown", {
         message: "URI must end with the file extension."
