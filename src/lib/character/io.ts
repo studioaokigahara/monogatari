@@ -119,11 +119,11 @@ export function writeCharacterImage(image: ArrayBuffer, data: string) {
     return new Uint8Array(encode(chunks));
 }
 
-async function extractAssetRecord(
+async function extractAssets(
     characterID: string,
     pointers: CharacterCardV3Asset[],
     imageBuffer?: ArrayBuffer,
-    embeddedResolver?: (path: string) => Promise<Blob | null>
+    assetResolver?: (path: string) => Promise<Blob | null>
 ) {
     const newPointers: CharacterCardV3Asset[] = [];
 
@@ -148,10 +148,10 @@ async function extractAssetRecord(
 
         switch (uriType) {
             case "ccdefault":
-                if (!embeddedResolver) {
+                if (!assetResolver) {
                     throw new Error("No resolver for embedded assets");
                 }
-                const main = await embeddedResolver("main.png");
+                const main = await assetResolver("main.png");
                 if (!main) {
                     throw new Error("Main character icon not found");
                 }
@@ -159,14 +159,14 @@ async function extractAssetRecord(
                 break;
             case "embeded":
             case "embedded":
-                if (!embeddedResolver) {
+                if (!assetResolver) {
                     throw new Error("No resolver for embedded assets");
                 }
                 const path = pointer.uri.split("://")[1];
                 if (!path) {
                     throw new Error(`Invalid embedded asset URI: ${pointer.uri}`);
                 }
-                const resolved = await embeddedResolver(path);
+                const resolved = await assetResolver(path);
                 if (!resolved) {
                     throw new Error(`Embedded asset not found for path ${path}`);
                 }
@@ -223,16 +223,16 @@ async function extractAssetRecord(
 export async function importCharacter(
     parsedJSON: CharacterCardV3 | TavernCardV2,
     imageBuffer?: ArrayBuffer,
-    embeddedResolver?: (path: string) => Promise<Blob | null>
+    assetResolver?: (path: string) => Promise<Blob | null>
 ) {
     const data = CharacterCardImporter.parse(parsedJSON).data;
     const character = new Character(data);
 
-    const pointers = await extractAssetRecord(
+    const pointers = await extractAssets(
         character.id,
         character.data.assets,
         imageBuffer,
-        embeddedResolver
+        assetResolver
     );
 
     character.data.assets = pointers;
@@ -265,14 +265,14 @@ export async function importCharacterFile(event: React.ChangeEvent<HTMLInputElem
         const cardData = await card.getData(new TextWriter());
         parsedJSON = JSON.parse(cardData);
 
-        const embeddedResolver = async (filename: string) => {
+        const assetResolver = async (filename: string) => {
             const file = entries.find((entry) => entry.filename.endsWith(filename));
             if (!file || file.directory) return null;
             const blobWriter = new BlobWriter();
             return await file.getData(blobWriter);
         };
 
-        return await importCharacter(parsedJSON, undefined, embeddedResolver);
+        return await importCharacter(parsedJSON, undefined, assetResolver);
     }
 
     switch (file.type) {
