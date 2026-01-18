@@ -41,7 +41,7 @@ const CharacterCardV3AssetType = z.union([
         .string()
         .regex(
             /^x_[a-z0-9_]+$/,
-            "Custom asset types must begin with `x_` and contain only lowercase letters, digits or underscores."
+            "Custom asset types must begin with `x_` and contain only lowercase letters, digits, or underscores."
         )
 ]);
 
