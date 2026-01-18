@@ -1,21 +1,17 @@
-import type {
-    ModelRegistry,
-    ProviderRegistry,
-    Providers
-} from "@/types/models";
 import { OpenRouterRegistry } from "@/lib/openrouter";
-import { AnthropicRegistry } from "./registry/anthropic";
-import { OpenAIRegistry } from "./registry/openai";
-import { GoogleRegistry } from "./registry/google";
+import type { ModelRegistry, ProviderRegistry, Providers } from "@/types/models";
 import z from "zod";
+import { AnthropicRegistry } from "./registry/anthropic";
 import { DeepSeekRegistry } from "./registry/deepseek";
+import { GoogleRegistry } from "./registry/google";
+import { OpenAIRegistry } from "./registry/openai";
 
 export const MODEL_REGISTRY: ModelRegistry = {
     openai: OpenAIRegistry,
     anthropic: AnthropicRegistry,
     google: GoogleRegistry,
     deepseek: DeepSeekRegistry,
-    openrouter: OpenRouterRegistry.getModels()
+    openrouter: await OpenRouterRegistry.getModels()
 };
 
 export const PROVIDER_REGISTRY: ProviderRegistry = {
@@ -114,16 +110,12 @@ export type ModelSchema = z.infer<typeof ModelSchema>;
 
 export function getModel<P extends Providers>(provider: P, id: string) {
     const model = MODEL_REGISTRY[provider].find(
-        (model) =>
-            model.id === id ||
-            model.checkpoints?.some((checkpoint) => checkpoint.id === id)
+        (model) => model.id === id || model.checkpoints?.some((checkpoint) => checkpoint.id === id)
     );
 
     if (!model) return undefined;
 
-    const checkpoint = model.checkpoints?.find(
-        (checkpoint) => checkpoint.id === id
-    );
+    const checkpoint = model.checkpoints?.find((checkpoint) => checkpoint.id === id);
 
     const resolvedModel = { ...model, ...checkpoint };
     resolvedModel.supports = {
@@ -132,9 +124,7 @@ export function getModel<P extends Providers>(provider: P, id: string) {
         ...checkpoint?.supports
     };
     resolvedModel.modalities =
-        checkpoint?.modalities ??
-        model.modalities ??
-        PROVIDER_REGISTRY[provider].modalities;
+        checkpoint?.modalities ?? model.modalities ?? PROVIDER_REGISTRY[provider].modalities;
 
     return resolvedModel;
 }
