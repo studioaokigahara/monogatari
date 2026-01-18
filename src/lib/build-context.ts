@@ -75,15 +75,12 @@ async function buildLorebookContext(
     if (lorebooks.length === 0) return messages;
 
     const history = messages
-        .map(
-            (message) =>
-                message.parts.find((part) => part.type === "text")?.text ?? ""
-        )
+        .map((message) => {
+            return message.parts.find((part) => part.type === "text")?.text ?? "";
+        })
         .filter(Boolean);
 
-    const assistantMessageCount = messages.filter(
-        (message) => message.role === "assistant"
-    ).length;
+    const assistantMessageCount = messages.filter((message) => message.role === "assistant").length;
 
     const tokenizer = new Tiktoken(
         o200k_base.bpe_ranks,
@@ -106,8 +103,7 @@ async function buildLorebookContext(
     const matches = [];
     for (const lorebook of lorebooks) {
         const scanDepth =
-            typeof lorebook.data.scan_depth === "number" &&
-            lorebook.data.scan_depth >= 0
+            typeof lorebook.data.scan_depth === "number" && lorebook.data.scan_depth >= 0
                 ? lorebook.data.scan_depth
                 : Infinity;
 
@@ -131,10 +127,7 @@ async function buildLorebookContext(
     const after: Message[] = [];
 
     for (const match of matches) {
-        const position = DecoratorParser.getInsertionPosition(
-            match.decorators,
-            context
-        );
+        const position = DecoratorParser.getInsertionPosition(match.decorators, context);
 
         const message: Message = {
             id: `lorebook-${generateCuid2()}`,
@@ -162,17 +155,13 @@ async function buildLorebookContext(
         }
     }
 
-    const beforeIndex = messages.findIndex(
-        (message) =>
-            message.parts.find((part) => part.type === "text")?.text ===
-            "{{lorebook.before}}"
-    );
+    const beforeIndex = messages.findIndex((message) => {
+        return message.parts.find((part) => part.type === "text")?.text === "{{lorebook.before}}";
+    });
 
-    const afterIndex = messages.findIndex(
-        (message) =>
-            message.parts.find((part) => part.type === "text")?.text ===
-            "{{lorebook.after}}"
-    );
+    const afterIndex = messages.findIndex((message) => {
+        return message.parts.find((part) => part.type === "text")?.text === "{{lorebook.after}}";
+    });
 
     messages.splice(beforeIndex, 1, ...before);
     messages.splice(afterIndex, 1, ...after);
@@ -215,12 +204,9 @@ export async function buildContext(
         }
     }
 
-    const firstNonSystemIndex = prompt.findIndex(
-        (message) => message.role !== "system"
-    );
+    const firstNonSystemIndex = prompt.findIndex((message) => message.role !== "system");
 
-    const systemCount =
-        firstNonSystemIndex === -1 ? prompt.length : firstNonSystemIndex;
+    const systemCount = firstNonSystemIndex === -1 ? prompt.length : firstNonSystemIndex;
 
     if (systemCount <= 1) return prompt;
 
@@ -248,9 +234,9 @@ export async function buildContext(
 
     combinedParts.push(...otherParts);
 
-    const creationTimes = systemMessages.map((message) =>
-        new Date(message.metadata?.createdAt ?? Date.now()).getTime()
-    );
+    const creationTimes = systemMessages.map((message) => {
+        return new Date(message.metadata?.createdAt ?? Date.now()).getTime();
+    });
 
     const minCreatedAt = new Date(Math.min(...creationTimes));
 
