@@ -1,6 +1,6 @@
 import { Modality, Model } from "@/types/models";
 import { OpenRouterModel } from "@/types/registry/openrouter";
-import { QueryClient, queryOptions } from "@tanstack/react-query";
+import { DefaultOptions, QueryClient, queryOptions } from "@tanstack/react-query";
 import { experimental_createQueryPersister as createQueryPersister } from "@tanstack/react-query-persist-client";
 
 function transformModel(model: OpenRouterModel): Model<"openrouter"> | null {
@@ -63,10 +63,9 @@ const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
             staleTime: 1000 * 60 * 60 * 6,
-            // @ts-expect-error react-query and query-core import different types
             persister: persister.persisterFn
         }
-    }
+    } satisfies DefaultOptions
 });
 
 const openrouterQuery = queryOptions({
