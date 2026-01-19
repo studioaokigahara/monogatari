@@ -61,8 +61,8 @@ const PresetRecord = z.object({
     name: z.string().default("New Preset"),
     description: z.string().default("readme.md"),
     prompts: z.array(Prompt).default(defaultPrompts.map((prompt) => Prompt.parse(prompt))),
-    createdAt: z.date().default(new Date()),
-    updatedAt: z.date().default(new Date())
+    createdAt: z.date().default(() => new Date()),
+    updatedAt: z.date().default(() => new Date())
 });
 type PresetRecord = z.infer<typeof PresetRecord>;
 
