@@ -205,9 +205,7 @@ export async function buildContext(
     }
 
     const firstNonSystemIndex = prompt.findIndex((message) => message.role !== "system");
-
     const systemCount = firstNonSystemIndex === -1 ? prompt.length : firstNonSystemIndex;
-
     if (systemCount <= 1) return prompt;
 
     const systemMessages = prompt.slice(0, systemCount);
