@@ -35,13 +35,12 @@ import { formatDistanceToNow } from "date-fns";
 import { AlarmClock, AlarmClockOff, AlertTriangle, DatabaseBackup } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import z from "zod";
 
 const INTERVALS = {
-    daily: 24 * 60 * 60 * 1000,
-    weekly: 7 * 24 * 60 * 60 * 1000,
-    biweekly: 14 * 24 * 60 * 60 * 1000,
-    monthly: 30 * 24 * 60 * 60 * 1000,
+    daily: 1000 * 60 * 60 * 24,
+    weekly: 1000 * 60 * 60 * 24 * 7,
+    biweekly: 1000 * 60 * 60 * 24 * 14,
+    monthly: 1000 * 60 * 60 * 24 * 30,
     never: Infinity
 };
 
@@ -67,7 +66,7 @@ export function BackupStatus({ showDialogTrigger = false }: Props) {
     });
 
     useEffect(() => {
-        navigator.storage.persist().then((persisted) => {
+        void navigator.storage.persist().then((persisted) => {
             if (!persisted) {
                 console.warn("Storage persistence denied");
             }
@@ -76,25 +75,26 @@ export function BackupStatus({ showDialogTrigger = false }: Props) {
 
     const [dialogOpen, setDialogOpen] = useState(false);
 
-    const checkReminder = () => {
-        if (!settings?.enabled) return;
-        if (Date.now() < settings.snoozeUntil) return;
-        if (Date.now() - settings.lastReminder < 60 * 60 * 1000) return;
-
-        const intervalMs = INTERVALS[settings.interval];
-        const timeSinceLastBackup = Date.now() - settings.lastBackup;
-
-        if (timeSinceLastBackup >= intervalMs) {
-            setDialogOpen(true);
-            backupSettingsCollection.update("backup-settings", (draft) => {
-                draft.lastReminder = Date.now();
-            });
-        }
-    };
-
     useEffect(() => {
+        const checkReminder = () => {
+            if (!settings?.enabled) return;
+            if (Date.now() < settings.snoozeUntil) return;
+            if (Date.now() - settings.lastReminder < 60 * 60 * 1000) return;
+
+            const intervalMs = INTERVALS[settings.interval];
+            const timeSinceLastBackup = Date.now() - settings.lastBackup;
+
+            if (timeSinceLastBackup >= intervalMs) {
+                setDialogOpen(true);
+                backupSettingsCollection.update("backup-settings", (draft) => {
+                    draft.lastReminder = Date.now();
+                });
+            }
+        };
+
         checkReminder();
-        const interval = setInterval(checkReminder, 60 * 60 * 1000); // Check hourly
+
+        const interval = setInterval(checkReminder, 1000 * 60 * 60);
 
         const handleVisibilityChange = () => {
             if (!document.hidden) checkReminder();
@@ -106,7 +106,7 @@ export function BackupStatus({ showDialogTrigger = false }: Props) {
             clearInterval(interval);
             document.removeEventListener("visibilitychange", handleVisibilityChange);
         };
-    }, []);
+    }, [settings]);
 
     const handleSnooze = () => {
         backupSettingsCollection.update("backup-settings", (draft) => {
