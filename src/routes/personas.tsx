@@ -40,8 +40,7 @@ function PersonaEditor({ persona }: PersonaEditorProps) {
         defaultValues: persona,
         validators: {
             onMount: ({ value }) => persona.validate(value),
-            onChange: ({ value }) => persona.validate(value),
-            onSubmit: ({ value }) => persona.validate(value)
+            onChange: ({ value }) => persona.validate(value)
         },
         onSubmit: async ({ value }) => {
             try {
@@ -56,7 +55,7 @@ function PersonaEditor({ persona }: PersonaEditorProps) {
             onChangeDebounceMs: 500,
             onChange: ({ formApi: form }) => {
                 if (form.state.isValid && !form.state.isSubmitting) {
-                    form.handleSubmit();
+                    void form.handleSubmit();
                 }
             }
         }
@@ -76,7 +75,7 @@ function PersonaEditor({ persona }: PersonaEditorProps) {
             const file = event.target.files?.[0];
             if (file) {
                 const asset = await Asset.loadPersonaAsset(persona.id);
-                if (asset) await asset.update({ file });
+                await asset.update({ file });
             }
         }
     });
