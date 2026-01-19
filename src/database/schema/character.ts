@@ -12,7 +12,7 @@ const TavernCard = z.object({
     first_mes: z.string(),
     mes_example: z.string()
 });
-export type TavernCard = z.infer<typeof TavernCard>;
+type TavernCard = z.infer<typeof TavernCard>;
 
 export const TavernCardV2Data = z.object({
     ...TavernCard.shape,
@@ -35,21 +35,16 @@ export const TavernCardV2 = z.object({
 });
 export type TavernCardV2 = z.infer<typeof TavernCardV2>;
 
-const CharacterCardV3AssetType = z.union([
-    z.enum(["icon", "background", "user_icon", "emotion"]),
-    z
-        .string()
-        .regex(
-            /^x_[a-z0-9_]+$/,
-            "Custom asset types must begin with `x_` and contain only lowercase letters, digits, or underscores."
-        )
-]);
-
 export const CharacterCardV3Asset = z
     .object({
-        type: CharacterCardV3AssetType,
+        type: z.union([
+            z.enum(["icon", "background", "user_icon", "emotion"]),
+            z.stringFormat("customAssetType", /^x_[a-z0-9_]+$/, {
+                error: "Custom asset types must begin with  `x_` and contain only lowercase letters, digits, and underscores."
+            })
+        ]),
         uri: z.url({ protocol: /^ccdefault|embeded|embedded$/ }),
-        name: z.string().min(1),
+        name: z.string(),
         ext: z.union([z.literal("unknown"), z.string().toLowerCase()])
     })
     .refine(
@@ -61,7 +56,7 @@ export const CharacterCardV3Asset = z
             );
         },
         {
-            message: "URI must end with the file extension."
+            error: "URI must end with the file extension."
         }
     );
 export type CharacterCardV3Asset = z.infer<typeof CharacterCardV3Asset>;
