@@ -1,4 +1,4 @@
-import { settingsCollection } from "@/hooks/use-settings";
+import { settingsCollection } from "@/database/collections/settings";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/explore/")({

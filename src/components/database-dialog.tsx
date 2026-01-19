@@ -1,4 +1,3 @@
-import { backupSettingsCollection } from "@/components/backup-status";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -15,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
+import { backupSettingsCollection } from "@/database/collections/backup-settings";
 import { useFileDialog } from "@/hooks/use-file-dialog";
 import { downloadFile } from "@/lib/utils";
 import { format } from "date-fns";

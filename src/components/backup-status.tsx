@@ -28,7 +28,8 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { createCollection, localStorageCollectionOptions, useLiveQuery } from "@tanstack/react-db";
+import { BackupSettings, backupSettingsCollection } from "@/database/collections/backup-settings";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { AlarmClock, AlarmClockOff, AlertTriangle, DatabaseBackup } from "lucide-react";
@@ -43,30 +44,6 @@ const INTERVALS = {
     monthly: 30 * 24 * 60 * 60 * 1000,
     never: Infinity
 };
-
-const BackupSettings = z.object({
-    enabled: z.boolean().default(true),
-    interval: z.enum(["daily", "weekly", "biweekly", "monthly", "never"]).default("weekly"),
-    lastBackup: z.number().default(0),
-    lastReminder: z.number().default(0),
-    snoozeUntil: z.number().default(() => Date.now() + INTERVALS.weekly)
-});
-type BackupSettings = z.infer<typeof BackupSettings>;
-
-export const backupSettingsCollection = createCollection(
-    localStorageCollectionOptions({
-        id: "backup-settings",
-        storageKey: "backup-settings",
-        getKey: () => "backup-settings",
-        schema: BackupSettings
-    })
-);
-
-backupSettingsCollection.onFirstReady(() => {
-    if (!backupSettingsCollection.get("backup-settings")) {
-        backupSettingsCollection.insert(BackupSettings.parse({}));
-    }
-});
 
 interface Props {
     showDialogTrigger?: boolean;
