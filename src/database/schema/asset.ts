@@ -38,15 +38,15 @@ export class Asset implements AssetRecord {
             "[parentID+file.name]": [id, filename]
         });
         if (!asset) {
-            throw new Error(`Invalid asset parent ID ${id}`);
+            throw new Error(`Invalid asset ${id}/${filename}`);
         }
         return asset;
     }
 
     static async loadPersonaAsset(id: string) {
-        const asset = db.assets.get({ "[category+parentID]": ["persona", id] });
+        const asset = await db.assets.get({ "[category+parentID]": ["persona", id] });
         if (!asset) {
-            throw new Error(`Invalid asset ID ${id}`);
+            throw new Error(`Invalid persona ID ${id}`);
         }
         return asset;
     }
