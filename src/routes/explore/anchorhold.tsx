@@ -4,7 +4,7 @@ import { fetchAnchorholdConfig, fetchAnchorholdPage } from "@/lib/explore/anchor
 import AnchorholdList from "@/routes/explore/components/anchorhold/list";
 import { AnchorholdSearch } from "@/routes/explore/components/anchorhold/search";
 import { queryOptions, useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { createFileRoute, stripSearchParams, useSearch } from "@tanstack/react-router";
 import z from "zod";
 
 const configQuery = queryOptions({
@@ -64,5 +64,12 @@ export const Route = createFileRoute("/explore/anchorhold")({
     loader: ({ context: { queryClient } }) => {
         void queryClient.ensureQueryData(configQuery);
         return db.characters.toArray();
+    },
+    search: {
+        middlewares: [
+            stripSearchParams({
+                search: ""
+            })
+        ]
     }
 });
