@@ -33,7 +33,6 @@ interface CharacterListProps {
     hasNextPage: boolean;
     fetchNextPage: () => void;
     onTagClick: (tag: string) => void;
-    onCreatorClick: (creator: string) => void;
 }
 
 export default function CharacterList({
@@ -42,8 +41,7 @@ export default function CharacterList({
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage,
-    onTagClick,
-    onCreatorClick
+    onTagClick
 }: CharacterListProps) {
     const [selectedCharacter, setSelectedCharacter] = useState<ChubCharacter>();
     const [modalOpen, setModalOpen] = useState(false);
@@ -196,12 +194,12 @@ export default function CharacterList({
 
     if (isFetching && !isFetchingNextPage) {
         return (
-            <div ref={gridRef} className="w-full relative pt-2 pb-4 my-2">
-                <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(256px,1fr))] gap-2">
+            <div ref={gridRef} className="relative my-2 w-full pt-2 pb-4">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-[repeat(auto-fit,minmax(256px,1fr))]">
                     {[...Array(columnCount * 4)].map((_, index) => (
                         <Skeleton
                             key={`skeleton-${index}`}
-                            className="rounded-xl w-auto h-44 md:h-96"
+                            className="h-44 w-auto rounded-xl md:h-96"
                         />
                     ))}
                 </div>
@@ -211,9 +209,9 @@ export default function CharacterList({
 
     if (characters.length === 0 && !isFetching) {
         return (
-            <div ref={gridRef} className="w-full relative pt-2 pb-4 my-2">
-                <div className="col-span-full flex flex-col items-center justify-center h-64">
-                    <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" />
+            <div ref={gridRef} className="relative my-2 w-full pt-2 pb-4">
+                <div className="col-span-full flex h-64 flex-col items-center justify-center">
+                    <AlertTriangle className="mb-4 h-12 w-12 text-muted-foreground" />
                     <p className="text-lg text-muted-foreground">No characters found</p>
                 </div>
             </div>
@@ -224,7 +222,7 @@ export default function CharacterList({
         <>
             <div
                 ref={gridRef}
-                className="w-full relative pt-2 pb-4 my-2"
+                className="relative my-2 w-full pt-2 pb-4"
                 style={{ height: virtualizer.getTotalSize() }}
             >
                 {virtualItems.map((row) => (
@@ -233,8 +231,8 @@ export default function CharacterList({
                         data-index={row.index}
                         ref={virtualizer.measureElement}
                         className={cn(
-                            "w-full absolute top-0 left-0",
-                            "grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(256px,1fr))] gap-2"
+                            "absolute top-0 left-0 w-full",
+                            "grid grid-cols-1 gap-2 sm:grid-cols-[repeat(auto-fit,minmax(256px,1fr))]"
                         )}
                         style={{
                             transform: `translateY(${row.start - virtualizer.options.scrollMargin}px)`
@@ -255,7 +253,6 @@ export default function CharacterList({
                                     isDownloaded={isDownloaded}
                                     onCardClick={handleCharacterClick}
                                     onDownloadClick={handleDownloadClick}
-                                    onCreatorClick={onCreatorClick}
                                     onTagClick={onTagClick}
                                 />
                             );
@@ -290,12 +287,12 @@ export default function CharacterList({
 
             {selectedCharacter && (
                 <CharacterModal
-                    openState={[modalOpen, setModalOpen]}
+                    open={modalOpen}
+                    onOpenChange={setModalOpen}
                     character={selectedCharacter!}
                     isDownloaded={characterPaths.has(selectedCharacter!.fullPath)}
                     onDownloadClick={handleDownloadClick}
                     onTagClick={onTagClick}
-                    onCreatorClick={onCreatorClick}
                 />
             )}
         </>

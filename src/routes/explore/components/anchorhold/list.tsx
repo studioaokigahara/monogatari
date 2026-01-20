@@ -79,7 +79,7 @@ export default function AnchorholdList({
             const isUpdate =
                 anchorholdIDs.has(post.id) || (fullPath ? chubFullPaths.has(fullPath) : false);
 
-            let imageBlob: Blob;
+            let imageLink: string;
             let characterInfo: ChubCharacterResponse | undefined;
 
             if (fullPath) {
@@ -97,27 +97,9 @@ export default function AnchorholdList({
                     throw new Error(`Return character info for ${fullPath} has no max_res_url`);
                 }
 
-                const image = await fetch(characterInfo?.node.max_res_url, {
-                    referrerPolicy: "no-referrer"
-                });
-
-                if (!image.ok) {
-                    throw new Error(
-                        `Failed to fetch character image: ${image.status} ${image.statusText}`
-                    );
-                }
-
-                imageBlob = await image.blob();
+                imageLink = characterInfo.node.max_res_url;
             } else if (post.imageURL) {
-                const image = await fetch(post.imageURL);
-
-                if (!image.ok) {
-                    throw new Error(
-                        `Failed to fetch character image: ${image.status} ${image.statusText}`
-                    );
-                }
-
-                imageBlob = await image.blob();
+                imageLink = post.imageURL;
             } else {
                 const link = post.links.find((link) =>
                     /\.(png|webp|jpe?g)(\?.*)?$/i.test(link.href)
@@ -127,17 +109,20 @@ export default function AnchorholdList({
                     throw new Error("No chub.ai link, image link, or images found in post.");
                 }
 
-                const image = await fetch(link.href);
-
-                if (!image.ok) {
-                    throw new Error(
-                        `Failed to fetch character image: ${image.status} ${image.statusText}`
-                    );
-                }
-
-                imageBlob = await image.blob();
+                imageLink = link.href;
             }
 
+            const image = await fetch(imageLink, {
+                referrerPolicy: "no-referrer"
+            });
+
+            if (!image.ok) {
+                throw new Error(
+                    `Failed to fetch character image: ${image.status} ${image.statusText}`
+                );
+            }
+
+            const imageBlob = await image.blob();
             const arrayBuffer = await imageBlob.arrayBuffer();
             const json = characterInfo
                 ? await fetchCharacterJSON(characterInfo.node)
@@ -235,11 +220,11 @@ export default function AnchorholdList({
 
     if (isFetching && !isFetchingNextPage) {
         return (
-            <div ref={listRef} className="relative w-full pt-2 pb-4 overflow-auto space-y-2">
+            <div ref={listRef} className="relative w-full space-y-2 overflow-auto pt-2 pb-4">
                 {[...Array(8)].map((_, index) => (
                     <Skeleton
                         key={`skeleton-${index}`}
-                        className="rounded-xl w-auto h-64 sm:h-96"
+                        className="h-64 w-auto rounded-xl sm:h-96"
                     />
                 ))}
             </div>
@@ -248,8 +233,8 @@ export default function AnchorholdList({
 
     if (posts.length === 0 && !isFetching) {
         return (
-            <div className="col-span-full flex flex-col items-center justify-center h-64">
-                <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" />
+            <div className="col-span-full flex h-64 flex-col items-center justify-center">
+                <AlertTriangle className="mb-4 h-12 w-12 text-muted-foreground" />
                 <p className="text-lg text-muted-foreground">No posts found.</p>
             </div>
         );
@@ -258,7 +243,7 @@ export default function AnchorholdList({
     return (
         <div
             ref={listRef}
-            className="relative w-full mt-2 pt-2 pb-4 overflow-auto"
+            className="relative mt-2 w-full overflow-auto pt-2 pb-4"
             style={{ height: virtualizer.getTotalSize() }}
         >
             {virtualItems.map((item) => {

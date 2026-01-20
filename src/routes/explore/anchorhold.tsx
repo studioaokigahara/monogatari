@@ -4,8 +4,8 @@ import { fetchAnchorholdConfig, fetchAnchorholdPage } from "@/lib/explore/anchor
 import AnchorholdList from "@/routes/explore/components/anchorhold/list";
 import { AnchorholdSearch } from "@/routes/explore/components/anchorhold/search";
 import { queryOptions, useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
+import z from "zod";
 
 const configQuery = queryOptions({
     queryKey: ["anchorhold", "config"],
@@ -13,12 +13,7 @@ const configQuery = queryOptions({
 });
 
 function Anchorhold() {
-    const [searchTerm, setSearchTerm] = useState("");
-    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchTerm(event.target.value);
-    };
-
-    const { data: config } = useQuery(configQuery);
+    const { data: config, isFetching: isFetchingConfig } = useQuery(configQuery);
 
     const { data, fetchNextPage, hasNextPage, isFetching, isFetchingNextPage } = useInfiniteQuery({
         queryKey: ["anchorhold", "feed"],
@@ -31,22 +26,25 @@ function Anchorhold() {
         enabled: !!config
     });
 
+    const { search } = useSearch({ from: "/explore/anchorhold" });
+
     const posts =
         data?.pages
             .flat()
-            .filter((post) => post.content.toLowerCase().includes(searchTerm.toLowerCase())) ?? [];
+            .filter((post) => post.content.toLowerCase().includes(search?.toLowerCase() ?? "")) ??
+        [];
 
     return (
-        <div className="flex flex-col relative">
-            <Header className="bg-background -mb-1" />
+        <div className="relative flex flex-col">
+            <Header className="-mb-1 bg-background" />
             <div className="sticky top-0 z-50">
-                <div className="bg-background/66 backdrop-blur border rounded-xl mt-2">
-                    <AnchorholdSearch onChange={handleChange} />
+                <div className="mt-2 rounded-xl border bg-background/66 backdrop-blur">
+                    <AnchorholdSearch />
                 </div>
             </div>
             <AnchorholdList
                 posts={posts}
-                isFetching={isFetching}
+                isFetching={isFetchingConfig || isFetching}
                 isFetchingNextPage={isFetchingNextPage}
                 hasNextPage={hasNextPage}
                 fetchNextPage={fetchNextPage}
@@ -57,6 +55,9 @@ function Anchorhold() {
 
 export const Route = createFileRoute("/explore/anchorhold")({
     component: Anchorhold,
+    validateSearch: z.object({
+        search: z.string().optional()
+    }),
     beforeLoad: () => ({
         breadcrumb: "Anchorhold"
     }),

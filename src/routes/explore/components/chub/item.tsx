@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { DownloadButton } from "@/routes/explore/components/download-button";
 import { type ChubCharacter } from "@/types/explore/chub";
+import { Link } from "@tanstack/react-router";
 import { Heart } from "lucide-react";
 
 interface Props {
@@ -21,7 +22,6 @@ interface Props {
     isDownloaded: boolean;
     onCardClick: (character: ChubCharacter) => void;
     onDownloadClick: (character: ChubCharacter) => Promise<void>;
-    onCreatorClick: (creator: string) => void;
     onTagClick: (tag: string) => void;
 }
 
@@ -30,7 +30,6 @@ export function ChubCharacterItem({
     isDownloaded,
     onCardClick,
     onDownloadClick,
-    onCreatorClick,
     onTagClick
 }: Props) {
     const handleCardClick = (event: React.MouseEvent) => {
@@ -40,11 +39,6 @@ export function ChubCharacterItem({
 
     const handleDownloadClick = async () => {
         await onDownloadClick(character);
-    };
-
-    const handleCreatorClick = (event: React.MouseEvent) => {
-        event.stopPropagation();
-        onCreatorClick(character.fullPath.split("/")[0]);
     };
 
     const handleTagClick = (event: React.MouseEvent, tag: string) => {
@@ -69,7 +63,7 @@ export function ChubCharacterItem({
                         <AvatarImage
                             src={character.avatar_url}
                             alt={character.name}
-                            className="rounded-md cursor-pointer z-1"
+                            className="z-1 cursor-pointer rounded-md"
                             onClick={handleCardClick}
                         />
                         <AvatarFallback className="rounded-xl">
@@ -81,33 +75,38 @@ export function ChubCharacterItem({
             <ItemContent className="z-1">
                 <div className="flex flex-col">
                     <ItemTitle
-                        className="font-semibold leading-none cursor-pointer hover:underline"
+                        className="cursor-pointer leading-none font-semibold hover:underline"
                         onClick={handleCardClick}
                     >
                         {character.name}
                     </ItemTitle>
                     <div className="flex justify-between text-muted-foreground">
-                        <span
-                            role="button"
-                            className="cursor-pointer hover:underline"
-                            onClick={handleCreatorClick}
+                        <Link
+                            from="/explore/chub"
+                            search={(prev) => ({
+                                ...prev,
+                                creator: character.fullPath.split("/")[0].replace("@", ""),
+                                excludedTags: "",
+                                sort: "created_at"
+                            })}
+                            className="hover:underline"
                         >
                             @{character.fullPath.split("/")[0]}
-                        </span>
+                        </Link>
                         <span className="flex gap-1">
-                            <Heart fill="hotpink" className="size-4 mt-px text-[hotpink]" />
+                            <Heart fill="hotpink" className="mt-px size-4 text-[hotpink]" />
                             {character.n_favorites}
                         </span>
                     </div>
                 </div>
-                <ItemDescription className="text-foreground line-clamp-4">
+                <ItemDescription className="line-clamp-4 text-foreground">
                     {character.tagline}
                 </ItemDescription>
             </ItemContent>
             <ItemFooter className="flex-col">
                 <TagList
                     tags={character.topics}
-                    className="hover:bg-secondary cursor-pointer"
+                    className="cursor-pointer hover:bg-secondary"
                     onTagClick={handleTagClick}
                 />
             </ItemFooter>

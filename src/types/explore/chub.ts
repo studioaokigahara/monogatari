@@ -110,7 +110,7 @@ export const SearchOptions = z.object({
     namespace: z.enum(["characters", "lorebooks"]).default("characters"),
     includedTags: z.string().default(""),
     excludedTags: z.string().default("ntr"),
-    nsfw: z.stringbool().default(true),
+    nsfw: z.union([z.stringbool(), z.boolean()]).default(true),
     itemsPerPage: z.coerce.number().default(24),
     sort: z
         .enum([
@@ -128,8 +128,10 @@ export const SearchOptions = z.object({
             "random"
         ])
         .default("trending_downloads"),
-    sortAscending: z.preprocess((value: string) => value === "asc", z.boolean()).default(false),
+    sortAscending: z
+        .union([z.preprocess((value: string) => value === "asc", z.boolean()), z.boolean()])
+        .default(false),
     page: z.number().default(1),
-    inclusiveOr: z.stringbool().default(false)
+    inclusiveOr: z.union([z.stringbool(), z.boolean()]).default(false)
 });
 export type SearchOptions = z.infer<typeof SearchOptions>;
