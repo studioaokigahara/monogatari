@@ -13,21 +13,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Preset, Prompt } from "@/database/schema/preset";
 import { cn, generateCuid2 } from "@/lib/utils";
 import { useForm } from "@tanstack/react-form";
-import { Bot, ListEnd, ListStart, Plus, Save, Terminal, Trash2, User, X } from "lucide-react";
+import { Bot, ListEnd, ListStart, Plus, Terminal, Trash2, User } from "lucide-react";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
 interface PromptEditorProps {
     selectedPreset: Preset;
-    updateSelectedPreset: (id: string) => void;
     promptIndex: number;
 }
 
-export function PromptEditor({
-    selectedPreset,
-    updateSelectedPreset,
-    promptIndex
-}: PromptEditorProps) {
+export function PromptEditor({ selectedPreset, promptIndex }: PromptEditorProps) {
     const form = useForm({
         defaultValues: selectedPreset,
         validators: {
@@ -46,7 +41,7 @@ export function PromptEditor({
             onChangeDebounceMs: 500,
             onChange: ({ formApi: form }) => {
                 if (form.state.isValid && !form.state.isSubmitting) {
-                    form.handleSubmit();
+                    void form.handleSubmit();
                 }
             }
         }
@@ -86,7 +81,7 @@ export function PromptEditor({
 
     return (
         <form
-            className="flex flex-col grow pt-6 pb-2 gap-4 overflow-y-auto @container"
+            className="@container flex grow flex-col gap-4 overflow-y-auto px-1 pt-6 pb-2"
             onSubmit={(event) => {
                 event.preventDefault();
                 void form.handleSubmit();
@@ -135,7 +130,7 @@ export function PromptEditor({
                     <form.Field name="prompts" mode="array">
                         {() => (
                             <>
-                                <div className="flex @max-md:flex-wrap @max-md:gap-2 justify-between">
+                                <div className="flex justify-between @max-md:flex-wrap @max-md:gap-2">
                                     <form.Subscribe
                                         selector={(state) => state.values.prompts[promptIndex]}
                                     >
@@ -153,11 +148,11 @@ export function PromptEditor({
                                                                 <FieldLabel
                                                                     htmlFor={field.name}
                                                                     className={cn(
-                                                                        "text-base bg-[unset]!",
+                                                                        "bg-[unset]! text-base",
                                                                         getRoleColor(prompt.role)
                                                                     )}
                                                                 >
-                                                                    <span className="max-w-[27ch] text-balance font-semibold mb-px truncate">
+                                                                    <span className="mb-px max-w-[27ch] truncate font-semibold text-balance">
                                                                         {prompt.name}
                                                                     </span>
                                                                     <Switch
@@ -172,7 +167,7 @@ export function PromptEditor({
                                                                             )
                                                                         }
                                                                     />
-                                                                    <span className="text-xs bg-muted px-2 py-1 rounded capitalize">
+                                                                    <span className="rounded bg-muted px-2 py-1 text-xs capitalize">
                                                                         {prompt.role} •{" "}
                                                                         {prompt.position}
                                                                     </span>
@@ -191,31 +186,8 @@ export function PromptEditor({
                                             </div>
                                         )}
                                     </form.Subscribe>
-                                    <div className="space-x-2 my-auto">
-                                        <form.Subscribe
-                                            selector={(state) => [
-                                                state.isSubmitting,
-                                                state.isValid
-                                            ]}
-                                        >
-                                            {([isSubmitting, isValid]) => (
-                                                <Button
-                                                    type="submit"
-                                                    disabled={isSubmitting || !isValid}
-                                                >
-                                                    <Save />
-                                                    {isSubmitting ? "Saving..." : "Save"}
-                                                </Button>
-                                            )}
-                                        </form.Subscribe>
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => updateSelectedPreset("")}
-                                        >
-                                            <X />
-                                            Cancel
-                                        </Button>
-                                        <Button variant="outline" onClick={addPrompt}>
+                                    <div className="my-auto space-x-2">
+                                        <Button onClick={addPrompt}>
                                             <Plus />
                                             New
                                         </Button>

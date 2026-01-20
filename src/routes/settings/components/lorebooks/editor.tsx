@@ -29,7 +29,7 @@ import { toast } from "sonner";
 
 function NoLorebookEntries() {
     return (
-        <Empty className="border border-dashed my-6">
+        <Empty className="my-6 border border-dashed">
             <EmptyHeader>
                 <EmptyMedia variant="icon">
                     <TextSelect />
@@ -67,7 +67,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
             onChangeDebounceMs: 500,
             onChange: ({ formApi: form }) => {
                 if (form.state.isValid && !form.state.isSubmitting) {
-                    form.handleSubmit();
+                    void form.handleSubmit();
                 }
             }
         }
@@ -117,7 +117,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
     const CommonForm = () => (
         <>
             <FieldGroup className="*:gap-1">
-                <FieldGroup className="flex flex-row @max-md:flex-wrap *:gap-1">
+                <FieldGroup className="flex flex-row *:gap-1 @max-md:flex-wrap">
                     <form.Field name="data.name">
                         {(field) => {
                             const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
@@ -141,7 +141,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                         {(field) => {
                             const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
                             return (
-                                <Field data-invalid={invalid} className="w-min self-center mt-6">
+                                <Field data-invalid={invalid} className="mt-6 w-min self-center">
                                     <FieldLabel htmlFor={field.name} className="bg-[unset]!">
                                         Enabled
                                         <Switch
@@ -149,7 +149,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                                             name={field.name}
                                             checked={Boolean(field.state.value)}
                                             onCheckedChange={(checked) =>
-                                                field.handleChange(Number(checked))
+                                                field.handleChange(checked ? 1 : 0)
                                             }
                                         />
                                     </FieldLabel>
@@ -162,7 +162,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                         {(field) => {
                             const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
                             return (
-                                <Field data-invalid={invalid} className="w-min self-center mt-6">
+                                <Field data-invalid={invalid} className="mt-6 w-min self-center">
                                     <FieldLabel htmlFor={field.name} className="bg-[unset]!">
                                         Global
                                         <Switch
@@ -170,7 +170,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                                             name={field.name}
                                             checked={Boolean(field.state.value)}
                                             onCheckedChange={(checked) =>
-                                                field.handleChange(Number(checked))
+                                                field.handleChange(checked ? 1 : 0)
                                             }
                                         />
                                     </FieldLabel>
@@ -183,7 +183,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                         {(field) => {
                             const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
                             return (
-                                <Field data-invalid={invalid} className="w-min self-center mt-6">
+                                <Field data-invalid={invalid} className="mt-6 w-min self-center">
                                     <FieldLabel htmlFor={field.name} className="bg-[unset]!">
                                         Recursive
                                         <Switch
@@ -221,7 +221,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                         );
                     }}
                 </form.Field>
-                <FieldGroup className="w-full flex flex-row *:gap-1">
+                <FieldGroup className="flex w-full flex-row *:gap-1">
                     <form.Field name="data.scan_depth">
                         {(field) => {
                             const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
@@ -293,7 +293,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
     if (!lorebook.data.entries) {
         return (
             <form
-                className="flex flex-col grow pt-6 pb-2 gap-4 overflow-auto"
+                className="flex grow flex-col gap-4 overflow-auto pt-6 pb-2"
                 onSubmit={(event) => {
                     event.preventDefault();
                     void form.handleSubmit();
@@ -309,7 +309,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
 
     return (
         <form
-            className="flex flex-col grow pt-6 pb-2 gap-4 overflow-auto @container"
+            className="@container flex grow flex-col gap-4 overflow-auto px-1 pt-6 pb-2"
             onSubmit={(event) => {
                 event.preventDefault();
                 void form.handleSubmit();
@@ -325,8 +325,8 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                                     selector={(state) => state.values.data.entries[index]}
                                 >
                                     {(entry) => (
-                                        <div className="flex flex-col @max-md:flex-wrap gap-2 justify-between">
-                                            <div className="flex flex-row @max-md:flex-wrap grow gap-1 items-center">
+                                        <div className="flex flex-col justify-between gap-2 @max-md:flex-wrap">
+                                            <div className="flex grow flex-row items-center gap-1 @max-md:flex-wrap">
                                                 <form.Field name={`data.entries[${index}].enabled`}>
                                                     {(field) => {
                                                         const invalid =
@@ -339,7 +339,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                                                             >
                                                                 <FieldLabel
                                                                     htmlFor={field.name}
-                                                                    className="text-base font-semibold bg-[unset]!"
+                                                                    className="bg-[unset]! text-base font-semibold"
                                                                 >
                                                                     {entry.name}
                                                                     <Switch
@@ -366,7 +366,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: Props) {
                                                         );
                                                     }}
                                                 </form.Field>
-                                                <div className="flex flex-nowrap gap-2 content-center">
+                                                <div className="flex flex-nowrap content-center gap-2">
                                                     <Button onClick={addEntry}>
                                                         <ListPlus />
                                                         Add Entry

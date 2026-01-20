@@ -64,7 +64,6 @@ function PresetSettings() {
                         {selectedPreset ? (
                             <PromptEditor
                                 selectedPreset={selectedPreset}
-                                updateSelectedPreset={updateSelectedPreset}
                                 promptIndex={promptIndex}
                             />
                         ) : (
