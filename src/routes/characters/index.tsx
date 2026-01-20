@@ -2,6 +2,7 @@ import Header from "@/components/header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
+import { ItemGroup } from "@/components/ui/item";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { db } from "@/database/monogatari-db";
@@ -107,13 +108,13 @@ function CharacterList({ characters }: { characters: Character[] }) {
     }
 
     return (
-        <div
+        <ItemGroup
             ref={gridRef}
             className="relative mb-2 w-full"
             style={{ height: virtualizer.getTotalSize() }}
         >
             {virtualizer.getVirtualItems().map((row) => (
-                <div
+                <ItemGroup
                     key={row.key}
                     ref={virtualizer.measureElement}
                     data-index={row.index}
@@ -131,9 +132,9 @@ function CharacterList({ characters }: { characters: Character[] }) {
                         if (!characterItem) return null;
                         return characterItem;
                     })}
-                </div>
+                </ItemGroup>
             ))}
-        </div>
+        </ItemGroup>
     );
 }
 
