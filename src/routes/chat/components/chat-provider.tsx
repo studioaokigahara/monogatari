@@ -64,7 +64,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
             if (abortController.signal.aborted) return;
 
-            const characterIDs = graphSync.characterIDs;
+            const characterIDs = graphSync.chat.characterIDs;
             if (characterIDs.length > 0) {
                 const chatCharacters = await Promise.all(
                     characterIDs.map((id) => Character.load(id))
@@ -87,7 +87,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                     }
                 }),
                 id,
-                messages: graphSync.getInitialMessages(),
+                messages: graphSync.chat.flatten(),
                 onFinish: async ({ message }) => {
                     await graphSync.commitOnFinish(message);
                 },

@@ -111,9 +111,7 @@ function ChatHistoryItem({ chat, isActive, isMobile, setGraphID }: ChatHistoryIt
     };
 
     const exportChat = async () => {
-        const result = await Chat.load(chat.id);
-        const { graph, record } = result;
-        const data = JSON.stringify(graph.save());
+        const data = JSON.stringify(chat);
         const file = new File(
             [data],
             `${record.title || chat.id} ${new Date().toLocaleDateString()}.json`,

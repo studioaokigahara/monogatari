@@ -43,9 +43,7 @@ interface Props {
 export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
     const { character, persona } = useCharacterContext();
     const { chat } = useChatContext();
-    const { messages, sendMessage, status, regenerate, stop } = useChat<Message>({
-        chat
-    });
+    const { messages, sendMessage, status, regenerate, stop } = useChat<Message>({ chat });
 
     const [input, setInput] = useState("");
     const [files, setFiles] = useState<FileList | FileUIPart[]>();

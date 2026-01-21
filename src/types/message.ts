@@ -21,7 +21,7 @@ const LanguageModelUsage = z.object({
 });
 type LanguageModelUsage = z.infer<typeof LanguageModelUsage>;
 
-const Metadata = z
+export const Metadata = z
     .object({
         model: z.string().optional(),
         usage: LanguageModelUsage.extend({
@@ -32,7 +32,7 @@ const Metadata = z
         updatedAt: z.date().optional()
     })
     .optional();
-type Metadata = z.infer<typeof Metadata>;
+export type Metadata = z.infer<typeof Metadata>;
 
 export const Message = z.custom<UIMessage<Metadata>>((message) => {
     return validateUIMessages({

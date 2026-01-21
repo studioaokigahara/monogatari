@@ -10,9 +10,7 @@ interface Props {
 
 export default function MessageThread({ scrollRef }: Props) {
     const { chat } = useChatContext();
-    const { messages, status } = useChat<MessageType>({
-        chat
-    });
+    const { messages, status } = useChat<MessageType>({ chat });
 
     const uiMessages = messages
         .filter((message) => message.role !== "system")
@@ -42,7 +40,7 @@ export default function MessageThread({ scrollRef }: Props) {
         });
 
     return (
-        <div className="flex flex-col grow sm:w-2xl @min-[1025px]:w-3xl sm:mx-auto place-center mt-4 mb-8">
+        <div className="place-center mt-4 mb-8 flex grow flex-col sm:mx-auto sm:w-2xl @min-[1025px]:w-3xl">
             {uiMessages}
             <div ref={scrollRef} id="chatScrollAnchor" />
         </div>

@@ -1,4 +1,4 @@
-import { ChatGraph } from "@/lib/graph";
+import { Chat } from "@/database/schema/chat";
 import {
     Simulation,
     SimulationNodeDatum,
@@ -23,25 +23,24 @@ import {
 } from "reactflow";
 import "reactflow/dist/style.css";
 
-function Graph({ graph }: { graph: ChatGraph }) {
+function Graph({ chat }: { chat: Chat }) {
     const [initialNodes, initialEdges] = useMemo(() => {
-        const graphObj = graph.save();
-        const initialNodes = graphObj.vertices.map((v) => ({
-            id: v.id,
+        const initialNodes = chat.vertices.map((vertex) => ({
+            id: vertex.id,
             position: {
                 x: Math.random() * 400 - 200,
                 y: Math.random() * 400 - 200
             },
-            data: { label: v.messages.map((m) => `${m.role}\n\n${m.id}`) }
+            data: { label: `${vertex.message?.role}\n\n${vertex.message?.id}` }
         }));
-        const initialEdges = graphObj.vertices.flatMap((v) => ({
-            id: `${v.parent ?? ""}-${v.id}`,
-            source: v.parent ?? "",
-            target: v.id,
+        const initialEdges = chat.vertices.map((vertex) => ({
+            id: `${vertex.parent ?? ""}-${vertex.id}`,
+            source: vertex.parent ?? "",
+            target: vertex.id,
             animated: true
         }));
         return [initialNodes, initialEdges];
-    }, [graph]);
+    }, [chat]);
 
     const [nodes, , onNodesChange] = useNodesState(initialNodes);
     const [edges, , onEdgesChange] = useEdgesState(initialEdges);
@@ -63,9 +62,7 @@ function Graph({ graph }: { graph: ChatGraph }) {
 
     useEffect(() => {
         nodeIndexRef.current.clear();
-        nodes.forEach((node, index) =>
-            nodeIndexRef.current.set(node.id, index)
-        );
+        nodes.forEach((node, index) => nodeIndexRef.current.set(node.id, index));
     }, [nodes]);
 
     const render = useCallback(
@@ -261,10 +258,10 @@ function Graph({ graph }: { graph: ChatGraph }) {
     );
 }
 
-export function GraphRenderer({ graph }: { graph: ChatGraph }) {
+export function GraphRenderer({ chat }: { chat: Chat }) {
     return (
         <ReactFlowProvider>
-            <Graph graph={graph} />
+            <Graph chat={chat} />
         </ReactFlowProvider>
     );
 }

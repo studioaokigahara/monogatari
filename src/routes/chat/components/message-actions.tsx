@@ -57,9 +57,7 @@ export function MessageActions({
 }: Props) {
     const { character, persona } = useCharacterContext();
     const { graphSync, chat } = useChatContext();
-    const { messages, setMessages, regenerate, status } = useChat<Message>({
-        chat
-    });
+    const { messages, setMessages, regenerate, status } = useChat<Message>({ chat });
 
     const navigate = useNavigate();
 
@@ -76,34 +74,27 @@ export function MessageActions({
     }, []);
 
     const regenerateMessage = () => {
-        const vertex =
+        const messageID =
             message.role === "user"
-                ? graphSync.vertexMap.get(message.id)
+                ? message.id
                 : index === 0
-                  ? graphSync.graph.id
-                  : graphSync.vertexMap.get(messages[index - 1].id);
+                  ? graphSync.chat.id
+                  : messages[index - 1].id;
 
-        if (!vertex) {
-            toast.error("Failed to find message ID in vertex map");
-            return;
-        }
-
-        graphSync.setBranchPoint(vertex);
+        graphSync.setBranchPoint(messageID);
         void regenerate({ messageId: message.id });
     };
 
     const deleteMessage = async () => {
-        const vertexID = graphSync.vertexMap.get(message.id);
-        if (!vertexID) return;
-        await graphSync.deleteVertex(vertexID);
+        await graphSync.deleteMessage(message.id);
         setMessages((messages) => messages.slice(0, index - 1));
         toast.success("Message deleted.");
     };
 
     const forkChat = async () => {
         const isLastMessage = messages.length === index + 1;
-        const next = isLastMessage ? undefined : graphSync.vertexMap.get(messages[index + 1].id);
-        const id = await Chat.fork(graphSync.graph, graphSync.characterIDs, graphSync.title, next);
+        const next = isLastMessage ? undefined : messages[index + 1].id;
+        const id = await Chat.fork(graphSync.chat, next);
         void navigate({ to: "/chat/$id", params: { id } });
     };
 
@@ -133,39 +124,27 @@ export function MessageActions({
             return;
         }
 
-        const vertexID = graphSync.vertexMap.get(message.id);
-        if (!vertexID) return;
-
-        const vertex = graphSync.graph.getVertex(vertexID);
+        const vertex = graphSync.chat.getVertex(message.id);
         if (!vertex || !vertex.parent) return;
 
-        graphSync.setBranchPoint(vertex.parent);
+        const newMessage: Message = {
+            id: generateCuid2(),
+            role: "user",
+            parts: [
+                {
+                    type: "text",
+                    text: replaceMacros(editedContent, {
+                        character,
+                        persona
+                    })
+                }
+            ],
+            metadata: { createdAt: new Date() }
+        };
 
-        const newMessages: Message[] = [
-            ...messages.slice(0, index),
-            {
-                id: generateCuid2(),
-                role: "user",
-                parts: [
-                    {
-                        type: "text",
-                        text: replaceMacros(editedContent, {
-                            character,
-                            persona
-                        })
-                    }
-                ],
-                metadata: { createdAt: new Date() }
-            }
-        ];
+        graphSync.chat.createVertex(vertex.parent, newMessage);
 
-        graphSync.commit(newMessages).catch((error: Error) => {
-            toast.error("Failed to update message", {
-                description: error.message
-            });
-        });
-
-        setMessages(newMessages);
+        setMessages(messages.toSpliced(index, 1, newMessage));
         setEditing(false);
         void regenerate();
         toast.success("Message updated. Regenerating last assistant message...");
@@ -206,9 +185,7 @@ export function MessageActions({
             });
         });
 
-        const newMessages = messages.toSpliced(index, 1, editedMessage);
-
-        setMessages(newMessages);
+        setMessages(messages.toSpliced(index, 1, editedMessage));
         setEditing(false);
         toast.success("Message updated.");
     };

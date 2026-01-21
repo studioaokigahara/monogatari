@@ -1,10 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useChatContext } from "@/contexts/chat";
 import { cn } from "@/lib/utils";
 import { type Message } from "@/types/message";
@@ -22,9 +18,7 @@ export function BranchSelector({ message, editing, className }: Props) {
     const { graphSync, chat } = useChatContext();
     const { setMessages, status } = useChat<Message>({ chat });
 
-    const [siblings, setSiblings] = useState(
-        graphSync.getSiblingCount(message.id)
-    );
+    const [siblings, setSiblings] = useState(graphSync.getSiblingCount(message.id));
 
     useEffect(() => {
         if (editing) return;
@@ -46,11 +40,7 @@ export function BranchSelector({ message, editing, className }: Props) {
 
     const selectBranch = (offset: -1 | 1) => {
         setMessages((messages) => {
-            const branchMessages = graphSync.selectBranch(
-                messages,
-                message.id,
-                offset
-            );
+            const branchMessages = graphSync.selectBranch(message.id, offset);
             return branchMessages ?? messages;
         });
     };
@@ -66,7 +56,7 @@ export function BranchSelector({ message, editing, className }: Props) {
             className={cn(
                 "h-9 transition-[width,margin,opacity] will-change-[width,margin,opacity]",
                 siblings.total <= 1 &&
-                    "group-data-[role=assistant]:w-0 -ml-2 opacity-0 pointer-events-none"
+                    "pointer-events-none -ml-2 opacity-0 group-data-[role=assistant]:w-0"
             )}
         >
             <Tooltip>
@@ -85,10 +75,7 @@ export function BranchSelector({ message, editing, className }: Props) {
                 <TooltipContent side="bottom">Previous Branch</TooltipContent>
             </Tooltip>
             <ButtonGroupText
-                className={cn(
-                    "bg-transparent border-0 peer-disabled:opacity-50",
-                    className
-                )}
+                className={cn("border-0 bg-transparent peer-disabled:opacity-50", className)}
             >
                 {siblings.current} / {siblings.total}
             </ButtonGroupText>
