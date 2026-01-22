@@ -111,8 +111,10 @@ export function Message({ message, index, streaming, showTypingIndicator }: Mess
                         <MessageActions
                             message={message}
                             index={index}
-                            editingState={[editing, setEditing]}
-                            editedContentState={[editedContent, setEditedContent]}
+                            editing={editing}
+                            setEditing={setEditing}
+                            editedContent={editedContent}
+                            setEditedContent={setEditedContent}
                             className={buttonClasses}
                         />
                     </>

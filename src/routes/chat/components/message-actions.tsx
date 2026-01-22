@@ -43,16 +43,20 @@ function MessageButton({ Icon, tooltip, onClick, disabled, className }: MessageB
 interface Props {
     message: Message;
     index: number;
-    editingState: [boolean, React.Dispatch<React.SetStateAction<boolean>>];
-    editedContentState: [string, React.Dispatch<React.SetStateAction<string>>];
+    editing: boolean;
+    setEditing: (editing: boolean) => void;
+    editedContent: string;
+    setEditedContent: (editedContent: string) => void;
     className: string;
 }
 
 export function MessageActions({
     message,
     index,
-    editingState,
-    editedContentState,
+    editing,
+    setEditing,
+    editedContent,
+    setEditedContent,
     className
 }: Props) {
     const { character, persona } = useCharacterContext();
@@ -60,9 +64,6 @@ export function MessageActions({
     const { messages, setMessages, regenerate, status } = useChat<Message>({ chat });
 
     const navigate = useNavigate();
-
-    const [editing, setEditing] = editingState;
-    const [editedContent, setEditedContent] = editedContentState;
 
     const [copied, setCopied] = useState(false);
     const copyTimerRef = useRef<NodeJS.Timeout | null>(null);
