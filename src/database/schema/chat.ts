@@ -81,8 +81,8 @@ export class Chat implements ChatRecord {
     title?: string;
     fork?: string;
 
-    #vertexMap?: Map<string, Vertex>;
-    #terminalVertexMap?: Map<string, string>;
+    private _vertexMap?: Map<string, Vertex>;
+    private _terminalVertexMap?: Map<string, string>;
 
     constructor(character: Character, persona?: Persona) {
         this.id = generateCuid2();
@@ -131,13 +131,13 @@ export class Chat implements ChatRecord {
     }
 
     private get vertexMap() {
-        this.#vertexMap ??= new Map(this.vertices.map((vertex) => [vertex.id, vertex]));
-        return this.#vertexMap;
+        this._vertexMap ??= new Map(this.vertices.map((vertex) => [vertex.id, vertex]));
+        return this._vertexMap;
     }
 
     private get terminalVertexMap() {
-        this.#terminalVertexMap ??= new Map(Object.entries(this.terminalVertices));
-        return this.#terminalVertexMap;
+        this._terminalVertexMap ??= new Map(Object.entries(this.terminalVertices));
+        return this._terminalVertexMap;
     }
 
     private updateTerminalVertices(vertexID: string) {
