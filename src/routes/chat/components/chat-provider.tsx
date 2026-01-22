@@ -3,26 +3,16 @@ import { useCharacterContext } from "@/contexts/character";
 import { ChatContext } from "@/contexts/chat";
 import { db } from "@/database/monogatari-db";
 import { Character } from "@/database/schema/character";
-import { Persona } from "@/database/schema/persona";
-import { Preset } from "@/database/schema/preset";
 import { useSettings } from "@/hooks/use-settings";
 import { buildContext } from "@/lib/build-context";
 import { ChatSyncAdapter } from "@/lib/chat-sync";
 import type { Message } from "@/types/message";
-import { Settings } from "@/types/settings";
 import { Chat } from "@ai-sdk/react";
 import { useParams } from "@tanstack/react-router";
 import { DefaultChatTransport } from "ai";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ContextType, ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { ContextType, ReactNode, useEffect, useEffectEvent, useState } from "react";
 import { toast } from "sonner";
-
-interface Dependencies {
-    settings: Settings;
-    character: Character;
-    persona: Persona;
-    preset: Preset;
-}
 
 export function ChatProvider({ children }: { children: ReactNode }) {
     const { settings } = useSettings();
@@ -32,27 +22,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     const { id } = useParams({ from: "/chat/$id" });
 
-    const dependencyRef = useRef<Dependencies | null>(null);
-    if (character && persona && preset) {
-        dependencyRef.current = { settings, character, persona, preset };
-    }
+    const buildRequestBody = useEffectEvent(async (messages: Message[]) => {
+        if (!character || !persona || !preset) {
+            throw new Error("Chat instance not fully initialized.");
+        }
 
-    const buildRequestBody = useCallback(
-        async (messages: Message[]) => {
-            if (!dependencyRef.current) {
-                throw new Error("Chat instance not fully initialized.");
-            }
+        const context = await buildContext(id, messages, preset, character, persona);
 
-            const { settings, character, persona, preset } = dependencyRef.current;
-
-            const context = await buildContext(id, messages, preset, character, persona);
-
-            return {
-                body: { messages: context, settings }
-            };
-        },
-        [id]
-    );
+        return {
+            body: { messages: context, settings }
+        };
+    });
 
     const [chatState, setChatState] = useState<ContextType<typeof ChatContext>>();
 
