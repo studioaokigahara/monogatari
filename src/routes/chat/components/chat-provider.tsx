@@ -11,7 +11,8 @@ import { Chat } from "@ai-sdk/react";
 import { useParams } from "@tanstack/react-router";
 import { DefaultChatTransport } from "ai";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ContextType, ReactNode, useEffect, useEffectEvent, useState } from "react";
+import { ContextType, ReactNode, useEffect, useState } from "react";
+import useEvent from "react-use-event-hook";
 import { toast } from "sonner";
 
 export function ChatProvider({ children }: { children: ReactNode }) {
@@ -22,7 +23,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     const { id } = useParams({ from: "/chat/$id" });
 
-    const buildRequestBody = useEffectEvent(async (messages: Message[]) => {
+    const buildRequestBody = useEvent(async (messages: Message[]) => {
         if (!character || !persona || !preset) {
             throw new Error("Chat instance not fully initialized.");
         }
