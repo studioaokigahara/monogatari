@@ -2,13 +2,14 @@ import { Chat } from "@/database/schema/chat";
 import { type Message } from "@/types/message";
 import { type Settings } from "@/types/settings";
 
-export class GraphSyncManager {
+export class ChatSyncAdapter {
     public readonly id: string;
     public readonly settings: Settings;
     public readonly chat: Chat;
 
     private titleGenerated = false;
     private pendingMessages: Message[] | null = null;
+    private listeners = new Set<() => void>();
 
     private constructor(id: string, settings: Settings, chat: Chat) {
         this.id = id;
@@ -19,7 +20,16 @@ export class GraphSyncManager {
 
     static async create(id: string, settings: Settings) {
         const chat = await Chat.load(id);
-        return new GraphSyncManager(id, settings, chat);
+        return new ChatSyncAdapter(id, settings, chat);
+    }
+
+    subscribe(listener: () => void) {
+        this.listeners.add(listener);
+        return () => this.listeners.delete(listener);
+    }
+
+    private notify() {
+        this.listeners.forEach((listener) => listener());
     }
 
     private async generateTitle(messages: Message[]) {
@@ -96,11 +106,11 @@ export class GraphSyncManager {
             if (title) {
                 this.titleGenerated = true;
                 await this.chat.updateTitle(title);
-                return;
             }
         }
 
         await this.chat.save();
+        this.notify();
     }
 
     async commitOnFinish(latest: Message) {
@@ -113,6 +123,7 @@ export class GraphSyncManager {
     async deleteMessage(messageID: string) {
         this.chat.deleteVertex(messageID);
         await this.chat.save();
+        this.notify();
     }
 
     setBranchPoint(id: string): void {
@@ -124,6 +135,7 @@ export class GraphSyncManager {
         if (!sibling) return;
 
         this.chat.setActiveVertex(sibling, true);
+        this.notify();
 
         return this.chat.flatten();
     }
@@ -131,6 +143,7 @@ export class GraphSyncManager {
     async updateMessage(message: Message) {
         this.chat.updateVertex(message);
         await this.chat.save();
+        this.notify();
     }
 
     getSiblingCount(messageID: string) {

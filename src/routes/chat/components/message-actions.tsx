@@ -56,7 +56,7 @@ export function MessageActions({
     className
 }: Props) {
     const { character, persona } = useCharacterContext();
-    const { graphSync, chat } = useChatContext();
+    const { chat, chatSync } = useChatContext();
     const { messages, setMessages, regenerate, status } = useChat<Message>({ chat });
 
     const navigate = useNavigate();
@@ -78,15 +78,15 @@ export function MessageActions({
             message.role === "user"
                 ? message.id
                 : index === 0
-                  ? graphSync.chat.id
+                  ? chatSync.chat.id
                   : messages[index - 1].id;
 
-        graphSync.setBranchPoint(messageID);
+        chatSync.setBranchPoint(messageID);
         void regenerate({ messageId: message.id });
     };
 
     const deleteMessage = async () => {
-        await graphSync.deleteMessage(message.id);
+        await chatSync.deleteMessage(message.id);
         setMessages((messages) => messages.slice(0, index - 1));
         toast.success("Message deleted.");
     };
@@ -94,7 +94,7 @@ export function MessageActions({
     const forkChat = async () => {
         const isLastMessage = messages.length === index + 1;
         const next = isLastMessage ? undefined : messages[index + 1].id;
-        const id = await Chat.fork(graphSync.chat, next);
+        const id = await Chat.fork(chatSync.chat, next);
         void navigate({ to: "/chat/$id", params: { id } });
     };
 
@@ -124,7 +124,7 @@ export function MessageActions({
             return;
         }
 
-        const vertex = graphSync.chat.getVertex(message.id);
+        const vertex = chatSync.chat.getVertex(message.id);
         if (!vertex || !vertex.parent) return;
 
         const newMessage: Message = {
@@ -142,7 +142,7 @@ export function MessageActions({
             metadata: { createdAt: new Date() }
         };
 
-        graphSync.chat.createVertex(vertex.parent, newMessage);
+        chatSync.chat.createVertex(vertex.parent, newMessage);
 
         setMessages(messages.toSpliced(index, 1, newMessage));
         setEditing(false);
@@ -179,7 +179,7 @@ export function MessageActions({
             }
         };
 
-        graphSync.updateMessage(editedMessage).catch((error: Error) => {
+        chatSync.updateMessage(editedMessage).catch((error: Error) => {
             toast.error("Failed to update message", {
                 description: error.message
             });

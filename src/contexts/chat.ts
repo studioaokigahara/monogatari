@@ -1,11 +1,11 @@
-import { GraphSyncManager } from "@/lib/graph/sync";
+import { ChatSyncAdapter } from "@/lib/chat-sync";
 import { Message } from "@/types/message";
 import { Chat } from "@ai-sdk/react";
 import { createContext, useContext } from "react";
 
 interface ChatContext {
-    graphSync: GraphSyncManager;
     chat: Chat<Message>;
+    chatSync: ChatSyncAdapter;
 }
 
 const ChatContext = createContext<ChatContext | undefined>(undefined);

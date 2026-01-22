@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { type Message } from "@/types/message";
 import { useChat } from "@ai-sdk/react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 interface Props extends React.ComponentProps<"button"> {
     message: Message;
@@ -15,32 +15,16 @@ interface Props extends React.ComponentProps<"button"> {
 }
 
 export function BranchSelector({ message, editing, className }: Props) {
-    const { graphSync, chat } = useChatContext();
+    const { chat, chatSync } = useChatContext();
     const { setMessages, status } = useChat<Message>({ chat });
 
-    const [siblings, setSiblings] = useState(graphSync.getSiblingCount(message.id));
-
-    useEffect(() => {
-        if (editing) return;
-
-        const abortController = new AbortController();
-        const updateSiblings = () => {
-            if (abortController.signal.aborted) return;
-            setSiblings(graphSync.getSiblingCount(message.id));
-        };
-
-        updateSiblings();
-        const timeout = setTimeout(() => updateSiblings, 200);
-
-        return () => {
-            abortController.abort();
-            clearTimeout(timeout);
-        };
-    }, [editing, graphSync, message, status]);
+    const siblings = useSyncExternalStore(chatSync.subscribe, () => {
+        return chatSync.getSiblingCount(message.id);
+    });
 
     const selectBranch = (offset: -1 | 1) => {
         setMessages((messages) => {
-            const branchMessages = graphSync.selectBranch(message.id, offset);
+            const branchMessages = chatSync.selectBranch(message.id, offset);
             return branchMessages ?? messages;
         });
     };

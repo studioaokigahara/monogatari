@@ -7,7 +7,7 @@ import { Persona } from "@/database/schema/persona";
 import { Preset } from "@/database/schema/preset";
 import { useSettings } from "@/hooks/use-settings";
 import { buildContext } from "@/lib/build-context";
-import { GraphSyncManager } from "@/lib/graph/sync";
+import { ChatSyncAdapter } from "@/lib/chat-sync";
 import type { Message } from "@/types/message";
 import { Settings } from "@/types/settings";
 import { Chat } from "@ai-sdk/react";
@@ -60,11 +60,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         const abortController = new AbortController();
 
         const initializeChat = async () => {
-            const graphSync = await GraphSyncManager.create(id, settings);
+            const chatSync = await ChatSyncAdapter.create(id, settings);
 
             if (abortController.signal.aborted) return;
 
-            const characterIDs = graphSync.chat.characterIDs;
+            const characterIDs = chatSync.chat.characterIDs;
             if (characterIDs.length > 0) {
                 const chatCharacters = await Promise.all(
                     characterIDs.map((id) => Character.load(id))
@@ -81,15 +81,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                         "X-Title": "Monogatari"
                     },
                     prepareSendMessagesRequest: async ({ messages }) => {
-                        graphSync.setPendingMessages(messages);
-                        await graphSync.commit(messages);
+                        chatSync.setPendingMessages(messages);
+                        await chatSync.commit(messages);
                         return buildRequestBody(messages);
                     }
                 }),
                 id,
-                messages: graphSync.chat.flatten(),
+                messages: chatSync.chat.flatten(),
                 onFinish: async ({ message }) => {
-                    await graphSync.commitOnFinish(message);
+                    await chatSync.commitOnFinish(message);
                 },
                 onError: (error: Error) => {
                     toast.error("Failed to stream message", {
@@ -100,7 +100,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
             if (abortController.signal.aborted) return;
 
-            setChatState({ graphSync, chat });
+            setChatState({ chat, chatSync });
         };
 
         void initializeChat();
