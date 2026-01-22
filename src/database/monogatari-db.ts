@@ -1,10 +1,10 @@
-import Dexie, { type EntityTable } from "dexie";
+import { Asset } from "@/database/schema/asset";
 import { Character } from "@/database/schema/character";
 import { Chat } from "@/database/schema/chat";
+import { Lorebook } from "@/database/schema/lorebook";
 import { Persona } from "@/database/schema/persona";
 import { Preset } from "@/database/schema/preset";
-import { Lorebook } from "@/database/schema/lorebook";
-import { Asset } from "@/database/schema/asset";
+import Dexie, { type EntityTable } from "dexie";
 
 class MonogatariDB extends Dexie {
     characters!: EntityTable<Character, "id">;

@@ -3,7 +3,7 @@ import ReactFlow, { Background } from "reactflow";
 import { GraphRenderer } from "./renderer";
 
 export default function GraphLoader({ chat }: { chat: Chat }) {
-    if (!graph) {
+    if (!chat) {
         return (
             <ReactFlow>
                 <Background />
@@ -11,5 +11,5 @@ export default function GraphLoader({ chat }: { chat: Chat }) {
         );
     }
 
-    return <GraphRenderer graph={chat} />;
+    return <GraphRenderer chat={chat} />;
 }
