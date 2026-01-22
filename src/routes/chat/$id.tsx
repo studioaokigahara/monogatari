@@ -20,7 +20,7 @@ function ChatLayout() {
 export const Route = createFileRoute("/chat/$id")({
     component: ChatLayout,
     beforeLoad: async ({ params: { id } }) => {
-        const { record: chat } = await Chat.load(id);
+        const chat = await Chat.load(id);
 
         if (chat.title) {
             return { breadcrumb: chat.title };
