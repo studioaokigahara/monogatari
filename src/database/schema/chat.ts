@@ -31,7 +31,7 @@ const Vertex = z
             return;
         }
 
-        if (!vertex.message) {
+        if (vertex.parent !== null && vertex.message === null) {
             context.addIssue({
                 code: "custom",
                 message: "Non-root vertex must have a message",
@@ -40,7 +40,7 @@ const Vertex = z
             return;
         }
 
-        if (vertex.id !== vertex.message.id) {
+        if (vertex.message && vertex.id !== vertex.message.id) {
             context.addIssue({
                 code: "custom",
                 message: "Vertex ID must be the same as the vertex message ID",
