@@ -2,6 +2,8 @@ import { Chat } from "@/database/schema/chat";
 import { type Message } from "@/types/message";
 import { type Settings } from "@/types/settings";
 
+const DEFAULT_SIBLING_COUNT = { current: 1, total: 1 };
+
 export class ChatSyncAdapter {
     public readonly id: string;
     public readonly settings: Settings;
@@ -10,6 +12,7 @@ export class ChatSyncAdapter {
     private titleGenerated = false;
     private pendingMessages: Message[] | null = null;
     private listeners = new Set<() => void>();
+    private siblingCountCache = new Map<string, { current: number; total: number }>();
 
     private constructor(id: string, settings: Settings, chat: Chat) {
         this.id = id;
@@ -23,13 +26,14 @@ export class ChatSyncAdapter {
         return new ChatSyncAdapter(id, settings, chat);
     }
 
-    subscribe(listener: () => void) {
+    subscribe = (listener: () => void) => {
         this.listeners.add(listener);
         return () => this.listeners.delete(listener);
-    }
+    };
 
     private notify() {
-        this.listeners.forEach((listener) => listener());
+        this.siblingCountCache.clear();
+        for (const listener of this.listeners) listener();
     }
 
     private async generateTitle(messages: Message[]) {
@@ -146,21 +150,34 @@ export class ChatSyncAdapter {
         this.notify();
     }
 
-    getSiblingCount(messageID: string) {
-        const fallback = { current: 1, total: 1 };
+    getSiblingCount = (messageID: string) => {
+        const cached = this.siblingCountCache.get(messageID);
+        if (cached) return cached;
 
         const parentID = this.chat.getVertex(messageID)?.parent;
-        if (!parentID) return fallback;
+        if (!parentID) {
+            this.siblingCountCache.set(messageID, DEFAULT_SIBLING_COUNT);
+            return DEFAULT_SIBLING_COUNT;
+        }
 
         const siblings = this.chat.getVertex(parentID)?.children ?? [];
-        if (siblings.length === 0) return fallback;
+        if (siblings.length === 0) {
+            this.siblingCountCache.set(messageID, DEFAULT_SIBLING_COUNT);
+            return DEFAULT_SIBLING_COUNT;
+        }
 
         const actualIndex = siblings.indexOf(messageID);
-        if (actualIndex === -1) return fallback;
+        if (actualIndex === -1) {
+            this.siblingCountCache.set(messageID, DEFAULT_SIBLING_COUNT);
+            return DEFAULT_SIBLING_COUNT;
+        }
 
-        return {
+        const siblingCount = {
             current: actualIndex + 1,
             total: siblings.length
         };
-    }
+
+        this.siblingCountCache.set(messageID, siblingCount);
+        return siblingCount;
+    };
 }
