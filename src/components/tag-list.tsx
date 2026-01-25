@@ -1,19 +1,15 @@
-import { Badge, badgeVariants } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn, FNV1a } from "@/lib/utils";
-import { VariantProps } from "class-variance-authority";
 import { MoreHorizontal } from "lucide-react";
 import { useLayoutEffect, useRef, useState, useTransition } from "react";
 
 const TAG_CACHE = new Map<string, number>();
 
-type BadgeVariants = VariantProps<typeof badgeVariants>["variant"];
-
-interface TagListProps extends React.ComponentProps<"span"> {
+interface TagListProps extends React.ComponentProps<typeof Badge> {
     tags: string[];
     maxRows?: number;
-    variant?: BadgeVariants;
     onTagClick?: (event: React.MouseEvent<HTMLSpanElement>, tag: string) => void;
 }
 
@@ -129,12 +125,12 @@ export function TagList({
     const hiddenTags = tagList.slice(visibleCount);
 
     const skeletons = Array.from({ length: 4 * maxRows }).map((_, index) => (
-        <Skeleton key={`skeleton-${index}`} className="w-16 h-5.5 rounded-full" />
+        <Skeleton key={`skeleton-${index}`} className="h-5.5 w-16 rounded-full" />
     ));
 
     return (
         <>
-            <div className="w-full flex flex-wrap shrink-0 gap-0.5 overflow-hidden">
+            <div className="flex w-full shrink-0 flex-wrap gap-0.5 overflow-hidden">
                 {!isPending ? visibleTags : skeletons}
                 {!isPending && hiddenCount > 0 && (
                     <Popover>
@@ -160,7 +156,7 @@ export function TagList({
             <div
                 ref={containerRef}
                 aria-hidden
-                className="w-full h-0 pointer-events-none opacity-0 flex flex-wrap shrink-0 gap-1 overflow-hidden"
+                className="pointer-events-none flex h-0 w-full shrink-0 flex-wrap gap-1 overflow-hidden opacity-0"
             >
                 {tagList}
             </div>
