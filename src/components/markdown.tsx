@@ -2,7 +2,7 @@ import { useCharacterContext } from "@/contexts/character";
 import { useMarkdownLexer } from "@/hooks/use-markdown-lexer";
 import { remarkMacros, remarkXML } from "@/lib/remark";
 import { cn, FNV1a } from "@/lib/utils";
-import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
+import ReactMarkdown, { defaultUrlTransform, Options } from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkBreaks from "remark-breaks";
 import remarkGFM from "remark-gfm";
@@ -39,10 +39,11 @@ export function Markdown({
 
     const rehypePlugins = streaming ? [] : [rehypeRaw];
 
-    const components = {
-        img: ({ ...props }) => (
+    const components: Options["components"] = {
+        img: ({ alt, ...props }) => (
             <img
                 {...props}
+                alt={alt ?? ""}
                 loading="eager"
                 fetchPriority="high"
                 onLoad={() => {
@@ -54,7 +55,11 @@ export function Markdown({
                 }}
             />
         ),
-        a: ({ ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />
+        a: ({ children, ...props }) => (
+            <a {...props} target="_blank" rel="noopener noreferrer">
+                {children}
+            </a>
+        )
     };
 
     const urlMap = new Map<string, string>(
