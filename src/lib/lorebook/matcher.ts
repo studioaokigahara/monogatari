@@ -40,10 +40,7 @@ export class LorebookMatcher {
 
     private normalizeKeys(keys: unknown): string[] | null {
         if (typeof keys === "string") return [keys];
-        if (
-            Array.isArray(keys) &&
-            keys.every((key) => typeof key === "string")
-        ) {
+        if (Array.isArray(keys) && keys.every((key) => typeof key === "string")) {
             return keys;
         }
         return null;
@@ -71,10 +68,7 @@ export class LorebookMatcher {
                 const escapeRegex = (s: string) => {
                     return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
                 };
-                const pattern = new RegExp(
-                    `\\b${escapeRegex(key)}\\b`,
-                    caseSensitive ? "g" : "gi"
-                );
+                const pattern = new RegExp(`\\b${escapeRegex(key)}\\b`, caseSensitive ? "g" : "gi");
                 return pattern.test(content);
             });
         }
@@ -96,13 +90,9 @@ export class LorebookMatcher {
 
         if (entry.constant && !entry.use_regex) return true;
 
-        const activate = decorators.some(
-            (decorator) => decorator.name === "activate"
-        );
+        const activate = decorators.some((decorator) => decorator.name === "activate");
 
-        const dontActivate = decorators.some(
-            (decorator) => decorator.name === "dont_activate"
-        );
+        const dontActivate = decorators.some((decorator) => decorator.name === "dont_activate");
 
         if (!activate && dontActivate) {
             return false;
@@ -124,15 +114,11 @@ export class LorebookMatcher {
 
         if (keepActivated && this.previousMatches.has(entry.id)) return true;
 
-        const greeting = decorators.find(
-            (decorator) => decorator.name === "is_greeting"
-        );
+        const greeting = decorators.find((decorator) => decorator.name === "is_greeting");
 
         if (greeting && context.greetingIndex !== greeting.value) return false;
 
-        const userIcon = decorators.find(
-            (decorator) => decorator.name === "is_user_icon"
-        );
+        const userIcon = decorators.find((decorator) => decorator.name === "is_user_icon");
 
         if (userIcon && context.userIcon !== userIcon.value) return false;
 
@@ -160,10 +146,7 @@ export class LorebookMatcher {
             return false;
         }
 
-        const scanDepth = DecoratorParser.getScanDepth(
-            decorators,
-            defaultScanDepth
-        );
+        const scanDepth = DecoratorParser.getScanDepth(decorators, defaultScanDepth);
 
         const contextWindow = context.messages.slice(-scanDepth).join(" ");
 
@@ -244,18 +227,9 @@ export class LorebookMatcher {
     ): MatchResult[] {
         const results: MatchResult[] = [];
         for (const entry of entries) {
-            const { decorators, content } = DecoratorParser.parseContent(
-                entry.content
-            );
+            const { decorators, content } = DecoratorParser.parseContent(entry.content);
 
             if (this.entryMatches(entry, decorators, context, scanDepth)) {
-                const recursionOnly = decorators.some(
-                    (decorator) =>
-                        decorator.name === "activate_only_on_recursion"
-                );
-
-                if (recursionOnly) continue;
-
                 results.push({
                     entry,
                     decorators,
@@ -272,25 +246,29 @@ export class LorebookMatcher {
         entries: LorebookEntry[],
         context: MatchContext,
         macroContext: MacroContext,
-        scanDepth: number = Infinity
+        scanDepth: number = Infinity,
+        currentRecursionDepth = 0,
+        visitedMatches: Set<string | number> = new Set(),
+        initialScan = true
     ): MatchResult[] {
-        const visitedMatches = new Set<string | number>();
         const results: MatchResult[] = [];
 
-        for (let i = 0; i < entries.length; i++) {
-            const entry = entries[i];
-
+        for (const entry of entries) {
             if (visitedMatches.has(entry.id)) continue;
 
-            const { decorators, content } = DecoratorParser.parseContent(
-                entry.content
-            );
+            const { decorators, content } = DecoratorParser.parseContent(entry.content);
 
             const ignoreOnRecursion = decorators.some(
                 (decorator) => decorator.name === "ignore_on_recursion"
             );
 
-            if (ignoreOnRecursion) continue;
+            if (ignoreOnRecursion && !initialScan) continue;
+
+            const activateOnlyOnRecursion = decorators.some(
+                (decorator) => decorator.name === "activate_only_on_recursion"
+            );
+
+            if (activateOnlyOnRecursion && initialScan) continue;
 
             if (this.entryMatches(entry, decorators, context)) {
                 const resolvedContent = replaceMacros(content, macroContext);
@@ -299,7 +277,7 @@ export class LorebookMatcher {
                     entry,
                     decorators,
                     content: resolvedContent,
-                    priority: entry.priority ?? 0
+                    priority: entry.priority
                 });
 
                 visitedMatches.add(entry.id);
@@ -308,23 +286,25 @@ export class LorebookMatcher {
                     (decorator) => decorator.name === "recursion_depth"
                 );
 
-                if (recursionDepth?.value === i) continue;
+                const maxRecursionDepth = Number(recursionDepth?.value) ?? Infinity;
+                if (currentRecursionDepth >= maxRecursionDepth) continue;
 
-                if (context.messages.length > 0) {
-                    const newContext = {
-                        ...context,
-                        messages: [...context.messages, resolvedContent]
-                    };
+                const newContext = {
+                    ...context,
+                    messages: [...context.messages, resolvedContent]
+                };
 
-                    const recursiveMatches = this.recursiveScan(
-                        entries,
-                        newContext,
-                        macroContext,
-                        scanDepth
-                    );
+                const recursiveMatches = this.recursiveScan(
+                    entries,
+                    newContext,
+                    macroContext,
+                    scanDepth,
+                    ++currentRecursionDepth,
+                    visitedMatches,
+                    false
+                );
 
-                    results.push(...recursiveMatches);
-                }
+                results.push(...recursiveMatches);
             }
         }
 

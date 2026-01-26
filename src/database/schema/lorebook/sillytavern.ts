@@ -94,7 +94,7 @@ function buildDecorators(entry: SillyTavernLorebookEntry): string[] {
     }
 
     if (entry.preventRecursion === true) {
-        decorators.push("@@recursion_depth 1");
+        decorators.push("@@recursion_depth 0");
     }
 
     if (entry.delayUntilRecursion === true) {
@@ -108,113 +108,86 @@ function buildDecorators(entry: SillyTavernLorebookEntry): string[] {
     return decorators;
 }
 
-export const SillyTavernLorebookConverter = SillyTavernLorebook.transform(
-    (lorebook) => {
-        const entries = Object.entries(lorebook.entries || {}).map(
-            ([id, entry]) => {
-                const keys = (
-                    Array.isArray(entry.key) ? entry.key : [entry.key]
-                ).filter(Boolean);
+export const SillyTavernLorebookConverter = SillyTavernLorebook.transform((lorebook) => {
+    const entries = Object.entries(lorebook.entries || {}).map(([id, entry]) => {
+        const keys = (Array.isArray(entry.key) ? entry.key : [entry.key]).filter(Boolean);
 
-                const decorators = buildDecorators(entry);
-                const content = decorators.length
-                    ? `${decorators.join("\n")}\n${(entry.content || "").replace(/^\s+/, "")}`
-                    : entry.content || "";
+        const decorators = buildDecorators(entry);
+        const content = decorators.length
+            ? `${decorators.join("\n")}\n${(entry.content || "").replace(/^\s+/, "")}`
+            : entry.content || "";
 
-                const case_sensitive =
-                    typeof entry.caseSensitive === "boolean"
-                        ? entry.caseSensitive
-                        : false;
+        const case_sensitive =
+            typeof entry.caseSensitive === "boolean" ? entry.caseSensitive : false;
 
-                const secondary_keys = (
-                    Array.isArray(entry.keysecondary)
-                        ? entry.keysecondary
-                        : [entry.keysecondary]
-                ).filter(Boolean);
-                const selective = secondary_keys.length
-                    ? true
-                    : entry.selective;
+        const secondary_keys = (
+            Array.isArray(entry.keysecondary) ? entry.keysecondary : [entry.keysecondary]
+        ).filter(Boolean);
+        const selective = secondary_keys.length ? true : entry.selective;
 
-                const position =
-                    entry.position === 0
-                        ? ("before_char" as const)
-                        : ("after_char" as const);
+        const position = entry.position === 0 ? ("before_char" as const) : ("after_char" as const);
 
-                const {
-                    key: _key,
-                    content: _content,
-                    disable,
-                    order,
-                    caseSensitive: _caseSensitive,
-                    constant,
-                    comment,
-                    selective: _selection,
-                    keysecondary: _keysecondary,
-                    position: _position,
-                    extensions: stExtensions,
-                    ...rest
-                } = entry;
+        const {
+            key: _key,
+            content: _content,
+            disable,
+            order,
+            caseSensitive: _caseSensitive,
+            constant,
+            comment,
+            selective: _selection,
+            keysecondary: _keysecondary,
+            position: _position,
+            extensions: stExtensions,
+            ...rest
+        } = entry;
 
-                const { probability, selectiveLogic, ...restWithoutChub } =
-                    rest;
+        const { probability, selectiveLogic, ...restWithoutChub } = rest;
 
-                const namespacedExtensions = {
-                    sillytavern: {
-                        ...restWithoutChub,
-                        ...stExtensions
-                    },
-                    ...(typeof probability !== "undefined" ||
-                    typeof selectiveLogic !== "undefined"
-                        ? {
-                              chub: {
-                                  ...(typeof probability === "number"
-                                      ? { probability }
-                                      : {}),
-                                  ...(typeof selectiveLogic !== "undefined"
-                                      ? { selectiveLogic }
-                                      : {})
-                              }
-                          }
-                        : {})
-                };
-
-                return {
-                    keys,
-                    content,
-                    extensions: namespacedExtensions,
-                    enabled: !disable,
-                    insertion_order: order,
-                    case_sensitive,
-                    use_regex: false,
-                    name: comment,
-                    priority: 0,
-                    id,
-                    comment: "",
-                    selective,
-                    secondary_keys,
-                    position,
-                    constant: constant ?? false
-                };
-            }
-        );
-
-        const data = lorebook.originalData;
-        const lorebookV3: LorebookData = {
-            name: data?.name ?? "Imported Lorebook",
-            description: data?.description ?? "Imported Lorebook",
-            scan_depth:
-                typeof data?.scan_depth === "number" ? data?.scan_depth : -1,
-            token_budget:
-                typeof data?.token_budget === "number"
-                    ? data?.token_budget
-                    : -1,
-            recursive_scanning: data?.recursive_scanning ?? false,
-            extensions: data?.extensions
-                ? { sillytavern: data?.extensions }
-                : {},
-            entries
+        const namespacedExtensions = {
+            sillytavern: {
+                ...restWithoutChub,
+                ...stExtensions
+            },
+            ...(typeof probability !== "undefined" || typeof selectiveLogic !== "undefined"
+                ? {
+                      chub: {
+                          ...(typeof probability === "number" ? { probability } : {}),
+                          ...(typeof selectiveLogic !== "undefined" ? { selectiveLogic } : {})
+                      }
+                  }
+                : {})
         };
 
-        return LorebookData.parse(lorebookV3);
-    }
-);
+        return {
+            keys,
+            content,
+            extensions: namespacedExtensions,
+            enabled: !disable,
+            insertion_order: order,
+            case_sensitive,
+            use_regex: false,
+            name: comment,
+            priority: 0,
+            id,
+            comment: "",
+            selective,
+            secondary_keys,
+            position,
+            constant: constant ?? false
+        };
+    });
+
+    const data = lorebook.originalData;
+    const lorebookV3: LorebookData = {
+        name: data?.name ?? "Imported Lorebook",
+        description: data?.description ?? "Imported Lorebook",
+        scan_depth: typeof data?.scan_depth === "number" ? data?.scan_depth : -1,
+        token_budget: typeof data?.token_budget === "number" ? data?.token_budget : -1,
+        recursive_scanning: data?.recursive_scanning ?? false,
+        extensions: data?.extensions ? { sillytavern: data?.extensions } : {},
+        entries
+    };
+
+    return LorebookData.parse(lorebookV3);
+});
