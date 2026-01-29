@@ -184,7 +184,7 @@ export class Lorebook implements LorebookRecord {
         return db.lorebooks.get(id);
     }
 
-    static async parseData(data: unknown) {
+    static parse(json: unknown) {
         const parsers = [
             LorebookData,
             SillyTavernLorebookConverter,
@@ -193,24 +193,26 @@ export class Lorebook implements LorebookRecord {
         ];
 
         for (const parser of parsers) {
-            const result = parser.safeParse(data);
+            const result = parser.safeParse(json);
             if (result.success) return result.data;
         }
 
         throw new Error("Lorebook does not match any implemented schema.");
     }
 
-    // oxlint-disable-next-line no-redundant-type-constituents
     static async import(lorebook: File | unknown) {
         let data: LorebookData;
 
         if (lorebook instanceof File) {
             const text = await lorebook.text();
-            const json = await JSON.parse(text);
-            data = await this.parseData(json);
-            data.name = lorebook.name.split(".json")[0] ?? data.name;
+            const json = JSON.parse(text);
+            data = this.parse(json);
+
+            if (!data.name) {
+                data.name = lorebook.name.split(".json")[0];
+            }
         } else {
-            data = await this.parseData(lorebook);
+            data = this.parse(lorebook);
         }
 
         const newLorebook = new Lorebook({ data });
@@ -224,15 +226,29 @@ export class Lorebook implements LorebookRecord {
         return result.success ? undefined : result.error;
     }
 
-    async update(data: Partial<Lorebook["data"]>) {
+    serialize(): LorebookRecord {
+        return {
+            id: this.id,
+            data: this.data,
+            enabled: this.enabled,
+            global: this.global,
+            embeddedCharacterID: this.embeddedCharacterID,
+            linkedCharacterIDs: this.linkedCharacterIDs,
+            createdAt: this.createdAt,
+            updatedAt: this.updatedAt
+        };
+    }
+
+    async update(data: Partial<Lorebook>) {
         await db.transaction("rw", [db.lorebooks, db.characters], async () => {
-            const patch = LorebookData.partial().parse(data);
-            const update = LorebookData.parse({ ...this.data, ...patch });
-            await db.lorebooks.update(this.id, {
-                updatedAt: new Date(),
-                data: update
-            });
-            this.data = update;
+            if (!LorebookRecord.partial().safeParse(data).success) {
+                throw new Error("Received malformed lorebook update");
+            }
+
+            const update = LorebookRecord.parse({ ...this.serialize(), ...data });
+            update.updatedAt = new Date();
+            await db.lorebooks.update(this.id, update);
+            Object.assign(this, update);
             if (this.embeddedCharacterID) {
                 await db.characters
                     .where("id")

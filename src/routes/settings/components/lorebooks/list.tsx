@@ -1,6 +1,7 @@
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
     SelectTrigger,
     SelectValue
@@ -12,125 +13,168 @@ import {
     SidebarGroupContent,
     SidebarHeader,
     SidebarMenu,
+    SidebarMenuAction,
     SidebarMenuBadge,
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarSeparator
 } from "@/components/ui/sidebar";
 import { Lorebook } from "@/database/schema/lorebook";
-import { useFileDialog } from "@/hooks/use-file-dialog";
-import { cn } from "@/lib/utils";
-import { BookDown, BookPlus } from "lucide-react";
-import { toast } from "sonner";
+import { cn, downloadFile, generateCuid2 } from "@/lib/utils";
+import { BookUpIcon, ListPlusIcon, Trash2Icon } from "lucide-react";
 
 interface Props {
     lorebooks: Lorebook[];
     selectedLorebook?: Lorebook;
-    lorebookState: [string, React.Dispatch<React.SetStateAction<string>>];
-    entryState: [number, React.Dispatch<React.SetStateAction<number>>];
+    lorebookID: string;
+    setLorebookID: (id: string) => void;
+    entryIndex: number;
+    setEntryIndex: (index: number) => void;
 }
 
 export function LorebookList({
     lorebooks,
     selectedLorebook,
-    lorebookState,
-    entryState
+    lorebookID,
+    setLorebookID,
+    entryIndex,
+    setEntryIndex
 }: Props) {
-    const [lorebookID, setLorebookID] = lorebookState;
-    const [entryIndex, setEntryIndex] = entryState;
+    const lorebookItems = lorebooks.map((lorebook) => ({
+        value: lorebook.id,
+        label: lorebook.data.name ?? "Untitled"
+    }));
 
-    const createNewLorebook = async () => {
-        const lorebook = new Lorebook();
-        await lorebook.save();
-        setLorebookID(lorebook.id);
-        setEntryIndex(0);
-    };
-
-    const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        try {
-            await Lorebook.import(file);
-            toast.success("Lorebook imported successfully!");
-        } catch (error) {
-            console.error("Import failed:", error);
-            toast.error("Unable to import that file. Is it valid JSON?");
-        }
-    };
-
-    const { browse, input } = useFileDialog({
-        accept: ".json",
-        onChange: handleFile
-    });
-
-    const lorebookItems = lorebooks.map((lorebook) => (
-        <SelectItem key={lorebook.id} value={lorebook.id}>
-            <span>{lorebook.data.name || "Untitled"}</span>
+    const selectItems = lorebookItems.map((item) => (
+        <SelectItem key={item.value} value={item.value}>
+            {item.label}
         </SelectItem>
     ));
 
-    const lorebookEntries = selectedLorebook?.data.entries.map(
-        (entry, index) => (
-            <SidebarMenuItem key={entry.id || index}>
-                <SidebarMenuButton
-                    className="cursor-default"
-                    isActive={index === entryIndex}
-                    onClick={() => setEntryIndex(index)}
-                >
-                    <span
-                        className={cn(
-                            "truncate",
-                            !entry.enabled ? "max-w-[19ch]" : ""
-                        )}
-                    >
-                        {entry.name || "Untitled"}
-                    </span>
-                    {!entry.enabled && (
-                        <SidebarMenuBadge className="bg-destructive/20 text-destructive px-1 py-0.5 ml-2 rounded">
-                            Disabled
-                        </SidebarMenuBadge>
-                    )}
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-        )
-    );
+    const deleteEntry = async (index: number) => {
+        await selectedLorebook?.update({
+            data: {
+                ...selectedLorebook.data,
+                entries: selectedLorebook.data.entries.toSpliced(index, 1)
+            }
+        });
+        setEntryIndex(Math.max(0, index - 1));
+    };
+
+    const lorebookEntries = selectedLorebook?.data.entries.map((entry, index) => (
+        <SidebarMenuItem key={entry.id || index}>
+            <SidebarMenuButton isActive={index === entryIndex} onClick={() => setEntryIndex(index)}>
+                <span className={cn("truncate", !entry.enabled ? "max-w-[19ch]" : "")}>
+                    {entry.name || "Untitled"}
+                </span>
+                {!entry.enabled && (
+                    <SidebarMenuBadge className="ml-2 rounded bg-destructive/20 px-1 py-0.5 text-destructive">
+                        Disabled
+                    </SidebarMenuBadge>
+                )}
+            </SidebarMenuButton>
+            <SidebarMenuAction showOnHover onClick={() => deleteEntry(index)}>
+                <Trash2Icon className="text-destructive/90 hover:text-destructive" />
+                <span className="sr-only">Delete Entry</span>
+            </SidebarMenuAction>
+        </SidebarMenuItem>
+    ));
+
+    const addEntry = async () => {
+        const newEntry: Lorebook["data"]["entries"][number] = {
+            id: generateCuid2(),
+            name: "",
+            comment: "",
+            keys: [""],
+            secondary_keys: undefined,
+            position: "before_char",
+            priority: 0,
+            content: "",
+            enabled: true,
+            case_sensitive: false,
+            use_regex: false,
+            constant: false,
+            selective: false,
+            extensions: {},
+            insertion_order: 0
+        };
+        await selectedLorebook?.update({
+            data: {
+                ...selectedLorebook.data,
+                entries: [...selectedLorebook.data.entries, newEntry]
+            }
+        });
+        setEntryIndex(Math.max(0, (selectedLorebook?.data.entries.length ?? 1) - 1));
+    };
+
+    const exportLorebook = () => {
+        const lorebook = selectedLorebook?.serialize();
+        const json = JSON.stringify(lorebook);
+        const file = new File([json], `${lorebook?.data.name}.json`, {
+            type: "application/json"
+        });
+        downloadFile(file);
+    };
+
+    const deleteLorebook = async () => {
+        await selectedLorebook?.delete();
+        setLorebookID(lorebooks[lorebooks.length - 1].id);
+    };
 
     return (
         <Sidebar collapsible="none" className="w-full sm:w-(--sidebar-width)">
             <SidebarHeader className="pt-6">
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton onClick={createNewLorebook}>
-                            <BookPlus />
-                            New Lorebook
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton onClick={browse}>
-                            {input}
-                            <BookDown />
-                            Import Lorebook
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
                         <Select
+                            items={lorebookItems}
                             value={lorebookID}
-                            onValueChange={setLorebookID}
+                            onValueChange={(value) => setLorebookID(value as string)}
                         >
                             <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Select Lorebook..." />
                             </SelectTrigger>
-                            <SelectContent>{lorebookItems}</SelectContent>
+                            <SelectContent>
+                                <SelectGroup>{selectItems}</SelectGroup>
+                            </SelectContent>
                         </Select>
                     </SidebarMenuItem>
+                    {selectedLorebook && (
+                        <>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton onClick={exportLorebook}>
+                                    <BookUpIcon />
+                                    Export Lorebook
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton
+                                    onClick={deleteLorebook}
+                                    className="hover:bg-destructive/20 hover:text-destructive focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40"
+                                >
+                                    <Trash2Icon className="text-destructive" />
+                                    Delete Lorebook
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </>
+                    )}
                 </SidebarMenu>
             </SidebarHeader>
             <SidebarSeparator className="mx-0" />
             <SidebarContent>
                 <SidebarGroup>
                     <SidebarGroupContent>
-                        <SidebarMenu>{lorebookEntries}</SidebarMenu>
+                        <SidebarMenu>
+                            {selectedLorebook && (
+                                <SidebarMenuItem className="sticky top-0 z-1 -mt-2 rounded-none bg-card pt-2">
+                                    <SidebarMenuButton onClick={addEntry}>
+                                        <ListPlusIcon />
+                                        Add Entry
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            )}
+                            {lorebookEntries}
+                        </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
             </SidebarContent>

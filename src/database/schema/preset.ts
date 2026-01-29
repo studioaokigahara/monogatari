@@ -103,20 +103,50 @@ export class Preset implements PresetRecord {
         return result.success ? undefined : result.error;
     }
 
+    serialize(): PresetRecord {
+        return {
+            id: this.id,
+            name: this.name,
+            description: this.description,
+            prompts: this.prompts,
+            createdAt: this.createdAt,
+            updatedAt: this.updatedAt
+        };
+    }
+
     async update(data: Partial<Preset>) {
-        const update = PresetRecord.partial().parse(data);
+        if (!PresetRecord.partial().safeParse(data).success) {
+            throw new Error("Received malformed preset update");
+        }
+
+        const update = PresetRecord.parse({ ...this.serialize(), ...data });
         update.updatedAt = new Date();
         await db.presets.update(this.id, update);
         Object.assign(this, update);
     }
 
-    static async import(file: File) {
-        const text = await file.text();
-        const parsed = JSON.parse(text);
-        const converted = SillyTavernPresetConverter.parse(parsed);
-        converted.name = file.name.split(".json")[0];
-        const preset = new Preset(converted);
-        await preset.save();
+    static parse(json: unknown) {
+        const parsers = [PresetRecord, SillyTavernPresetConverter];
+        for (const parser of parsers) {
+            const result = parser.safeParse(json);
+            if (result.success) return result.data;
+        }
+        throw new Error("Preset does not match any implemented schema");
+    }
+
+    static async import(preset: File) {
+        const text = await preset.text();
+        const json = JSON.parse(text);
+        const data = this.parse(json);
+
+        if (!data.name) {
+            data.name = preset.name.split(".json")[0];
+        }
+
+        const newPreset = new Preset(data);
+        await newPreset.save();
+
+        return newPreset;
     }
 
     async delete() {

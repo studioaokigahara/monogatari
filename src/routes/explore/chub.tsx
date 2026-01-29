@@ -4,7 +4,7 @@ import { fetchCharacters } from "@/lib/explore/chub/api";
 import CharacterList from "@/routes/explore/components/chub/list";
 import SearchPanel from "@/routes/explore/components/chub/search";
 import { type ChubCharacter, SearchOptions } from "@/types/explore/chub";
-import { infiniteQueryOptions, useInfiniteQuery } from "@tanstack/react-query";
+import { infiniteQueryOptions, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, stripSearchParams, useNavigate, useSearch } from "@tanstack/react-router";
 
 const DefaultSearchOptions: SearchOptions = {
@@ -23,18 +23,20 @@ const DefaultSearchOptions: SearchOptions = {
 
 function getQueryOptions(searchOptions: SearchOptions) {
     return infiniteQueryOptions({
-        queryKey: ["exploreCharacters", searchOptions],
+        queryKey: ["explore", "chub", searchOptions],
         queryFn: ({ pageParam }) => fetchCharacters({ ...searchOptions, page: pageParam }),
         initialPageParam: 1,
-        getNextPageParam: (lastPage, _allPages, lastPageParam) =>
-            lastPage.length < searchOptions.itemsPerPage ? undefined : lastPageParam + 1,
-        staleTime: 60_000
+        getNextPageParam: (lastPage, _allPages, lastPageParam) => {
+            return lastPage.length < searchOptions.itemsPerPage ? undefined : lastPageParam + 1;
+        },
+        refetchOnWindowFocus: false
     });
 }
 
 function Chub() {
     const searchOptions = useSearch({ from: "/explore/chub" });
     const navigate = useNavigate({ from: "/explore/chub" });
+    const queryClient = useQueryClient();
 
     const updateSearchOptions = (options: Partial<SearchOptions>) => {
         void navigate({
@@ -45,7 +47,10 @@ function Chub() {
         });
     };
 
-    const resetSearchOptions = () => navigate({ search: DefaultSearchOptions });
+    const resetSearchOptions = () => {
+        void queryClient.invalidateQueries({ queryKey: ["explore", "chub"] });
+        void navigate({ search: DefaultSearchOptions });
+    };
 
     const queryOptions = getQueryOptions(searchOptions);
     const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isFetching } =
@@ -72,7 +77,7 @@ function Chub() {
         <div className="relative flex flex-col">
             <Header className="-mb-1 bg-background" />
             <div className="sticky top-0 z-50">
-                <div className="mt-2 rounded-xl border bg-background/66 backdrop-blur">
+                <div className="mt-2 rounded-xl">
                     <SearchPanel
                         searchOptions={searchOptions}
                         onSearchOptionsChange={updateSearchOptions}

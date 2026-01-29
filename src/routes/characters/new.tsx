@@ -1,10 +1,11 @@
 import Header from "@/components/header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Asset } from "@/database/schema/asset";
 import { Character } from "@/database/schema/character";
-import { characterFormOptions, useCharacterForm } from "@/hooks/use-character-form";
+import { useAppForm } from "@/hooks/use-app-form";
 import { useFileDialog } from "@/hooks/use-file-dialog";
 import { getFileExtension } from "@/lib/utils";
 import { CharacterFormProvider } from "@/routes/characters/components/character-form-provider";
@@ -14,6 +15,7 @@ import {
     GreetingsField,
     HeaderFields
 } from "@/routes/characters/components/forms";
+import { characterFormOptions } from "@/types/character-form";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { MessageSquareText, MessagesSquare, Text, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -46,7 +48,7 @@ function CharacterCreator() {
 
     const navigate = useNavigate();
 
-    const form = useCharacterForm({
+    const form = useAppForm({
         ...characterFormOptions,
         onSubmit: async ({ value }) => {
             if (!image) {
@@ -97,16 +99,16 @@ function CharacterCreator() {
     });
 
     return (
-        <div className="flex flex-col w-full">
+        <div className="flex w-full flex-col">
             <Header />
-            <div className="flex flex-col w-full md:max-w-5xl mx-auto px-4">
-                <div className="flex flex-col md:flex-row gap-4 md:items-end mb-4">
+            <div className="mx-auto flex w-full flex-col px-4 md:max-w-5xl">
+                <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end">
                     {image ? (
                         <Avatar className="h-full md:max-w-1/6">
                             <AvatarImage
                                 src={imageURL}
                                 alt={form.state.values.name}
-                                className="object-cover rounded-xl cursor-pointer"
+                                className="cursor-pointer rounded-xl object-cover"
                                 onClick={browse}
                             />
                             <AvatarFallback>
@@ -115,22 +117,23 @@ function CharacterCreator() {
                             {input}
                         </Avatar>
                     ) : (
-                        <div
-                            className="shrink-0 md:w-1/6 h-full rounded-xl bg-muted/50 flex flex-col items-center justify-center py-4 cursor-pointer border-2 border-dashed hover:bg-muted/70 transition-colors"
+                        <Button
+                            variant="secondary"
+                            className="flex h-full shrink-0 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed bg-muted/50 py-4 transition-colors hover:bg-muted/70 md:w-1/6"
                             onClick={browse}
                         >
                             {input}
-                            <Upload className="h-8 w-8 mb-2 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground text-center">
+                            <Upload className="mb-2 h-8 w-8 text-muted-foreground" />
+                            <span className="text-center text-sm text-muted-foreground">
                                 Click to upload image
                                 <br />
                                 <span className="text-xs">(Required)</span>
                             </span>
-                        </div>
+                        </Button>
                     )}
                     <HeaderFields form={form} />
                 </div>
-                <Tabs defaultValue="description" className="gap-4 mb-4">
+                <Tabs defaultValue="description" className="mb-4 gap-4">
                     <TabsList className="w-full bg-muted/50">
                         <TabsTrigger value="description">
                             <Text />

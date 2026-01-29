@@ -10,13 +10,12 @@ import {
     DialogTitle,
     DialogTrigger
 } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCharacterContext } from "@/contexts/character";
 import { useCharacterFormContext } from "@/contexts/character-form";
 import { Asset } from "@/database/schema/asset";
 import { Character } from "@/database/schema/character";
-import { characterFormOptions, useCharacterForm } from "@/hooks/use-character-form";
+import { useAppForm } from "@/hooks/use-app-form";
 import { useFileDialog } from "@/hooks/use-file-dialog";
 import { useImageURL } from "@/hooks/use-image-url";
 import { cn } from "@/lib/utils";
@@ -33,8 +32,10 @@ import {
 import Gallery from "@/routes/characters/components/gallery";
 import { Greetings } from "@/routes/characters/components/greetings";
 import { Header as ProfileHeader } from "@/routes/characters/components/header";
+import { characterFormOptions } from "@/types/character-form";
 import {
     createFileRoute,
+    stripSearchParams,
     useNavigate,
     useParams,
     useRouteContext,
@@ -94,9 +95,14 @@ function CharacterProfile({ character }: { character: Character }) {
         onChange: replaceImage
     });
 
-    const form = useCharacterForm({
+    const form = useAppForm({
         ...characterFormOptions,
-        defaultValues: { ...character.data },
+        defaultValues: character.data,
+        listeners: {
+            onChange: ({ formApi: form }) => {
+                console.log(form.getAllErrors());
+            }
+        },
         onSubmit: async ({ value }) => {
             await character.update(value);
             toast.success(`${character.data.name} saved.`);
@@ -111,7 +117,6 @@ function CharacterProfile({ character }: { character: Character }) {
             search: {
                 tab: value as "description" | "greetings" | "example" | "gallery"
             },
-            mask: { search: undefined },
             replace: true
         });
     };
@@ -127,28 +132,29 @@ function CharacterProfile({ character }: { character: Character }) {
             <Header />
             <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end">
                 <Dialog open={imageOpen} onOpenChange={setImageOpen}>
-                    <DialogTrigger asChild>
-                        <Avatar className="size-[unset] h-64 overflow-visible">
-                            <AvatarImage
-                                src={portraitURL}
-                                className={cn(
-                                    "absolute -z-1 blur-3xl saturate-200",
-                                    editing && "self-center"
-                                )}
-                            />
-                            <AvatarImage
-                                src={portraitURL}
-                                alt={character.data.name}
-                                className={cn(
-                                    "aspect-[unset] cursor-pointer rounded-xl object-cover",
-                                    editing && "self-center"
-                                )}
-                            />
-                            <AvatarFallback className="rounded-xl">
-                                <Skeleton className="aspect-square h-full" />
-                            </AvatarFallback>
-                        </Avatar>
-                    </DialogTrigger>
+                    <DialogTrigger
+                        nativeButton={false}
+                        render={
+                            <Avatar className="h-64 w-auto overflow-visible rounded-xl after:rounded-xl">
+                                <AvatarImage
+                                    src={portraitURL}
+                                    className={cn(
+                                        "absolute -z-1 blur-3xl saturate-200",
+                                        editing && "self-center"
+                                    )}
+                                />
+                                <AvatarImage
+                                    src={portraitURL}
+                                    alt={character.data.name}
+                                    className={cn(
+                                        "aspect-[unset] cursor-pointer rounded-xl object-cover",
+                                        editing && "self-center"
+                                    )}
+                                />
+                                <AvatarFallback className="aspect-2/3 animate-pulse rounded-xl" />
+                            </Avatar>
+                        }
+                    />
                     <DialogContent className="w-max sm:max-w-[80dvw]">
                         <DialogHeader className="sr-only">
                             <DialogTitle>Main Character Image</DialogTitle>
@@ -183,8 +189,12 @@ function CharacterProfile({ character }: { character: Character }) {
                 )}
                 {editing ? <HeaderFields form={form} /> : <ProfileHeader character={character} />}
             </div>
-            <Tabs value={tab ?? "description"} onValueChange={setTab} className="mb-2 gap-4">
-                <TabsList className="sticky top-18 w-full max-sm:grid max-sm:h-auto max-sm:grid-cols-2 max-sm:grid-rows-2 max-sm:*:h-9 sm:top-2">
+            <Tabs
+                value={tab}
+                onValueChange={setTab}
+                className="mb-2 gap-4 **:data-[slot=card]:text-base **:data-[slot=tabs-content]:text-base"
+            >
+                <TabsList className="sticky top-18 w-full max-sm:grid max-sm:h-auto! max-sm:grid-cols-2 max-sm:grid-rows-2 sm:top-2">
                     <TabsTrigger value="description">
                         <Text />
                         Description
@@ -257,7 +267,7 @@ function CharacterProfileLayout() {
 export const Route = createFileRoute("/characters/$id")({
     component: CharacterProfileLayout,
     validateSearch: z.object({
-        tab: z.enum(["description", "greetings", "example", "gallery"]).optional()
+        tab: z.enum(["description", "greetings", "example", "gallery"]).default("description")
     }),
     beforeLoad: async ({ params: { id } }) => {
         const character = await Character.load(id);
@@ -265,5 +275,12 @@ export const Route = createFileRoute("/characters/$id")({
     },
     head: ({ match }) => ({
         meta: [{ title: `${match.context.breadcrumb} - Monogatari` }]
-    })
+    }),
+    search: {
+        middlewares: [
+            stripSearchParams({
+                tab: "description"
+            })
+        ]
+    }
 });

@@ -1,8 +1,13 @@
 import { Markdown } from "@/components/markdown";
 import { TagList } from "@/components/tag-list";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { DownloadButton } from "@/routes/explore/components/download-button";
 import { type ChubCharacter } from "@/types/explore/chub";
@@ -57,26 +62,26 @@ export function CharacterModal({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogTitle className="sr-only">Character Popup</DialogTitle>
-            <DialogDescription className="sr-only">{character.name}</DialogDescription>
             <DialogContent
                 className={cn(
                     "flex max-h-[90%] before:-z-1! sm:max-w-[90%]",
                     isDownloaded && "ring-2 ring-green-500/50"
                 )}
             >
+                <DialogHeader className="sr-only">
+                    <DialogTitle>Character Details</DialogTitle>
+                    <DialogDescription>{character.name}</DialogDescription>
+                </DialogHeader>
                 <div className="flex flex-col gap-6 md:flex-row">
                     <div className="flex flex-col space-y-4 overflow-y-auto md:basis-2/5">
                         <div className="relative max-h-full self-center">
-                            <Avatar className="size-full rounded-xl">
+                            <Avatar className="size-full rounded-xl after:rounded-xl">
                                 <AvatarImage
                                     src={character.max_res_url}
                                     alt={character.name}
-                                    className="aspect-[unset] object-cover"
+                                    className="aspect-[unset] rounded-xl object-cover"
                                 />
-                                <AvatarFallback>
-                                    <Skeleton />
-                                </AvatarFallback>
+                                <AvatarFallback className="animate-pulse rounded-xl" />
                             </Avatar>
                             <DownloadButton
                                 initialState={initialState}

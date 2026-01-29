@@ -2,8 +2,7 @@ import Header from "@/components/header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import { FieldGroup } from "@/components/ui/field";
 import {
     Sidebar,
     SidebarContent,
@@ -17,14 +16,13 @@ import {
     SidebarProvider,
     SidebarSeparator
 } from "@/components/ui/sidebar";
-import { Textarea } from "@/components/ui/textarea";
 import { useCharacterContext } from "@/contexts/character";
 import { db } from "@/database/monogatari-db";
 import { Asset } from "@/database/schema/asset";
 import { Persona } from "@/database/schema/persona";
+import { useAppForm } from "@/hooks/use-app-form";
 import { useFileDialog } from "@/hooks/use-file-dialog";
 import { useImageURL } from "@/hooks/use-image-url";
-import { useForm } from "@tanstack/react-form";
 import { createFileRoute, useLoaderData } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Trash2, Upload, UserPlus } from "lucide-react";
@@ -36,7 +34,7 @@ interface PersonaEditorProps {
 }
 
 function PersonaEditor({ persona }: PersonaEditorProps) {
-    const form = useForm({
+    const form = useAppForm({
         defaultValues: persona,
         validators: {
             onMount: ({ value }) => persona.validate(value),
@@ -82,70 +80,37 @@ function PersonaEditor({ persona }: PersonaEditorProps) {
 
     return (
         <form
-            className="flex grow gap-4 overflow-auto pb-2"
+            className="flex grow flex-col gap-6 overflow-auto pb-2 sm:flex-row"
             onSubmit={(event) => {
                 event.preventDefault();
                 void form.handleSubmit();
             }}
         >
-            <FieldGroup className="flex flex-col gap-6 sm:flex-row">
-                <Avatar className="size-[unset] h-64 rounded-xl">
-                    {input}
-                    <AvatarImage
-                        src={imageURL}
-                        className="aspect-[unset] w-full cursor-pointer object-cover transition-all hover:brightness-75"
+            <Avatar className="size-[unset] h-64 cursor-pointer rounded-xl transition-all after:rounded-xl hover:brightness-90">
+                {input}
+                <AvatarImage
+                    src={imageURL}
+                    className="aspect-[unset] w-full cursor-pointer rounded-xl object-cover"
+                    onClick={browse}
+                />
+                <AvatarFallback className="rounded-xl">
+                    <Button
+                        variant="outline"
                         onClick={browse}
-                    />
-                    <AvatarFallback className="rounded-xl">
-                        <Button
-                            onClick={browse}
-                            className="flex h-24 w-48 cursor-pointer items-center justify-center gap-2"
-                        >
-                            <Upload />
-                            No Image
-                        </Button>
-                    </AvatarFallback>
-                </Avatar>
-                <FieldGroup className="flex flex-col *:gap-1">
-                    <form.Field name="name">
-                        {(field) => {
-                            const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
-                            return (
-                                <Field data-invalid={invalid}>
-                                    <FieldLabel htmlFor={field.name}>Name</FieldLabel>
-                                    <Input
-                                        id={field.name}
-                                        name={field.name}
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) => field.handleChange(e.target.value)}
-                                        aria-invalid={invalid}
-                                    />
-                                    {invalid && <FieldError errors={field.state.meta.errors} />}
-                                </Field>
-                            );
-                        }}
-                    </form.Field>
-                    <form.Field name="description">
-                        {(field) => {
-                            const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
-                            return (
-                                <Field data-invalid={invalid}>
-                                    <FieldLabel htmlFor={field.name}>Description</FieldLabel>
-                                    <Textarea
-                                        id={field.name}
-                                        name={field.name}
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) => field.handleChange(e.target.value)}
-                                        aria-invalid={invalid}
-                                    />
-                                    {invalid && <FieldError errors={field.state.meta.errors} />}
-                                </Field>
-                            );
-                        }}
-                    </form.Field>
-                </FieldGroup>
+                        className="flex aspect-2/3 h-64 items-center justify-center gap-2"
+                    >
+                        <Upload />
+                        No Image
+                    </Button>
+                </AvatarFallback>
+            </Avatar>
+            <FieldGroup>
+                <form.AppField name="name">
+                    {(field) => <field.InputField type="text" label="Name" />}
+                </form.AppField>
+                <form.AppField name="description">
+                    {(field) => <field.TextareaField label="Description" />}
+                </form.AppField>
             </FieldGroup>
         </form>
     );

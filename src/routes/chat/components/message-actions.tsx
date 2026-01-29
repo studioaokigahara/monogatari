@@ -24,17 +24,19 @@ interface MessageButton {
 function MessageButton({ Icon, tooltip, onClick, disabled, className }: MessageButton) {
     return (
         <Tooltip>
-            <TooltipTrigger asChild>
-                <Button
-                    size="icon"
-                    variant="ghost"
-                    disabled={disabled}
-                    className={className}
-                    onClick={onClick}
-                >
-                    <Icon />
-                </Button>
-            </TooltipTrigger>
+            <TooltipTrigger
+                render={
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        disabled={disabled}
+                        className={className}
+                        onClick={onClick}
+                    >
+                        <Icon />
+                    </Button>
+                }
+            />
             <TooltipContent side="bottom">{tooltip}</TooltipContent>
         </Tooltip>
     );
@@ -208,19 +210,19 @@ export function MessageActions({
                   Icon: RefreshCw,
                   tooltip: "Save & Regenerate",
                   onClick: saveMessageEditAndRegenerate,
-                  className: cn("text-blue-500 hover:text-blue-400", className)
+                  className: "text-blue-500 hover:text-blue-400"
               },
               {
                   Icon: Check,
                   tooltip: "Save",
                   onClick: saveMessageEdit,
-                  className: cn("text-green-500 hover:text-green-400", className)
+                  className: "text-green-500 hover:text-green-400"
               },
               {
                   Icon: X,
                   tooltip: "Cancel",
                   onClick: cancelMessageEdit,
-                  className: cn("text-destructive hover:text-destructive", className)
+                  className: "text-destructive hover:text-destructive"
               }
           ]
         : [
@@ -249,7 +251,8 @@ export function MessageActions({
                   Icon: Trash2,
                   tooltip: "Delete",
                   onClick: deleteMessage,
-                  className: "text-destructive hover:text-destructive"
+                  className:
+                      "text-destructive hover:text-destructive focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40"
               }
           ];
 
@@ -262,7 +265,7 @@ export function MessageActions({
                 tooltip={action.tooltip}
                 onClick={action.onClick}
                 disabled={status !== "ready"}
-                className={action.className}
+                className={cn(action.className, className)}
             />
         ));
 

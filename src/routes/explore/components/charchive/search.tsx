@@ -1,17 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
-import {
-    InputGroup,
-    InputGroupAddon,
-    InputGroupInput
-} from "@/components/ui/input-group";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 import {
     Select,
@@ -44,11 +36,7 @@ interface Props {
     resetQuery: () => void;
 }
 
-export function CharacterArchiveSearch({
-    query,
-    updateQuery,
-    resetQuery
-}: Props) {
+export function CharacterArchiveSearch({ query, updateQuery, resetQuery }: Props) {
     const [isOpen, setIsOpen] = useState(false);
 
     const formRef = useRef<HTMLFormElement>(null);
@@ -79,7 +67,7 @@ export function CharacterArchiveSearch({
     };
 
     return (
-        <Card className="w-full py-4 bg-transparent border-none shadow-none">
+        <Card className="w-full border-none bg-transparent py-4 shadow-none">
             <CardContent>
                 <form ref={formRef} onSubmit={handleSubmit}>
                     <Collapsible
@@ -100,34 +88,32 @@ export function CharacterArchiveSearch({
                                 <Button type="submit" size="icon">
                                     <SearchIcon />
                                 </Button>
-                                <Button
-                                    type="button"
-                                    onClick={handleReset}
-                                    size="icon"
-                                >
+                                <Button type="button" onClick={handleReset} size="icon">
                                     <RotateCcw />
                                 </Button>
                             </ButtonGroup>
                             <ButtonGroup>
-                                <CollapsibleTrigger asChild>
-                                    <Button
-                                        aria-label="Toggle Search Options"
-                                        variant="outline"
-                                        size="icon"
-                                    >
-                                        <FunnelPlus />
-                                    </Button>
-                                </CollapsibleTrigger>
+                                <CollapsibleTrigger
+                                    render={
+                                        <Button
+                                            aria-label="Toggle Search Options"
+                                            variant="outline"
+                                            size="icon"
+                                        >
+                                            <FunnelPlus />
+                                        </Button>
+                                    }
+                                />
                             </ButtonGroup>
                         </ButtonGroup>
                         <CollapsibleContent
                             forceMount
                             className={cn(
                                 "w-full space-y-1",
-                                isOpen ? "max-h-250" : "max-h-0 hidden"
+                                isOpen ? "max-h-250" : "hidden max-h-0"
                             )}
                         >
-                            <div className="flex w-full gap-2 relative">
+                            <div className="relative flex w-full gap-2">
                                 <div className="grow space-y-1">
                                     <Label htmlFor="page">Page</Label>
                                     <Input
@@ -144,9 +130,7 @@ export function CharacterArchiveSearch({
                                     />
                                 </div>
                                 <div className="grow space-y-1">
-                                    <Label htmlFor="itemsPerPage">
-                                        Items Per Page
-                                    </Label>
+                                    <Label htmlFor="itemsPerPage">Items Per Page</Label>
                                     <Select
                                         value={query.count.toString()}
                                         onValueChange={(value) =>
@@ -160,10 +144,7 @@ export function CharacterArchiveSearch({
                                         </SelectTrigger>
                                         <SelectContent>
                                             {countOptions.map((n) => (
-                                                <SelectItem
-                                                    key={n}
-                                                    value={String(n)}
-                                                >
+                                                <SelectItem key={n} value={String(n)}>
                                                     {n}
                                                 </SelectItem>
                                             ))}
@@ -189,10 +170,7 @@ export function CharacterArchiveSearch({
                                         </SelectTrigger>
                                         <SelectContent>
                                             {sortOptions.map((option) => (
-                                                <SelectItem
-                                                    key={option.value}
-                                                    value={option.value}
-                                                >
+                                                <SelectItem key={option.value} value={option.value}>
                                                     {option.icon}
                                                     {option.label}
                                                 </SelectItem>
@@ -201,16 +179,12 @@ export function CharacterArchiveSearch({
                                     </Select>
                                 </div>
                                 <div className="grow space-y-1">
-                                    <Label htmlFor="sortDirection">
-                                        Sort Direction
-                                    </Label>
+                                    <Label htmlFor="sortDirection">Sort Direction</Label>
                                     <Select
                                         defaultValue={"asc"}
                                         onValueChange={(value) =>
                                             updateQuery({
-                                                "sort-dir": value as
-                                                    | "asc"
-                                                    | "desc"
+                                                "sort-dir": value as "asc" | "desc"
                                             })
                                         }
                                     >
@@ -219,25 +193,17 @@ export function CharacterArchiveSearch({
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="asc">
-                                                <Icon
-                                                    iconNode={
-                                                        stairsArrowUpRight
-                                                    }
-                                                />
+                                                <Icon iconNode={stairsArrowUpRight} />
                                                 Ascending
                                             </SelectItem>
                                             <SelectItem value="desc">
-                                                <Icon
-                                                    iconNode={
-                                                        stairsArrowDownLeft
-                                                    }
-                                                />
+                                                <Icon iconNode={stairsArrowDownLeft} />
                                                 Descending
                                             </SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div className="flex items-center gap-2 mt-4">
+                                <div className="mt-4 flex items-center gap-2">
                                     <Label htmlFor="language-search">
                                         Natural Language Search
                                         <Switch
@@ -265,11 +231,9 @@ export function CharacterArchiveSearch({
                                     </Label>
                                 </div>
                             </div>
-                            <div className="flex w-full relative">
+                            <div className="relative flex w-full">
                                 <div className="grow space-y-1">
-                                    <Label htmlFor="comparison">
-                                        Comparison
-                                    </Label>
+                                    <Label htmlFor="comparison">Comparison</Label>
                                     <InputGroup>
                                         <InputGroupInput
                                             id="comparison"

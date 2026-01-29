@@ -1,18 +1,7 @@
-import Header from "@/components/header";
-import { createFileRoute } from "@tanstack/react-router";
-import { Outlet } from "@tanstack/react-router";
-
-function SettingsLayout() {
-    return (
-        <>
-            <Header />
-            <Outlet />
-        </>
-    );
-}
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/settings")({
-    component: SettingsLayout,
+    component: () => <Outlet />,
     head: () => ({
         meta: [{ title: "Settings - Monogatari" }]
     }),

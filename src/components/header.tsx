@@ -24,7 +24,7 @@ export default function Header({ children, className, ...props }: HeaderProps) {
         >
             <div className="flex items-center gap-2">
                 <SidebarTrigger />
-                <Separator orientation="vertical" className="h-4! mr-1" />
+                <Separator orientation="vertical" className="h-4! my-auto mr-1" />
                 <Breadcrumbs />
             </div>
             {children}

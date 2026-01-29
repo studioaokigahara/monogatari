@@ -1,21 +1,22 @@
-import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { Preset, Prompt } from "@/database/schema/preset";
-import { cn, generateCuid2 } from "@/lib/utils";
-import { useForm } from "@tanstack/react-form";
-import { Bot, ListEnd, ListStart, Plus, Terminal, Trash2, User } from "lucide-react";
+import { Preset } from "@/database/schema/preset";
+import { useAppForm } from "@/hooks/use-app-form";
+import { cn } from "@/lib/utils";
+import { Bot, ListEnd, ListStart, Terminal, User } from "lucide-react";
 import { useEffect } from "react";
 import { toast } from "sonner";
+
+const ROLE_OPTIONS = [
+    { value: "system", icon: <Terminal />, label: "System" },
+    { value: "user", icon: <User />, label: "User" },
+    { value: "assistant", icon: <Bot />, label: "Assistant" }
+];
+
+const POSITION_OPTIONS = [
+    { value: "before", icon: <ListStart />, label: "Before" },
+    { value: "after", icon: <ListEnd />, label: "After" }
+];
 
 interface PromptEditorProps {
     selectedPreset: Preset;
@@ -23,22 +24,24 @@ interface PromptEditorProps {
 }
 
 export function PromptEditor({ selectedPreset, promptIndex }: PromptEditorProps) {
-    const form = useForm({
+    const form = useAppForm({
         defaultValues: selectedPreset,
         validators: {
             onChange: ({ value }) => Preset.validate(value),
             onSubmit: ({ value }) => Preset.validate(value)
         },
         onSubmit: async ({ value }) => {
-            await selectedPreset.update(value).catch((error: Error) => {
+            try {
+                await selectedPreset.update(value);
+            } catch (error) {
                 console.error("Failed to update preset:", error);
                 toast.error("Failed to save preset", {
-                    description: error.message
+                    description: error instanceof Error ? error.message : ""
                 });
-            });
+            }
         },
         listeners: {
-            onChangeDebounceMs: 500,
+            onChangeDebounceMs: 1000,
             onChange: ({ formApi: form }) => {
                 if (form.state.isValid && !form.state.isSubmitting) {
                     void form.handleSubmit();
@@ -48,23 +51,6 @@ export function PromptEditor({ selectedPreset, promptIndex }: PromptEditorProps)
     });
 
     useEffect(() => form.reset(selectedPreset), [form, selectedPreset]);
-
-    const addPrompt = () => {
-        const newPrompt: Prompt = {
-            id: generateCuid2(),
-            name: "New Prompt",
-            role: "system",
-            content: "",
-            enabled: true,
-            position: "before",
-            depth: 0
-        };
-        form.pushFieldValue("prompts", newPrompt);
-    };
-
-    const deletePrompt = async () => {
-        await form.removeFieldValue("prompts", promptIndex);
-    };
 
     const getRoleColor = (role: string) => {
         switch (role) {
@@ -88,308 +74,46 @@ export function PromptEditor({ selectedPreset, promptIndex }: PromptEditorProps)
             }}
         >
             <FieldGroup>
-                <FieldGroup>
-                    <form.Field name="name">
-                        {(field) => {
-                            const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
-                            return (
-                                <Field data-invalid={invalid} className="gap-1">
-                                    <FieldLabel htmlFor={field.name}>Name</FieldLabel>
-                                    <Input
-                                        id={field.name}
-                                        name={field.name}
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) => field.handleChange(e.target.value)}
-                                    />
-                                    {invalid && <FieldError errors={field.state.meta.errors} />}
-                                </Field>
-                            );
-                        }}
-                    </form.Field>
-                    <form.Field name="description">
-                        {(field) => {
-                            const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
-                            return (
-                                <Field data-invalid={invalid} className="gap-1">
-                                    <FieldLabel htmlFor={field.name}>Description</FieldLabel>
-                                    <Textarea
-                                        id={field.name}
-                                        name={field.name}
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) => field.handleChange(e.target.value)}
-                                    />
-                                    {invalid && <FieldError errors={field.state.meta.errors} />}
-                                </Field>
-                            );
-                        }}
-                    </form.Field>
-                </FieldGroup>
-                <FieldGroup key={`prompts[${promptIndex}].id`}>
-                    <form.Field name="prompts" mode="array">
-                        {() => (
-                            <>
-                                <div className="flex justify-between @max-md:flex-wrap @max-md:gap-2">
-                                    <form.Subscribe
-                                        selector={(state) => state.values.prompts[promptIndex]}
-                                    >
-                                        {(prompt) => (
-                                            <div className="my-auto space-x-2">
-                                                <form.Field
-                                                    name={`prompts[${promptIndex}].enabled`}
-                                                >
-                                                    {(field) => {
-                                                        const invalid =
-                                                            field.state.meta.isTouched &&
-                                                            !field.state.meta.isValid;
-                                                        return (
-                                                            <Field data-invalid={invalid}>
-                                                                <FieldLabel
-                                                                    htmlFor={field.name}
-                                                                    className={cn(
-                                                                        "bg-[unset]! text-base",
-                                                                        getRoleColor(prompt.role)
-                                                                    )}
-                                                                >
-                                                                    <span className="mb-px max-w-[27ch] truncate font-semibold text-balance">
-                                                                        {prompt.name}
-                                                                    </span>
-                                                                    <Switch
-                                                                        id={field.name}
-                                                                        name={field.name}
-                                                                        checked={field.state.value}
-                                                                        onCheckedChange={(
-                                                                            checked
-                                                                        ) =>
-                                                                            field.handleChange(
-                                                                                checked
-                                                                            )
-                                                                        }
-                                                                    />
-                                                                    <span className="rounded bg-muted px-2 py-1 text-xs capitalize">
-                                                                        {prompt.role} •{" "}
-                                                                        {prompt.position}
-                                                                    </span>
-                                                                </FieldLabel>
-                                                                {invalid && (
-                                                                    <FieldError
-                                                                        errors={
-                                                                            field.state.meta.errors
-                                                                        }
-                                                                    />
-                                                                )}
-                                                            </Field>
-                                                        );
-                                                    }}
-                                                </form.Field>
-                                            </div>
-                                        )}
-                                    </form.Subscribe>
-                                    <div className="my-auto space-x-2">
-                                        <Button onClick={addPrompt}>
-                                            <Plus />
-                                            New
-                                        </Button>
-                                        <form.Subscribe selector={(state) => state.isSubmitting}>
-                                            {(isSubmitting) => (
-                                                <Button
-                                                    variant="destructive"
-                                                    disabled={isSubmitting}
-                                                    onClick={deletePrompt}
-                                                >
-                                                    <Trash2 />
-                                                    Delete
-                                                </Button>
-                                            )}
-                                        </form.Subscribe>
-                                    </div>
-                                </div>
-                                <form.Field name={`prompts[${promptIndex}].name`}>
+                <form.AppField name="name">
+                    {(field) => <field.InputField type="text" label="Preset Name" />}
+                </form.AppField>
+                <form.AppField name="description">
+                    {(field) => <field.TextareaField label="Description" />}
+                </form.AppField>
+            </FieldGroup>
+            <FieldGroup key={`prompts[${promptIndex}].id`}>
+                <div className="flex justify-between @max-md:flex-wrap @max-md:gap-2">
+                    <div className="my-auto space-x-2">
+                        <form.Subscribe selector={(state) => state.values.prompts[promptIndex]}>
+                            {(prompt) => (
+                                <form.Field name={`prompts[${promptIndex}].enabled`}>
                                     {(field) => {
                                         const invalid =
                                             field.state.meta.isTouched && !field.state.meta.isValid;
                                         return (
-                                            <Field data-invalid={invalid} className="gap-1">
-                                                <FieldLabel htmlFor={field.name}>Name</FieldLabel>
-                                                <Input
-                                                    id={field.name}
-                                                    name={field.name}
-                                                    value={field.state.value}
-                                                    onBlur={field.handleBlur}
-                                                    onChange={(e) =>
-                                                        field.handleChange(e.target.value)
-                                                    }
-                                                />
-                                                {invalid && (
-                                                    <FieldError errors={field.state.meta.errors} />
-                                                )}
-                                            </Field>
-                                        );
-                                    }}
-                                </form.Field>
-                                <FieldGroup className="flex flex-row">
-                                    <form.Field name={`prompts[${promptIndex}].role`}>
-                                        {(field) => {
-                                            const invalid =
-                                                field.state.meta.isTouched &&
-                                                !field.state.meta.isValid;
-                                            return (
-                                                <Field data-invalid={invalid} className="gap-1">
-                                                    <FieldLabel htmlFor={field.name}>
-                                                        Role
-                                                    </FieldLabel>
-                                                    <Select
-                                                        name={field.name}
-                                                        value={field.state.value}
-                                                        onValueChange={(v) =>
-                                                            field.handleChange(
-                                                                v as "system" | "assistant" | "user"
-                                                            )
-                                                        }
-                                                    >
-                                                        <SelectTrigger>
-                                                            <SelectValue
-                                                                placeholder="Select role..."
-                                                                aria-invalid={invalid}
-                                                            />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="system">
-                                                                <Terminal />
-                                                                System
-                                                            </SelectItem>
-                                                            <SelectItem value="user">
-                                                                <User />
-                                                                User
-                                                            </SelectItem>
-                                                            <SelectItem value="assistant">
-                                                                <Bot />
-                                                                Assistant
-                                                            </SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                    {invalid && (
-                                                        <FieldError
-                                                            errors={field.state.meta.errors}
-                                                        />
+                                            <Field data-invalid={invalid}>
+                                                <FieldLabel
+                                                    htmlFor={field.name}
+                                                    className={cn(
+                                                        "bg-[unset]! text-base",
+                                                        getRoleColor(prompt.role)
                                                     )}
-                                                </Field>
-                                            );
-                                        }}
-                                    </form.Field>
-                                    <form.Field name={`prompts[${promptIndex}].position`}>
-                                        {(field) => {
-                                            const invalid =
-                                                field.state.meta.isTouched &&
-                                                !field.state.meta.isValid;
-                                            return (
-                                                <Field data-invalid={invalid} className="gap-1">
-                                                    <FieldLabel htmlFor={field.name}>
-                                                        Position
-                                                    </FieldLabel>
-                                                    <Select
+                                                >
+                                                    <span className="mb-px max-w-[27ch] truncate font-semibold text-balance">
+                                                        {prompt.name}
+                                                    </span>
+                                                    <Switch
+                                                        id={field.name}
                                                         name={field.name}
-                                                        value={field.state.value}
-                                                        onValueChange={(v) =>
-                                                            field.handleChange(
-                                                                v as "before" | "after"
-                                                            )
+                                                        checked={field.state.value}
+                                                        onCheckedChange={(checked) =>
+                                                            field.handleChange(checked)
                                                         }
-                                                    >
-                                                        <SelectTrigger>
-                                                            <SelectValue
-                                                                placeholder="Select position..."
-                                                                aria-invalid={invalid}
-                                                            />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="before">
-                                                                <ListStart />
-                                                                Before
-                                                            </SelectItem>
-                                                            <SelectItem value="after">
-                                                                <ListEnd />
-                                                                After
-                                                            </SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                    {invalid && (
-                                                        <FieldError
-                                                            errors={field.state.meta.errors}
-                                                        />
-                                                    )}
-                                                </Field>
-                                            );
-                                        }}
-                                    </form.Field>
-                                    <form.Subscribe
-                                        selector={(state) =>
-                                            state.values.prompts[promptIndex].position
-                                        }
-                                    >
-                                        {(position) => (
-                                            <form.Field name={`prompts[${promptIndex}].depth`}>
-                                                {(field) => {
-                                                    const invalid =
-                                                        field.state.meta.isTouched &&
-                                                        !field.state.meta.isValid;
-                                                    return (
-                                                        <Field
-                                                            data-invalid={invalid}
-                                                            className="gap-1"
-                                                        >
-                                                            <FieldLabel
-                                                                htmlFor={field.name}
-                                                                aria-disabled={
-                                                                    position === "before"
-                                                                }
-                                                            >
-                                                                Depth
-                                                            </FieldLabel>
-                                                            <Input
-                                                                id={field.name}
-                                                                name={field.name}
-                                                                type="number"
-                                                                disabled={position === "before"}
-                                                                value={field.state.value}
-                                                                onBlur={field.handleBlur}
-                                                                onChange={(e) =>
-                                                                    field.handleChange(
-                                                                        Number(e.target.value)
-                                                                    )
-                                                                }
-                                                            />
-                                                            {invalid && (
-                                                                <FieldError
-                                                                    errors={field.state.meta.errors}
-                                                                />
-                                                            )}
-                                                        </Field>
-                                                    );
-                                                }}
-                                            </form.Field>
-                                        )}
-                                    </form.Subscribe>
-                                </FieldGroup>
-                                <form.Field name={`prompts[${promptIndex}].content`}>
-                                    {(field) => {
-                                        const invalid =
-                                            field.state.meta.isTouched && !field.state.meta.isValid;
-                                        return (
-                                            <Field data-invalid={invalid} className="gap-1">
-                                                <FieldLabel htmlFor={field.name}>
-                                                    Content
+                                                    />
+                                                    <span className="rounded bg-muted px-2 py-1 text-xs capitalize">
+                                                        {prompt.role} • {prompt.position}
+                                                    </span>
                                                 </FieldLabel>
-                                                <Textarea
-                                                    id={field.name}
-                                                    name={field.name}
-                                                    value={field.state.value}
-                                                    onBlur={field.handleBlur}
-                                                    onChange={(e) =>
-                                                        field.handleChange(e.target.value)
-                                                    }
-                                                />
                                                 {invalid && (
                                                     <FieldError errors={field.state.meta.errors} />
                                                 )}
@@ -397,10 +121,51 @@ export function PromptEditor({ selectedPreset, promptIndex }: PromptEditorProps)
                                         );
                                     }}
                                 </form.Field>
-                            </>
+                            )}
+                        </form.Subscribe>
+                    </div>
+                </div>
+                <form.AppField name={`prompts[${promptIndex}].name`}>
+                    {(field) => <field.InputField type="text" label="Prompt Name" />}
+                </form.AppField>
+                <div className="grid grid-cols-3 gap-4">
+                    <form.AppField name={`prompts[${promptIndex}].role`}>
+                        {(field) => (
+                            <field.SelectField
+                                items={ROLE_OPTIONS}
+                                label="Role"
+                                placeholder="Select role..."
+                            />
                         )}
-                    </form.Field>
-                </FieldGroup>
+                    </form.AppField>
+                    <form.AppField name={`prompts[${promptIndex}].position`}>
+                        {(field) => (
+                            <field.SelectField
+                                items={POSITION_OPTIONS}
+                                label="Position"
+                                placeholder="Select position..."
+                            />
+                        )}
+                    </form.AppField>
+                    <form.Subscribe
+                        selector={(state) => state.values.prompts[promptIndex].position}
+                    >
+                        {(position) => (
+                            <form.AppField name={`prompts[${promptIndex}].depth`}>
+                                {(field) => (
+                                    <field.InputField
+                                        type="number"
+                                        label="Depth"
+                                        disabled={position === "before"}
+                                    />
+                                )}
+                            </form.AppField>
+                        )}
+                    </form.Subscribe>
+                </div>
+                <form.AppField name={`prompts[${promptIndex}].content`}>
+                    {(field) => <field.TextareaField label="Content" />}
+                </form.AppField>
             </FieldGroup>
         </form>
     );

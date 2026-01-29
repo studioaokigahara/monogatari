@@ -6,10 +6,9 @@ import {
     AlertDialogDescription,
     AlertDialogFooter,
     AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger
+    AlertDialogTitle
 } from "@/components/ui/alert-dialog";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import {
     Dialog,
@@ -18,15 +17,14 @@ import {
     DialogDescription,
     DialogFooter,
     DialogHeader,
-    DialogTitle,
-    DialogTrigger
+    DialogTitle
 } from "@/components/ui/dialog";
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuSeparator,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import {
@@ -47,7 +45,8 @@ import {
     SidebarMenu,
     SidebarMenuAction,
     SidebarMenuButton,
-    SidebarMenuItem
+    SidebarMenuItem,
+    SidebarMenuSkeleton
 } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
@@ -79,13 +78,13 @@ const GraphLoader = lazy(() => import("@/components/graph/loader"));
 interface ChatHistoryItem {
     chat: Chat;
     isActive: boolean;
-    isMobile: boolean;
-    setGraphID: (id: string) => void;
 }
 
-function ChatHistoryItem({ chat, isActive, isMobile, setGraphID }: ChatHistoryItem) {
+function ChatHistoryItem({ chat, isActive }: ChatHistoryItem) {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [alertOpen, setAlertOpen] = useState(false);
+    const [graphOpen, setGraphOpen] = useState(false);
+    const { isMobile } = useSidebarContext();
     const navigate = useNavigate();
 
     const titleRef = useRef<HTMLInputElement>(null);
@@ -114,7 +113,7 @@ function ChatHistoryItem({ chat, isActive, isMobile, setGraphID }: ChatHistoryIt
         const data = JSON.stringify(chat);
         const file = new File(
             [data],
-            `${record.title || chat.id} ${new Date().toLocaleDateString()}.json`,
+            `${chat.title || chat.id} ${new Date().toLocaleDateString()}.json`,
             { type: "application/json" }
         );
         downloadFile(file);
@@ -124,104 +123,121 @@ function ChatHistoryItem({ chat, isActive, isMobile, setGraphID }: ChatHistoryIt
 
     return (
         <SidebarMenuItem>
-            <SidebarMenuButton asChild data-active={isActive}>
-                {chat.fork ? (
-                    <span className="flex flex-row items-center">
-                        <Link to="/chat/$id" params={{ id: chat.fork }}>
-                            <Split className="-mr-1 size-4 opacity-50 transition hover:opacity-100" />
+            <SidebarMenuButton
+                isActive={isActive}
+                render={
+                    chat.fork ? (
+                        <span className="flex flex-row items-center">
+                            <Link to="/chat/$id" params={{ id: chat.fork }}>
+                                <Split className="-mr-1 size-4 opacity-50 transition hover:opacity-100" />
+                            </Link>
+                            <Link to="/chat/$id" params={{ id: chat.id }} className="truncate">
+                                {title}
+                            </Link>
+                        </span>
+                    ) : (
+                        <Link to="/chat/$id" params={{ id: chat.id }}>
+                            <span className="truncate">{title}</span>
                         </Link>
-                        <Link to="/chat/$id" params={{ id: chat.id }} className="truncate">
-                            {title}
-                        </Link>
-                    </span>
-                ) : (
-                    <Link to="/chat/$id" params={{ id: chat.id }}>
-                        <span className="truncate">{title}</span>
-                    </Link>
-                )}
-            </SidebarMenuButton>
+                    )
+                }
+            />
+            <DropdownMenu>
+                <DropdownMenuTrigger
+                    render={
+                        <SidebarMenuAction showOnHover>
+                            <MoreHorizontal />
+                            <span className="sr-only">More</span>
+                        </SidebarMenuAction>
+                    }
+                />
+                <DropdownMenuContent
+                    className="w-48 rounded-lg"
+                    side={isMobile ? "bottom" : "right"}
+                    align={isMobile ? "end" : "start"}
+                >
+                    <DropdownMenuGroup>
+                        <DropdownMenuLabel>{title}</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => setDialogOpen(true)}>
+                            <PencilLine />
+                            Rename...
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setGraphOpen(true)}>
+                            <ChartNetwork />
+                            View Graph...
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={exportChat}>
+                            <FileDown />
+                            Export
+                        </DropdownMenuItem>
+                        <DropdownMenuItem variant="destructive" onClick={() => setAlertOpen(true)}>
+                            <Trash2 />
+                            Delete...
+                        </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                </DropdownMenuContent>
+            </DropdownMenu>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <SidebarMenuAction showOnHover>
-                                <MoreHorizontal />
-                                <span className="sr-only">More</span>
-                            </SidebarMenuAction>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                            className="w-48 rounded-lg"
-                            side={isMobile ? "bottom" : "right"}
-                            align={isMobile ? "end" : "start"}
-                        >
-                            <DropdownMenuLabel>
-                                <span>{title}</span>
-                            </DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DialogTrigger asChild>
-                                <DropdownMenuItem>
-                                    <PencilLine className="text-muted-foreground" />
-                                    <span>Rename...</span>
-                                </DropdownMenuItem>
-                            </DialogTrigger>
-                            <DropdownMenuItem onSelect={() => setGraphID(chat.id)}>
-                                <ChartNetwork className="text-muted-foreground" />
-                                <span>View Graph...</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={exportChat}>
-                                <FileDown className="text-muted-foreground" />
-                                <span>Export...</span>
-                            </DropdownMenuItem>
-                            <AlertDialogTrigger asChild>
-                                <DropdownMenuItem variant="destructive">
-                                    <Trash2 className="text-muted-foreground" />
-                                    <span>Delete...</span>
-                                </DropdownMenuItem>
-                            </AlertDialogTrigger>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Rename Chat</DialogTitle>
-                        </DialogHeader>
-                        <div className="grid gap-3">
-                            <Label htmlFor="title-input">Title</Label>
-                            <Input
-                                id="title-input"
-                                name="title"
-                                defaultValue={chat.title}
-                                ref={titleRef}
-                            />
-                        </div>
-                        <DialogFooter>
-                            <DialogClose asChild>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Rename Chat</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-3">
+                        <Label htmlFor="title-input">Title</Label>
+                        <Input
+                            id="title-input"
+                            name="title"
+                            defaultValue={chat.title}
+                            ref={titleRef}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <DialogClose
+                            render={
                                 <Button type="button" variant="outline">
                                     Close
                                 </Button>
-                            </DialogClose>
-                            <Button onClick={renameChat}>Save changes</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                This will permanently delete this chat. Export your data first!
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                                className={buttonVariants({
-                                    variant: "destructive"
-                                })}
-                                onClick={deleteChat}
-                            >
-                                Delete!
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                            }
+                        />
+                        <Button onClick={renameChat}>Save changes</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will permanently delete this chat. Export your data first!
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction variant="destructive" onClick={deleteChat}>
+                            Delete!
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <Dialog open={graphOpen} onOpenChange={setGraphOpen}>
+                <DialogContent className="h-full max-h-[90dvh] w-full max-w-[90dvw]! p-0">
+                    <DialogHeader className="sr-only">
+                        <DialogTitle>Chat Graph</DialogTitle>
+                        <DialogDescription>
+                            Directed acyclic graph of the current chat
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Suspense
+                        fallback={
+                            <>
+                                <Spinner className="size-6" />
+                                Loading...
+                            </>
+                        }
+                    >
+                        <GraphLoader chat={chat} />
+                    </Suspense>
+                </DialogContent>
             </Dialog>
         </SidebarMenuItem>
     );
@@ -245,8 +261,6 @@ function EmptyChatHistory({ name }: { name: string }) {
 
 export function ChatHistory() {
     const { character, persona } = useCharacterContext();
-
-    const [graphID, setGraphID] = useState<string>("");
 
     const [query, setQuery] = useState<string>("");
     const search = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -300,20 +314,13 @@ export function ChatHistory() {
     };
 
     const { id } = useParams({ strict: false });
-    const { isMobile } = useSidebarContext();
     const chatHistory = timeGroups.map(([label, chatList]) => (
         <Fragment key={label}>
             <SidebarGroupLabel>{label}</SidebarGroupLabel>
             <SidebarGroupContent>
                 <SidebarMenu>
                     {chatList.map((chat) => (
-                        <ChatHistoryItem
-                            key={chat.id}
-                            chat={chat}
-                            isActive={id === chat.id}
-                            isMobile={isMobile}
-                            setGraphID={setGraphID}
-                        />
+                        <ChatHistoryItem key={chat.id} chat={chat} isActive={id === chat.id} />
                     ))}
                 </SidebarMenu>
             </SidebarGroupContent>
@@ -325,13 +332,13 @@ export function ChatHistory() {
     }).map((_, index) => (
         <Fragment key={`skeleton-${index}`}>
             <SidebarGroupLabel>
-                <Skeleton className="h-4 w-8" />
+                <Skeleton className={Math.random() > 0.5 ? "h-4 w-8" : "h-4 w-16"} />
             </SidebarGroupLabel>
             <SidebarGroupContent>
                 <SidebarMenu>
                     {Array.from({ length: Math.max(1, Math.random() * 4) }).map((_, index2) => (
                         <SidebarMenuItem key={`skeleton-item-${index2}`}>
-                            <Skeleton className="h-8" />
+                            <SidebarMenuSkeleton />
                         </SidebarMenuItem>
                     ))}
                 </SidebarMenu>
@@ -350,7 +357,7 @@ export function ChatHistory() {
                                     <InputGroup className="h-8">
                                         <InputGroupInput
                                             disabled={!chatHistory.length}
-                                            placeholder="Search"
+                                            placeholder="Search..."
                                             onChange={search}
                                         />
                                         <InputGroupAddon
@@ -369,12 +376,10 @@ export function ChatHistory() {
                                 </ButtonGroup>
                                 <ButtonGroup className="shrink-0">
                                     <SidebarMenuButton
-                                        asChild
                                         tooltip="New Chat"
                                         onClick={startNewChat}
-                                    >
-                                        <MessageCirclePlus />
-                                    </SidebarMenuButton>
+                                        render={<MessageCirclePlus />}
+                                    />
                                 </ButtonGroup>
                             </ButtonGroup>
                         </SidebarMenuItem>
@@ -390,29 +395,6 @@ export function ChatHistory() {
                     <EmptyChatHistory name={character.data.name} />
                 ) : null}
             </SidebarGroup>
-            <Dialog
-                open={!!graphID}
-                onOpenChange={(open) => {
-                    if (!open) setGraphID("");
-                }}
-            >
-                <DialogTitle className="sr-only">Chat Graph</DialogTitle>
-                <DialogDescription className="sr-only">
-                    Directed acyclic graph of the current chat
-                </DialogDescription>
-                <DialogContent className="h-full max-h-[90dvh] w-full max-w-[90dvw]! p-0">
-                    <Suspense
-                        fallback={
-                            <>
-                                <Spinner className="size-6" />
-                                Loading...
-                            </>
-                        }
-                    >
-                        {graphID && <GraphLoader id={graphID} />}
-                    </Suspense>
-                </DialogContent>
-            </Dialog>
         </>
     );
 }

@@ -47,16 +47,18 @@ export default function Parameters() {
                     Samplers
                 </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4">
                 {model?.supports?.streaming && (
                     <div className="flex items-center justify-between">
                         <div className="flex items-center">
                             <Label htmlFor="streaming">Streaming</Label>
                             <TooltipProvider>
                                 <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Info className="ml-2 size-4 text-muted-foreground" />
-                                    </TooltipTrigger>
+                                    <TooltipTrigger
+                                        render={
+                                            <Info className="ml-2 size-4 text-muted-foreground" />
+                                        }
+                                    />
                                     <TooltipContent className="max-w-xs">
                                         Stream tokens as they're generated instead of waiting for
                                         the complete response.
@@ -75,51 +77,59 @@ export default function Parameters() {
                         />
                     </div>
                 )}
-                <div className="space-y-1">
+                <div className="grid gap-2">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center">
                             <Label htmlFor="max-tokens">Maximum Output Tokens</Label>
                             <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Info className="ml-2 size-4 text-muted-foreground" />
-                                </TooltipTrigger>
+                                <TooltipTrigger
+                                    render={<Info className="ml-2 size-4 text-muted-foreground" />}
+                                />
                                 <TooltipContent className="max-w-xs">
-                                    One token is roughly 4 characters of English text.
+                                    Controls the maximum number of tokens returned from the API. One
+                                    token is roughly 4 characters of English text.
                                 </TooltipContent>
                             </Tooltip>
                         </div>
-                        <span className="font-mono text-sm">{settings.maxOutputTokens}</span>
+                        <span className="text-sm text-muted-foreground">
+                            {settings.maxOutputTokens}
+                        </span>
                     </div>
                     <Slider
                         id="max-tokens"
                         min={256}
                         max={model?.maxOutputTokens}
                         step={256}
-                        value={[settings.maxOutputTokens]}
+                        value={settings.maxOutputTokens}
                         onValueChange={(value) => {
                             updateSettings((settings) => {
-                                settings.maxOutputTokens = value[0];
+                                settings.maxOutputTokens = value as number;
                             });
                         }}
-                        className="w-full"
                     />
                 </div>
                 {samplerSet.has("temperature") && (
-                    <div className="space-y-1">
+                    <div className="grid gap-2">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center">
                                 <Label htmlFor="temperature">Temperature</Label>
                                 <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Info className="ml-2 size-4 text-muted-foreground" />
-                                    </TooltipTrigger>
+                                    <TooltipTrigger
+                                        render={
+                                            <Info className="ml-2 size-4 text-muted-foreground" />
+                                        }
+                                    />
                                     <TooltipContent className="max-w-xs">
-                                        Lower values produce more deterministic outputs, higher
-                                        values produce more stochastic outputs.
+                                        Scales the logits of each token by dividing them by
+                                        temperature. Lower values concentrate the probability mass
+                                        in the most likely tokens, producing more deterministic
+                                        outputs, and higher values flatten the probability mass,
+                                        producing more stochastic outputs. Set to 1 for the original
+                                        probabilities.
                                     </TooltipContent>
                                 </Tooltip>
                             </div>
-                            <span className="font-mono text-sm">
+                            <span className="text-sm text-muted-foreground">
                                 {settings.samplers.temperature}
                             </span>
                         </div>
@@ -128,32 +138,34 @@ export default function Parameters() {
                             min={0}
                             max={lowTemp ? 1 : 2}
                             step={0.01}
-                            value={[settings.samplers.temperature]}
+                            value={settings.samplers.temperature}
                             onValueChange={(value) => {
                                 updateSettings((settings) => {
-                                    settings.samplers.temperature = value[0];
+                                    settings.samplers.temperature = value as number;
                                 });
                             }}
-                            className="w-full"
                         />
                     </div>
                 )}
                 {samplerSet.has("frequencyPenalty") && (
-                    <div className="space-y-1">
+                    <div className="grid gap-2">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center">
                                 <Label htmlFor="freqPen">Frequency Penalty</Label>
                                 <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Info className="ml-2 h-4 w-4 text-muted-foreground" />
-                                    </TooltipTrigger>
+                                    <TooltipTrigger
+                                        render={
+                                            <Info className="ml-2 size-4 text-muted-foreground" />
+                                        }
+                                    />
                                     <TooltipContent className="max-w-xs">
-                                        Penalizes token probabilities proportionate to the number of
-                                        times the token appears in context.
+                                        Penalize tokens that have already appeared in context by
+                                        subtracting (freq_pen * token_count) from those token's
+                                        probabilities. Set to 0 to disable.
                                     </TooltipContent>
                                 </Tooltip>
                             </div>
-                            <span className="font-mono text-sm">
+                            <span className="text-sm text-muted-foreground">
                                 {settings.samplers.frequencyPenalty}
                             </span>
                         </div>
@@ -162,32 +174,34 @@ export default function Parameters() {
                             min={-2}
                             max={2}
                             step={0.01}
-                            value={[settings.samplers.frequencyPenalty]}
+                            value={settings.samplers.frequencyPenalty}
                             onValueChange={(value) => {
                                 updateSettings((settings) => {
-                                    settings.samplers.frequencyPenalty = value[0];
+                                    settings.samplers.frequencyPenalty = value as number;
                                 });
                             }}
-                            className="w-full"
                         />
                     </div>
                 )}
                 {samplerSet.has("presencePenalty") && (
-                    <div className="space-y-1">
+                    <div className="grid gap-2">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center">
                                 <Label htmlFor="presPen">Presence Penalty</Label>
                                 <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Info className="ml-2 h-4 w-4 text-muted-foreground" />
-                                    </TooltipTrigger>
+                                    <TooltipTrigger
+                                        render={
+                                            <Info className="ml-2 size-4 text-muted-foreground" />
+                                        }
+                                    />
                                     <TooltipContent className="w-fit">
-                                        Applies a flat penalty to tokens that have already appeared
-                                        in context.
+                                        Penalize tokens that have already appeared in context by
+                                        subtracting pres_pen from those token's probabilities. Set
+                                        to 0 to disable.
                                     </TooltipContent>
                                 </Tooltip>
                             </div>
-                            <span className="font-mono text-sm">
+                            <span className="text-sm text-muted-foreground">
                                 {settings.samplers.presencePenalty}
                             </span>
                         </div>
@@ -196,95 +210,106 @@ export default function Parameters() {
                             min={-2}
                             max={2}
                             step={0.01}
-                            value={[settings.samplers.presencePenalty]}
+                            value={settings.samplers.presencePenalty}
                             onValueChange={(value) => {
                                 updateSettings((settings) => {
-                                    settings.samplers.presencePenalty = value[0];
+                                    settings.samplers.presencePenalty = value as number;
                                 });
                             }}
-                            className="w-full"
                         />
                     </div>
                 )}
                 {samplerSet.has("topK") && (
-                    <div className="space-y-1">
+                    <div className="grid gap-2">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center">
                                 <Label htmlFor="top_k">Top-K</Label>
                                 <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Info className="ml-2 h-4 w-4 text-muted-foreground" />
-                                    </TooltipTrigger>
+                                    <TooltipTrigger
+                                        render={
+                                            <Info className="ml-2 size-4 text-muted-foreground" />
+                                        }
+                                    />
                                     <TooltipContent className="max-w-xs">
-                                        Only select from the top_k options for each token.
+                                        Only select from the first top_k options for each token. Set
+                                        to 0 to disable.
                                     </TooltipContent>
                                 </Tooltip>
                             </div>
-                            <span className="font-mono text-sm">{settings.samplers.topK}</span>
+                            <span className="text-sm text-muted-foreground">
+                                {settings.samplers.topK}
+                            </span>
                         </div>
                         <Slider
                             id="top_k"
                             min={0}
                             max={Infinity}
                             step={1}
-                            value={[settings.samplers.topK]}
+                            value={settings.samplers.topK}
                             onValueChange={(value) => {
                                 updateSettings((settings) => {
-                                    settings.samplers.topK = value[0];
+                                    settings.samplers.topK = value as number;
                                 });
                             }}
-                            className="w-full"
                         />
                     </div>
                 )}
                 {samplerSet.has("topP") && (
-                    <div className="space-y-1">
+                    <div className="grid gap-2">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center">
                                 <Label htmlFor="topP">Top-P</Label>
                                 <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Info className="ml-2 h-4 w-4 text-muted-foreground" />
-                                    </TooltipTrigger>
+                                    <TooltipTrigger
+                                        render={
+                                            <Info className="ml-2 size-4 text-muted-foreground" />
+                                        }
+                                    />
                                     <TooltipContent className="max-w-xs">
-                                        Nucleus sampling. Sums the probabilities of every option for
-                                        each token in decreasing order and cuts off the 'tail' once
-                                        the probability sum reaches top_p.
+                                        Sums the probabilities of every option for each token in
+                                        decreasing order and cuts off the tail of the distribution
+                                        once the probability sum reaches top_p%. Also known as
+                                        nucleus sampling. Set to 1 to disable.
                                     </TooltipContent>
                                 </Tooltip>
                             </div>
-                            <span className="font-mono text-sm">{settings.samplers.topP}</span>
+                            <span className="text-sm text-muted-foreground">
+                                {settings.samplers.topP}
+                            </span>
                         </div>
                         <Slider
                             id="topP"
                             min={0}
                             max={1}
                             step={0.01}
-                            value={[settings.samplers.topP]}
+                            value={settings.samplers.topP}
                             onValueChange={(value) => {
                                 updateSettings((settings) => {
-                                    settings.samplers.topP = value[0];
+                                    settings.samplers.topP = value as number;
                                 });
                             }}
-                            className="w-full"
                         />
                     </div>
                 )}
                 {samplerSet.has("repetitionPenalty") && (
-                    <div className="space-y-1">
+                    <div className="grid gap-2">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center">
                                 <Label htmlFor="repPen">Repetition Penalty</Label>
-                                {/*<Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Info className="h-4 w-4 ml-2 text-muted-foreground" />
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                    Applies a flat penalty to tokens that have already appeared in context.
-                                </TooltipContent>
-                            </Tooltip>*/}
+                                <Tooltip>
+                                    <TooltipTrigger
+                                        render={
+                                            <Info className="ml-2 size-4 text-muted-foreground" />
+                                        }
+                                    ></TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                        Penalize tokens that have already appeared in context by
+                                        dividing those token's probabilities by
+                                        (rep_pen^token_count). Set to 1 to disable.
+                                    </TooltipContent>
+                                </Tooltip>
                             </div>
-                            <span className="font-mono text-sm">
+                            <span className="text-sm text-muted-foreground">
                                 {settings.samplers.repetitionPenalty}
                             </span>
                         </div>
@@ -293,76 +318,82 @@ export default function Parameters() {
                             min={0}
                             max={2}
                             step={0.01}
-                            value={[settings.samplers.repetitionPenalty]}
+                            value={settings.samplers.repetitionPenalty}
                             onValueChange={(value) => {
                                 updateSettings((settings) => {
-                                    settings.samplers.repetitionPenalty = value[0];
+                                    settings.samplers.repetitionPenalty = value as number;
                                 });
                             }}
-                            className="w-full"
                         />
                     </div>
                 )}
                 {samplerSet.has("minP") && (
-                    <div className="space-y-1">
+                    <div className="grid gap-2">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center">
                                 <Label htmlFor="min_p">Min-P</Label>
                                 <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Info className="ml-2 h-4 w-4 text-muted-foreground" />
-                                    </TooltipTrigger>
+                                    <TooltipTrigger
+                                        render={
+                                            <Info className="ml-2 h-4 w-4 text-muted-foreground" />
+                                        }
+                                    />
                                     <TooltipContent className="max-w-xs">
-                                        Only considers tokens whose probabilities are at least min_p
-                                        % of the top token's probability.
+                                        Only consider tokens whose probability is at least min_p% of
+                                        the top token's probability. Set to 0 to disable.
                                     </TooltipContent>
                                 </Tooltip>
                             </div>
-                            <span className="font-mono text-sm">{settings.samplers.minP}</span>
+                            <span className="text-sm text-muted-foreground">
+                                {settings.samplers.minP}
+                            </span>
                         </div>
                         <Slider
                             id="min_p"
                             min={0}
                             max={1}
                             step={0.01}
-                            value={[settings.samplers.minP]}
+                            value={settings.samplers.minP}
                             onValueChange={(value) => {
                                 updateSettings((settings) => {
-                                    settings.samplers.minP = value[0];
+                                    settings.samplers.minP = value as number;
                                 });
                             }}
-                            className="w-full"
                         />
                     </div>
                 )}
                 {samplerSet.has("topA") && (
-                    <div className="space-y-1">
+                    <div className="grid gap-2">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center">
                                 <Label htmlFor="top_a">Top-A</Label>
-                                {/*<Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Info className="size-4 ml-2 text-muted-foreground" />
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                    Only considers tokens whose probabilities are at least min_p % of the top token's probability.
-                                </TooltipContent>
-                            </Tooltip>*/}
+                                <Tooltip>
+                                    <TooltipTrigger
+                                        render={
+                                            <Info className="ml-2 size-4 text-muted-foreground" />
+                                        }
+                                    ></TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                        Only consider tokens whose probability is at least
+                                        (top_token_probability^2 * top_a). Set to 0 to disable.
+                                    </TooltipContent>
+                                </Tooltip>
                             </div>
-                            <span className="font-mono text-sm">{settings.samplers.topA}</span>
+                            <span className="text-sm text-muted-foreground">
+                                {settings.samplers.topA}
+                            </span>
                         </div>
                         <Slider
                             id="top_a"
                             min={0}
                             max={1}
                             step={0.01}
-                            value={[settings.samplers.topA]}
+                            value={settings.samplers.topA}
                             onValueChange={(value) => {
                                 updateSettings((settings) => {
-                                    settings.samplers.topA = value[0];
+                                    settings.samplers.topA = value as number;
                                 });
                             }}
-                            className="w-full"
                         />
                     </div>
                 )}
@@ -371,14 +402,15 @@ export default function Parameters() {
                         <div className="flex items-center">
                             <Label htmlFor="cacheDepth">Cache Depth</Label>
                             <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Info className="ml-2 size-4 text-muted-foreground" />
-                                </TooltipTrigger>
+                                <TooltipTrigger
+                                    render={<Info className="ml-2 size-4 text-muted-foreground" />}
+                                />
                                 <TooltipContent className="max-w-xs">
-                                    Set the cache breakpoint depth. A depth of 2 will insert the
-                                    breakpoint 2 messages from the bottom; messages 0 and 1 will not
-                                    be cached, and any change above message 1 will result in a cache
-                                    miss.
+                                    Controls the cache breakpoint depth. A depth of 2 will insert
+                                    the breakpoint 2 messages from the bottom; the first and second
+                                    messages will not be cached, and any change above the second
+                                    message will result in a cache miss. It is recommended to keep
+                                    cache depth set to a very low even number like 0 or 2.
                                 </TooltipContent>
                             </Tooltip>
                         </div>

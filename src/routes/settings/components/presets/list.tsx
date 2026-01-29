@@ -1,6 +1,7 @@
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
     SelectTrigger,
     SelectValue
@@ -12,14 +13,14 @@ import {
     SidebarGroupContent,
     SidebarHeader,
     SidebarMenu,
+    SidebarMenuAction,
     SidebarMenuBadge,
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarSeparator
 } from "@/components/ui/sidebar";
 import { Preset, Prompt } from "@/database/schema/preset";
-import { useFileDialog } from "@/hooks/use-file-dialog";
-import { cn } from "@/lib/utils";
+import { cn, downloadFile, generateCuid2 } from "@/lib/utils";
 import {
     closestCenter,
     DndContext,
@@ -38,31 +39,21 @@ import {
     verticalListSortingStrategy
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { FileInput, FilePlus2 } from "lucide-react";
-import React, { SetStateAction, useEffect, useState } from "react";
+import { FileOutputIcon, ListPlusIcon, Trash2Icon } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface SortablePromptProps {
     prompt: Prompt;
-    index: number;
     isActive: boolean;
-    onSelect: (index: number) => void;
+    onButtonClick: () => void;
+    onActionClick: () => void;
 }
 
-function SortablePrompt({
-    prompt,
-    index,
-    isActive,
-    onSelect
-}: SortablePromptProps) {
-    const {
-        setNodeRef,
-        attributes,
-        listeners,
-        transform,
-        transition,
-        isDragging
-    } = useSortable({ id: prompt.id });
+function SortablePrompt({ prompt, isActive, onButtonClick, onActionClick }: SortablePromptProps) {
+    const { setNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable({
+        id: prompt.id
+    });
 
     const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
@@ -81,22 +72,20 @@ function SortablePrompt({
             <SidebarMenuButton
                 isActive={isActive}
                 className="cursor-grab active:cursor-grabbing"
-                onClick={() => onSelect(index)}
+                onClick={onButtonClick}
             >
-                <span
-                    className={cn(
-                        "truncate",
-                        !prompt.enabled ? "max-w-[19ch]" : ""
-                    )}
-                >
+                <span className={cn("truncate", !prompt.enabled ? "max-w-[19ch]" : "")}>
                     {prompt.name}
                 </span>
                 {!prompt.enabled && (
-                    <SidebarMenuBadge className="bg-destructive/20 text-destructive px-1 py-0.5 ml-2 rounded">
+                    <SidebarMenuBadge className="ml-2 rounded bg-destructive/20 px-1 py-0.5 text-destructive">
                         Disabled
                     </SidebarMenuBadge>
                 )}
             </SidebarMenuButton>
+            <SidebarMenuAction showOnHover onClick={onActionClick}>
+                <Trash2Icon className="text-destructive/90 hover:text-destructive" />
+            </SidebarMenuAction>
         </SidebarMenuItem>
     );
 }
@@ -110,16 +99,11 @@ function DraggablePrompt({ prompt, isActive }: DraggablePromptProps) {
     return (
         <SidebarMenuItem>
             <SidebarMenuButton isActive={isActive} className="cursor-grabbing">
-                <span
-                    className={cn(
-                        "truncate",
-                        !prompt.enabled ? "max-w-[19ch]" : ""
-                    )}
-                >
+                <span className={cn("truncate", !prompt.enabled ? "max-w-[19ch]" : "")}>
                     {prompt.name}
                 </span>
                 {!prompt.enabled && (
-                    <SidebarMenuBadge className="bg-destructive/20 text-destructive px-1 py-0.5 ml-2 rounded">
+                    <SidebarMenuBadge className="ml-2 rounded bg-destructive/20 px-1 py-0.5 text-destructive">
                         Disabled
                     </SidebarMenuBadge>
                 )}
@@ -132,52 +116,22 @@ interface Props {
     presets: Preset[];
     selectedPreset?: Preset;
     updateSelectedPreset: (id: string) => void;
-    promptState: [number, React.Dispatch<SetStateAction<number>>];
+    promptIndex: number;
+    setPromptIndex: (index: number) => void;
 }
 
 export function PromptList({
     presets,
     selectedPreset,
     updateSelectedPreset,
-    promptState
+    promptIndex,
+    setPromptIndex
 }: Props) {
-    const [selectedPromptIndex, setSelectedPromptIndex] = promptState;
-
     const [prompts, setPrompts] = useState(selectedPreset?.prompts);
     useEffect(() => setPrompts(selectedPreset?.prompts), [selectedPreset]);
 
     const [activeID, setActiveID] = useState("");
     const activePrompt = prompts?.find((prompt) => prompt.id === activeID);
-
-    const handleFileChosen: React.ChangeEventHandler<HTMLInputElement> = async (
-        e
-    ) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        await Preset.import(file).catch((error: Error) => {
-            console.error("Import failed:", error);
-            toast.error(
-                "Unable to import that file. Is it valid SillyTavern JSON?",
-                {
-                    description: error.message
-                }
-            );
-        });
-
-        toast.success("Preset imported successfully!");
-    };
-
-    const { input, browse } = useFileDialog({
-        accept: "application/json",
-        onChange: handleFileChosen
-    });
-
-    const createNewPreset = async () => {
-        const preset = new Preset();
-        await preset.save();
-        updateSelectedPreset(preset.id);
-    };
 
     const sensors = useSensors(
         useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
@@ -206,12 +160,10 @@ export function PromptList({
 
         setPrompts(newPrompts);
 
-        const selectedPrompt = oldPrompts[selectedPromptIndex]?.id;
+        const selectedPrompt = oldPrompts[promptIndex]?.id;
         if (selectedPrompt) {
-            const newPromptIndex = newPrompts.findIndex(
-                (prompt) => prompt.id === selectedPrompt
-            );
-            if (newPromptIndex >= 0) setSelectedPromptIndex(newPromptIndex);
+            const newPromptIndex = newPrompts.findIndex((prompt) => prompt.id === selectedPrompt);
+            if (newPromptIndex >= 0) setPromptIndex(newPromptIndex);
         }
 
         try {
@@ -225,11 +177,53 @@ export function PromptList({
                 const oldPromptIndex = oldPrompts.findIndex(
                     (prompt) => prompt.id === selectedPrompt
                 );
-                if (oldPromptIndex >= 0) setSelectedPromptIndex(oldPromptIndex);
+                if (oldPromptIndex >= 0) setPromptIndex(oldPromptIndex);
             }
             console.error("Failed to save prompt order:", error);
             toast.error("Failed to save prompt order");
         }
+    };
+
+    const presetItems = presets.map((preset) => ({ value: preset.id, label: preset.name }));
+    const selectItems = presetItems.map((item) => (
+        <SelectItem key={item.value} value={item.value}>
+            {item.label}
+        </SelectItem>
+    ));
+
+    const addPrompt = async () => {
+        const newPrompt: Prompt = {
+            id: generateCuid2(),
+            name: "New Prompt",
+            role: "system",
+            content: "",
+            enabled: true,
+            position: "before",
+            depth: 0
+        };
+        await selectedPreset?.update({ prompts: [...selectedPreset.prompts, newPrompt] });
+        setPromptIndex(Math.max(0, (selectedPreset?.prompts.length ?? 1) - 1));
+    };
+
+    const deletePrompt = async (index: number) => {
+        await selectedPreset?.update({
+            prompts: selectedPreset.prompts.toSpliced(index, 1)
+        });
+        setPromptIndex(Math.max(0, index - 1));
+    };
+
+    const exportPreset = () => {
+        const preset = selectedPreset?.serialize();
+        const json = JSON.stringify(preset);
+        const file = new File([json], `${preset?.name}.json`, {
+            type: "application/json"
+        });
+        downloadFile(file);
+    };
+
+    const deletePreset = async () => {
+        await selectedPreset?.delete();
+        updateSelectedPreset(presets[presets.length - 1].id);
     };
 
     return (
@@ -237,40 +231,38 @@ export function PromptList({
             <SidebarHeader className="pt-6">
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton onClick={createNewPreset}>
-                            <FilePlus2 />
-                            New Preset
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton onClick={browse}>
-                            {input}
-                            <FileInput />
-                            Import from SillyTavern
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
                         <Select
+                            items={presetItems}
                             value={selectedPreset?.id}
-                            onValueChange={(value) =>
-                                updateSelectedPreset(value)
-                            }
+                            onValueChange={(value) => updateSelectedPreset(value as string)}
                         >
                             <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Select Preset..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {presets.map((preset) => (
-                                    <SelectItem
-                                        key={preset.id}
-                                        value={preset.id}
-                                    >
-                                        <span>{preset.name || "Untitled"}</span>
-                                    </SelectItem>
-                                ))}
+                                <SelectGroup>{selectItems}</SelectGroup>
                             </SelectContent>
                         </Select>
                     </SidebarMenuItem>
+                    {selectedPreset && (
+                        <>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton onClick={exportPreset}>
+                                    <FileOutputIcon />
+                                    Export Preset
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton
+                                    onClick={deletePreset}
+                                    className="hover:bg-destructive/10 hover:text-destructive focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:hover:bg-destructive/20 dark:focus-visible:ring-destructive/40"
+                                >
+                                    <Trash2Icon className="text-destructive" />
+                                    Delete Preset
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </>
+                    )}
                 </SidebarMenu>
             </SidebarHeader>
             <SidebarSeparator className="mx-0" />
@@ -278,6 +270,16 @@ export function PromptList({
                 <SidebarGroup>
                     <SidebarGroupContent>
                         <SidebarMenu>
+                            {selectedPreset && (
+                                <>
+                                    <SidebarMenuItem className="sticky top-0 z-1 -mt-2 rounded-none bg-card pt-2">
+                                        <SidebarMenuButton onClick={addPrompt}>
+                                            <ListPlusIcon />
+                                            Add Prompt
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                </>
+                            )}
                             {selectedPreset && prompts && (
                                 <DndContext
                                     sensors={sensors}
@@ -286,23 +288,16 @@ export function PromptList({
                                     onDragEnd={handleDragEnd}
                                 >
                                     <SortableContext
-                                        items={prompts.map(
-                                            (prompt) => prompt.id
-                                        )}
+                                        items={prompts.map((prompt) => prompt.id)}
                                         strategy={verticalListSortingStrategy}
                                     >
                                         {prompts.map((prompt, index) => (
                                             <SortablePrompt
                                                 key={prompt.id}
                                                 prompt={prompt}
-                                                index={index}
-                                                isActive={
-                                                    index ===
-                                                    selectedPromptIndex
-                                                }
-                                                onSelect={
-                                                    setSelectedPromptIndex
-                                                }
+                                                isActive={index === promptIndex}
+                                                onButtonClick={() => setPromptIndex(index)}
+                                                onActionClick={() => deletePrompt(index)}
                                             />
                                         ))}
                                     </SortableContext>
@@ -312,10 +307,8 @@ export function PromptList({
                                                 prompt={activePrompt}
                                                 isActive={
                                                     prompts.findIndex(
-                                                        (prompt) =>
-                                                            prompt.id ===
-                                                            activePrompt.id
-                                                    ) === selectedPromptIndex
+                                                        (prompt) => prompt.id === activePrompt.id
+                                                    ) === promptIndex
                                                 }
                                             />
                                         )}

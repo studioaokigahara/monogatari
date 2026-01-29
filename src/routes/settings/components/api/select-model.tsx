@@ -28,6 +28,7 @@ import { OpenRouterRegistry } from "@/lib/openrouter";
 import { Modality } from "@/types/models";
 import { PROVIDER_REGISTRY, getModel } from "@/types/registry";
 import { Settings } from "@/types/settings";
+import { format } from "date-fns";
 import {
     AlertCircle,
     BrainCircuit,
@@ -110,12 +111,6 @@ export default function SelectModel() {
         }
     }, [settings.models, P, updateSettings]);
 
-    const onProviderChange = (provider: Settings["provider"]) => {
-        updateSettings((settings) => {
-            settings.provider = provider;
-        });
-    };
-
     const providerModels = PROVIDER_REGISTRY[settings.provider].models;
 
     const currentModel = getModel(settings.provider, (settings.models[P] as string) ?? fallback);
@@ -186,11 +181,32 @@ export default function SelectModel() {
                     <div className="flex flex-col gap-4 sm:flex-row">
                         <div className="flex flex-col gap-1">
                             <Label htmlFor="provider">Provider</Label>
-                            <Select value={settings.provider} onValueChange={onProviderChange}>
+                            <Select
+                                value={settings.provider}
+                                onValueChange={(provider) => {
+                                    updateSettings((settings) => {
+                                        settings.provider = provider as Settings["provider"];
+                                    });
+                                }}
+                            >
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Select a provider" />
+                                    <SelectValue placeholder="Select a provider">
+                                        {(value) => {
+                                            const provider = Object.entries(PROVIDER_REGISTRY).find(
+                                                ([providerID]) => providerID === value
+                                            );
+                                            return (
+                                                <span className="flex items-center gap-1.5">
+                                                    {getIcon(provider?.[0] as Settings["provider"])}
+                                                    {provider?.[1].name}
+                                                </span>
+                                            );
+                                        }}
+                                    </SelectValue>
                                 </SelectTrigger>
-                                <SelectContent>{selectProvider}</SelectContent>
+                                <SelectContent>
+                                    <SelectGroup>{selectProvider}</SelectGroup>
+                                </SelectContent>
                             </Select>
                         </div>
 
@@ -204,7 +220,7 @@ export default function SelectModel() {
                                     value={settings.models[P] as string}
                                     onValueChange={(model) => {
                                         updateSettings((settings) => {
-                                            settings.models[P] = model;
+                                            settings.models[P] = model as string;
                                         });
                                     }}
                                 >
@@ -215,9 +231,11 @@ export default function SelectModel() {
                                     </SelectTrigger>
                                     {open && (
                                         <SelectContent>
-                                            {settings.provider === "openrouter"
-                                                ? selectModelOpenRouter
-                                                : selectModel}
+                                            <SelectGroup>
+                                                {settings.provider === "openrouter"
+                                                    ? selectModelOpenRouter
+                                                    : selectModel}
+                                            </SelectGroup>
                                         </SelectContent>
                                     )}
                                 </Select>
@@ -237,10 +255,9 @@ export default function SelectModel() {
                         />
                     )}
                 </div>
-
                 {currentModel && (
                     <div className="mt-6 space-y-4">
-                        <Accordion type="single" collapsible>
+                        <Accordion>
                             <AccordionItem value="model">
                                 <AccordionTrigger className="items-center [&>svg]:size-6">
                                     <div className="flex flex-col">
@@ -260,14 +277,8 @@ export default function SelectModel() {
                                 <div className="space-y-1">
                                     <p className="text-sm font-medium">Knowledge Cutoff</p>
                                     <p className="text-2xl font-bold">
-                                        {currentModel.knowledgeCutoff.toLocaleString("default", {
-                                            month: "short",
-                                            year: "numeric"
-                                        })}
+                                        {format(currentModel.knowledgeCutoff, "LLL YYYY")}
                                     </p>
-                                    {/*<span className="text-xs text-muted-foreground">
-                                    Maximum input tokens
-                                </span>*/}
                                 </div>
                             )}
                             <div className="space-y-1">

@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
     SelectTrigger,
     SelectValue
@@ -96,9 +97,11 @@ export function ProxySettings() {
             </Fragment>
         ));
 
-    const proxyProfiles = profiles.map((proxy) => (
-        <SelectItem key={proxy.id} value={proxy.id}>
-            {proxy.name || proxy.id}
+    const profileItems = profiles.map((profile) => ({ value: profile.id, label: profile.name }));
+
+    const selectItems = profileItems.map((item) => (
+        <SelectItem key={item.value} value={item.value}>
+            {item.label}
         </SelectItem>
     ));
 
@@ -114,11 +117,17 @@ export function ProxySettings() {
             <CardContent className="space-y-2">
                 <Label>Current Profile</Label>
                 <div className="flex justify-between">
-                    <Select value={selected[provider]} onValueChange={selectProfile}>
+                    <Select
+                        items={profileItems}
+                        value={selected[provider]}
+                        onValueChange={(value) => selectProfile(value as string)}
+                    >
                         <SelectTrigger>
                             <SelectValue placeholder="Select a proxy" />
                         </SelectTrigger>
-                        <SelectContent>{proxyProfiles}</SelectContent>
+                        <SelectContent>
+                            <SelectGroup>{selectItems}</SelectGroup>
+                        </SelectContent>
                     </Select>
                     {selected[provider] && (
                         <Button

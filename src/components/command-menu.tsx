@@ -60,18 +60,13 @@ export function CommandMenu() {
     );
 
     const characterItems = characters?.map((character, index) => (
-        <CommandItem
-            key={character.id}
-            onSelect={() => {
-                void navigate({ to: "/characters/$id", params: { id: character.id } });
-                setOpen(false);
-            }}
-            asChild
-        >
-            <Link
-                to="/characters/$id"
-                params={{ id: character.id }}
-                onClick={(event) => event.stopPropagation()}
+        <Link key={character.id} to="/characters/$id" params={{ id: character.id }}>
+            <CommandItem
+                onSelect={() => {
+                    void navigate({ to: "/characters/$id", params: { id: character.id } });
+                    setOpen(false);
+                }}
+                className="cursor-pointer"
             >
                 <Avatar>
                     <AvatarImage
@@ -83,10 +78,10 @@ export function CommandMenu() {
                 </Avatar>
                 {character.data.name}
                 {character.favorite === 1 && (
-                    <Heart fill="currentColor" className="text-pink-400" />
+                    <Heart fill="currentColor" className="text-pink-400!" />
                 )}
-            </Link>
-        </CommandItem>
+            </CommandItem>
+        </Link>
     ));
 
     const personas = useLiveQuery(() => db.personas.orderBy("name").toArray(), []);

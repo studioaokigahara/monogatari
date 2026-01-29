@@ -2,6 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
@@ -67,7 +68,7 @@ export function PersonaSwitcher() {
         return () => document.removeEventListener("keydown", down);
     }, [open, personas, setPersona]);
 
-    const personaDropdownItems = personas.map((persona, index) => (
+    const dropdownMenuItems = personas.map((persona, index) => (
         <DropdownMenuItem
             key={persona.id}
             onClick={() => setPersona(persona)}
@@ -117,37 +118,39 @@ export function PersonaSwitcher() {
         <SidebarMenu>
             <SidebarMenuItem>
                 <DropdownMenu open={open} onOpenChange={setOpen}>
-                    <DropdownMenuTrigger asChild>
-                        <SidebarMenuButton
-                            size="lg"
-                            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                        >
-                            <Avatar className="size-8">
-                                <AvatarImage
-                                    src={activeImageURL}
-                                    alt={persona.name}
-                                    className="object-cover"
-                                />
-                                <AvatarFallback>
-                                    {persona.name.slice(0, 2).toUpperCase()}
-                                </AvatarFallback>
-                            </Avatar>
-                            <div className="grid flex-1 text-left text-sm leading-tight">
-                                <span className="truncate font-medium">{persona.name}</span>
-                            </div>
-                            <ChevronsUpDown className="ml-auto" />
-                        </SidebarMenuButton>
-                    </DropdownMenuTrigger>
+                    <DropdownMenuTrigger
+                        render={
+                            <SidebarMenuButton
+                                size="lg"
+                                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                            >
+                                <Avatar className="size-8">
+                                    <AvatarImage
+                                        src={activeImageURL}
+                                        alt={persona.name}
+                                        className="object-cover"
+                                    />
+                                    <AvatarFallback>{persona.name.slice(0, 2)}</AvatarFallback>
+                                </Avatar>
+                                <div className="grid flex-1 text-left text-sm leading-tight">
+                                    <span className="truncate font-medium">{persona.name}</span>
+                                </div>
+                                <ChevronsUpDown className="ml-auto" />
+                            </SidebarMenuButton>
+                        }
+                    />
                     <DropdownMenuContent
-                        className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+                        className="min-w-56 rounded-lg"
                         align="start"
                         side={isMobile ? "bottom" : "right"}
                         sideOffset={4}
                     >
-                        <DropdownMenuLabel className="text-xs text-muted-foreground">
-                            Personas
-                        </DropdownMenuLabel>
-                        {personaDropdownItems}
+                        <DropdownMenuGroup>
+                            <DropdownMenuLabel className="text-xs text-muted-foreground">
+                                Personas
+                            </DropdownMenuLabel>
+                            {dropdownMenuItems}
+                        </DropdownMenuGroup>
                         <DropdownMenuSeparator />
                         <Link to="/personas">
                             <DropdownMenuItem className="cursor-pointer gap-2 p-2">

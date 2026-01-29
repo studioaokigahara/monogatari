@@ -11,7 +11,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle
 } from "@/components/ui/alert-dialog";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import {
     DropdownMenu,
@@ -115,11 +115,13 @@ export function Header({ character }: { character: Character }) {
                         <Edit />
                     </Button>
                     <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger asChild>
-                            <Button type="button" variant="outline" size="icon">
-                                <MoreVertical className="mr-1" />
-                            </Button>
-                        </DropdownMenuTrigger>
+                        <DropdownMenuTrigger
+                            render={
+                                <Button type="button" variant="outline" size="icon">
+                                    <MoreVertical className="mr-1" />
+                                </Button>
+                            }
+                        />
                         <DropdownMenuContent align="end">
                             <DropdownMenuSub>
                                 <DropdownMenuSubTrigger>
@@ -147,7 +149,7 @@ export function Header({ character }: { character: Character }) {
                                 onClick={() => setDialogOpen(true)}
                             >
                                 <Trash2 />
-                                Delete
+                                Delete...
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -169,12 +171,7 @@ export function Header({ character }: { character: Character }) {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            className={buttonVariants({
-                                variant: "destructive"
-                            })}
-                            onClick={deleteCharacter}
-                        >
+                        <AlertDialogAction variant="destructive" onClick={deleteCharacter}>
                             Delete!
                         </AlertDialogAction>
                     </AlertDialogFooter>

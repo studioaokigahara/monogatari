@@ -134,20 +134,23 @@ export function TagList({
                 {!isPending ? visibleTags : skeletons}
                 {!isPending && hiddenCount > 0 && (
                     <Popover>
-                        <PopoverTrigger asChild>
-                            <Badge
-                                variant={variant}
-                                className={cn(
-                                    "hover:brightness-150 transition-all cursor-pointer",
-                                    className
-                                )}
-                                {...props}
-                            >
-                                <MoreHorizontal />
-                                {hiddenCount} more
-                            </Badge>
-                        </PopoverTrigger>
-                        <PopoverContent className="flex flex-wrap gap-1">
+                        <PopoverTrigger
+                            nativeButton={false}
+                            render={
+                                <Badge
+                                    variant={variant}
+                                    className={cn(
+                                        "cursor-pointer transition-all hover:brightness-150",
+                                        className
+                                    )}
+                                    {...props}
+                                >
+                                    <MoreHorizontal />
+                                    {hiddenCount} more
+                                </Badge>
+                            }
+                        />
+                        <PopoverContent className="flex flex-row flex-wrap gap-1">
                             {hiddenTags}
                         </PopoverContent>
                     </Popover>

@@ -13,6 +13,7 @@ import {
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
     SelectTrigger,
     SelectValue
@@ -93,7 +94,7 @@ export function Search() {
     };
 
     const sortItems = sortOptions.map((option) => (
-        <SelectItem key={option.value} value={option.value}>
+        <SelectItem key={option.value} value={option}>
             {option.icon}
             {option.label}
         </SelectItem>
@@ -132,21 +133,58 @@ export function Search() {
     ));
 
     return (
-        <div className="sticky top-2 z-50 w-full">
-            <Card className="w-full bg-background/66 pt-4 pb-2 backdrop-blur">
-                <CardContent className="flex flex-col gap-2 px-4">
+        <div className="sticky top-2 z-50">
+            <Card size="sm" className="w-full bg-background/66 pb-2 backdrop-blur">
+                <CardContent className="flex flex-col gap-2">
                     <ButtonGroup className="w-full">
-                        <Select value={sort} onValueChange={changeSort}>
+                        <Select
+                            items={sortOptions}
+                            value={sort}
+                            onValueChange={(value) => changeSort(value as string)}
+                        >
                             <SelectTrigger>
-                                <SelectValue placeholder="Sort By..." />
+                                <SelectValue placeholder="Sort By...">
+                                    {(value) => {
+                                        const item = sortOptions.find(
+                                            (option) => option.value === value
+                                        );
+                                        return (
+                                            <span className="flex items-center gap-1.5">
+                                                {item?.icon}
+                                                {item?.label}
+                                            </span>
+                                        );
+                                    }}
+                                </SelectValue>
                             </SelectTrigger>
-                            <SelectContent>{sortItems}</SelectContent>
+                            <SelectContent>
+                                <SelectGroup>{sortItems}</SelectGroup>
+                            </SelectContent>
                         </Select>
-                        <Select value={String(limit)} onValueChange={changeLimit}>
+                        <Select
+                            value={String(limit)}
+                            onValueChange={(value) => changeLimit(value as string)}
+                        >
                             <SelectTrigger>
-                                <SelectValue placeholder="Cards per page..." />
+                                <SelectValue placeholder="Cards per page...">
+                                    {(value) =>
+                                        Number(value) === 1536 ? (
+                                            <span className="flex items-center gap-1.5">
+                                                <InfinityIcon />
+                                                All
+                                            </span>
+                                        ) : (
+                                            <span className="flex items-center gap-1.5">
+                                                <Hash />
+                                                {value}
+                                            </span>
+                                        )
+                                    }
+                                </SelectValue>
                             </SelectTrigger>
-                            <SelectContent>{limitItems}</SelectContent>
+                            <SelectContent>
+                                <SelectGroup>{limitItems}</SelectGroup>
+                            </SelectContent>
                         </Select>
                         <InputGroup>
                             <InputGroupInput

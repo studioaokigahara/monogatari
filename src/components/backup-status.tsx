@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
     SelectTrigger,
     SelectValue
@@ -43,6 +44,14 @@ const INTERVALS = {
     monthly: 1000 * 60 * 60 * 24 * 30,
     never: Infinity
 };
+
+const BACKUP_OPTIONS = [
+    { value: "daily", label: "Backup Daily" },
+    { value: "weekly", label: "Backup Weekly" },
+    { value: "biweekly", label: "Backup Bi-Weekly" },
+    { value: "monthly", label: "Backup Monthly" },
+    { value: "never", label: "Never Backup" }
+];
 
 interface Props {
     showDialogTrigger?: boolean;
@@ -126,7 +135,8 @@ export function BackupStatus({ showDialogTrigger = false }: Props) {
         });
     };
 
-    const handleIntervalChange = (interval: BackupSettings["interval"]) => {
+    const handleIntervalChange = (interval: BackupSettings["interval"] | null) => {
+        if (interval === null) return;
         backupSettingsCollection.update("backup-settings", (draft) => {
             draft.interval = interval;
         });
@@ -137,6 +147,13 @@ export function BackupStatus({ showDialogTrigger = false }: Props) {
             settings.enabled = checked;
         });
     };
+
+    const selectItems = BACKUP_OPTIONS.map((option) => (
+        <SelectItem key={option.value} value={option.value}>
+            {option.value === "never" ? <AlarmClockOff /> : <AlarmClock />}
+            {option.label}
+        </SelectItem>
+    ));
 
     return (
         <>
@@ -154,33 +171,35 @@ export function BackupStatus({ showDialogTrigger = false }: Props) {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel asChild>
-                            <Button type="button" variant="outline" onClick={handleSnooze}>
-                                <AlarmClock />
-                                Snooze
-                            </Button>
-                        </AlertDialogCancel>
-                        <AlertDialogCancel asChild>
-                            <Button
-                                type="button"
-                                variant="destructive"
-                                className="text-foreground"
-                                onClick={handleDisable}
-                            >
-                                <AlarmClockOff />
-                                Don't remind me again
-                            </Button>
-                        </AlertDialogCancel>
-                        <AlertDialogAction asChild>
-                            <ExportDatabase size="default" />
-                        </AlertDialogAction>
+                        <AlertDialogCancel
+                            render={
+                                <Button type="button" variant="outline" onClick={handleSnooze}>
+                                    <AlarmClock />
+                                    Snooze
+                                </Button>
+                            }
+                        />
+                        <AlertDialogCancel
+                            render={
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    className="text-foreground"
+                                    onClick={handleDisable}
+                                >
+                                    <AlarmClockOff />
+                                    Don't remind me again
+                                </Button>
+                            }
+                        />
+                        <AlertDialogAction render={<ExportDatabase />} />
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
             <Dialog>
                 {showDialogTrigger && (
                     <DialogTrigger>
-                        <Button type="button" size="sm">
+                        <Button type="button">
                             <DatabaseBackup />
                             Backup Settings
                         </Button>
@@ -199,14 +218,26 @@ export function BackupStatus({ showDialogTrigger = false }: Props) {
                     <DialogFooter className="justify-around!">
                         <Select value={settings?.interval} onValueChange={handleIntervalChange}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Backup every..." />
+                                <SelectValue placeholder="Backup every...">
+                                    {(value) => {
+                                        const item = BACKUP_OPTIONS.find(
+                                            (option) => option.value === value
+                                        );
+                                        return (
+                                            <span className="flex items-center gap-1.5">
+                                                {item?.value === "never" ? (
+                                                    <AlarmClockOff />
+                                                ) : (
+                                                    <AlarmClock />
+                                                )}
+                                                {item?.label}
+                                            </span>
+                                        );
+                                    }}
+                                </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="daily">Backup Daily</SelectItem>
-                                <SelectItem value="weekly">Backup Weekly</SelectItem>
-                                <SelectItem value="biweekly">Backup Bi-Weekly</SelectItem>
-                                <SelectItem value="monthy">Backup Monthly</SelectItem>
-                                <SelectItem value="never">Never Backup</SelectItem>
+                                <SelectGroup>{selectItems}</SelectGroup>
                             </SelectContent>
                         </Select>
                         <Label htmlFor="reminders">

@@ -25,7 +25,7 @@ export function AnchorholdSearch() {
     };
 
     return (
-        <Card className="w-full border-none bg-transparent py-4 shadow-none">
+        <Card size="sm" className="w-full bg-transparent">
             <CardContent>
                 <ButtonGroup className="w-full">
                     <ButtonGroup className="grow">

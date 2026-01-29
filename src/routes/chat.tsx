@@ -28,23 +28,25 @@ function ChatLayout() {
     );
 
     return (
-        <div className="flex flex-col grow relative">
-            <Header className="sticky top-0 z-1 border-b bg-background/33 backdrop-blur max-sm:-mx-4 max-sm:px-4 group-has-data-[collapsible=icon]/sidebar-wrapper:h-16 **:data-[slot='breadcrumb']:hidden">
+        <div className="relative flex grow flex-col">
+            <Header className="sticky top-0 z-1 border-b bg-background/33 backdrop-blur group-has-data-[collapsible=icon]/sidebar-wrapper:h-16 **:data-[slot='breadcrumb']:hidden max-sm:-mx-4 max-sm:px-4">
                 {character && (
-                    <div className="flex w-full justify-center items-center gap-2">
+                    <div className="flex w-full items-center justify-center gap-2">
                         <Dialog>
-                            <DialogTrigger asChild>
-                                <Avatar className="size-12 cursor-pointer">
-                                    <AvatarImage
-                                        src={imageURL}
-                                        alt={character?.data.name}
-                                        className="object-cover"
-                                    />
-                                    <AvatarFallback>
-                                        {character?.data.name.slice(0, 2)}
-                                    </AvatarFallback>
-                                </Avatar>
-                            </DialogTrigger>
+                            <DialogTrigger
+                                render={
+                                    <Avatar className="size-12 cursor-pointer">
+                                        <AvatarImage
+                                            src={imageURL}
+                                            alt={character?.data.name}
+                                            className="object-cover"
+                                        />
+                                        <AvatarFallback>
+                                            {character?.data.name.slice(0, 2)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                }
+                            />
                             <DialogContent>
                                 <DialogHeader className="sr-only">
                                     <DialogTitle>{character?.data.name}</DialogTitle>
@@ -53,7 +55,7 @@ function ChatLayout() {
                                 <img
                                     src={imageURL}
                                     alt={character.data?.name}
-                                    className="max-h-[80dvh] rounded-xl mx-auto"
+                                    className="mx-auto max-h-[80dvh] rounded-xl"
                                 />
                             </DialogContent>
                         </Dialog>

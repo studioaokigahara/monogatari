@@ -38,55 +38,62 @@ export function Navigation({ items }: NavigationProps) {
         item.items ? (
             <Collapsible
                 key={item.title}
-                asChild
                 defaultOpen={item.url?.startsWith(pathname)}
                 className="group/collapsible"
-            >
-                <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                        {item.url ? (
-                            <SidebarMenuButton tooltip={item.title}>
-                                <Link
-                                    to={item.url}
-                                    className="flex items-center gap-2 [&>svg]:size-4"
-                                >
-                                    {item.icon}
-                                    <span>{item.title}</span>
-                                </Link>
-                                <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                            </SidebarMenuButton>
-                        ) : (
-                            <SidebarMenuButton tooltip={item.title}>
-                                {item.icon}
-                                <span>{item.title}</span>
-                                <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                            </SidebarMenuButton>
-                        )}
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                        <SidebarMenuSub>
-                            {item.items?.map((subItem) => (
-                                <SidebarMenuSubItem key={subItem.title}>
-                                    <SidebarMenuSubButton asChild>
-                                        <Link to={subItem.url}>
-                                            {subItem.icon}
-                                            <span>{subItem.title}</span>
+                render={
+                    <SidebarMenuItem>
+                        <CollapsibleTrigger
+                            render={
+                                item.url ? (
+                                    <SidebarMenuButton tooltip={item.title}>
+                                        <Link
+                                            to={item.url}
+                                            className="flex items-center gap-2 [&>svg]:size-4"
+                                        >
+                                            {item.icon}
+                                            <span>{item.title}</span>
                                         </Link>
-                                    </SidebarMenuSubButton>
-                                </SidebarMenuSubItem>
-                            ))}
-                        </SidebarMenuSub>
-                    </CollapsibleContent>
-                </SidebarMenuItem>
-            </Collapsible>
+                                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-open/collapsible:rotate-90" />
+                                    </SidebarMenuButton>
+                                ) : (
+                                    <SidebarMenuButton tooltip={item.title}>
+                                        {item.icon}
+                                        <span>{item.title}</span>
+                                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-open/collapsible:rotate-90" />
+                                    </SidebarMenuButton>
+                                )
+                            }
+                        />
+                        <CollapsibleContent>
+                            <SidebarMenuSub>
+                                {item.items?.map((subItem) => (
+                                    <SidebarMenuSubItem key={subItem.title}>
+                                        <SidebarMenuSubButton
+                                            render={
+                                                <Link to={subItem.url}>
+                                                    {subItem.icon}
+                                                    <span>{subItem.title}</span>
+                                                </Link>
+                                            }
+                                        />
+                                    </SidebarMenuSubItem>
+                                ))}
+                            </SidebarMenuSub>
+                        </CollapsibleContent>
+                    </SidebarMenuItem>
+                }
+            />
         ) : (
             <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild tooltip={item.title}>
-                    <Link to={item.url}>
-                        {item.icon}
-                        <span>{item.title}</span>
-                    </Link>
-                </SidebarMenuButton>
+                <SidebarMenuButton
+                    tooltip={item.title}
+                    render={
+                        <Link to={item.url}>
+                            {item.icon}
+                            <span>{item.title}</span>
+                        </Link>
+                    }
+                />
             </SidebarMenuItem>
         )
     );

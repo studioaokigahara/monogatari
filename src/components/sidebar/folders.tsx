@@ -1,10 +1,4 @@
-import {
-    Folder,
-    FolderCog,
-    type LucideIcon,
-    MoreHorizontal,
-    Trash2
-} from "lucide-react";
+import { Folder, FolderCog, type LucideIcon, MoreHorizontal, Trash2 } from "lucide-react";
 
 import {
     DropdownMenu,
@@ -37,19 +31,23 @@ export function NavFolders({
 
     const sidebarItems = folders.map((item) => (
         <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton asChild>
-                <Link to={item.url}>
-                    <item.icon />
-                    <span>{item.name}</span>
-                </Link>
-            </SidebarMenuButton>
+            <SidebarMenuButton
+                render={
+                    <Link to={item.url}>
+                        <item.icon />
+                        <span>{item.name}</span>
+                    </Link>
+                }
+            />
             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <SidebarMenuAction showOnHover>
-                        <MoreHorizontal />
-                        <span className="sr-only">More</span>
-                    </SidebarMenuAction>
-                </DropdownMenuTrigger>
+                <DropdownMenuTrigger
+                    render={
+                        <SidebarMenuAction showOnHover>
+                            <MoreHorizontal />
+                            <span className="sr-only">More</span>
+                        </SidebarMenuAction>
+                    }
+                />
                 <DropdownMenuContent
                     className="w-48 rounded-lg"
                     side={isMobile ? "bottom" : "right"}

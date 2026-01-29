@@ -19,10 +19,8 @@ function Anchorhold() {
         queryKey: ["anchorhold", "feed"],
         queryFn: ({ pageParam }) => fetchAnchorholdPage(pageParam),
         initialPageParam: config?.total_pages ?? 1,
-        getNextPageParam: (_lastPage, _allPages, lastPageParam) => {
-            const current = lastPageParam ?? 1;
-            return current > 1 ? current - 1 : undefined;
-        },
+        getNextPageParam: (_lastPage, _allPages, lastPageParam) => lastPageParam - 1,
+        refetchOnWindowFocus: false,
         enabled: !!config
     });
 

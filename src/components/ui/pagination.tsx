@@ -1,16 +1,7 @@
 import { buttonVariants, type Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-    Link,
-    RegisteredRouter,
-    ValidateLinkOptions
-} from "@tanstack/react-router";
-import {
-    ChevronLeftIcon,
-    ChevronRightIcon,
-    MoreHorizontalIcon
-} from "lucide-react";
-import * as React from "react";
+import { Link, RegisteredRouter, ValidateLinkOptions } from "@tanstack/react-router";
+import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react";
 
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
     return (
@@ -24,10 +15,7 @@ function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
     );
 }
 
-function PaginationContent({
-    className,
-    ...props
-}: React.ComponentProps<"ul">) {
+function PaginationContent({ className, ...props }: React.ComponentProps<"ul">) {
     return (
         <ul
             data-slot="pagination-content"
@@ -50,11 +38,7 @@ type PaginationLinkProps<
 } & Pick<React.ComponentProps<typeof Button>, "size"> &
     ValidateLinkOptions<TRouter, TOptions, TFrom>;
 
-function PaginationLink<
-    TRouter extends RegisteredRouter,
-    TOptions,
-    TFrom extends string
->({
+function PaginationLink<TRouter extends RegisteredRouter, TOptions, TFrom extends string>({
     className,
     isActive,
     size = "icon",
@@ -71,7 +55,7 @@ function PaginationLink<
                     variant: isActive ? "outline" : "ghost",
                     size
                 }),
-                disabled && "opacity-50 cursor-default",
+                disabled && "cursor-default opacity-50",
                 className
             )}
             {...(props as ValidateLinkOptions<TRouter, TOptions, TFrom>)}
@@ -79,11 +63,7 @@ function PaginationLink<
     );
 }
 
-function PaginationPrevious<
-    TRouter extends RegisteredRouter,
-    TOptions,
-    TFrom extends string
->({
+function PaginationPrevious<TRouter extends RegisteredRouter, TOptions, TFrom extends string>({
     className,
     ...props
 }: React.ComponentProps<typeof PaginationLink<TRouter, TOptions, TFrom>>) {
@@ -101,11 +81,7 @@ function PaginationPrevious<
     );
 }
 
-function PaginationNext<
-    TRouter extends RegisteredRouter,
-    TOptions,
-    TFrom extends string
->({
+function PaginationNext<TRouter extends RegisteredRouter, TOptions, TFrom extends string>({
     className,
     ...props
 }: React.ComponentProps<typeof PaginationLink<TRouter, TOptions, TFrom>>) {
@@ -123,10 +99,7 @@ function PaginationNext<
     );
 }
 
-function PaginationEllipsis({
-    className,
-    ...props
-}: React.ComponentProps<"span">) {
+function PaginationEllipsis({ className, ...props }: React.ComponentProps<"span">) {
     return (
         <span
             aria-hidden

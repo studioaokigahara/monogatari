@@ -10,7 +10,6 @@ import {
     ItemMedia,
     ItemTitle
 } from "@/components/ui/item";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { DownloadButton } from "@/routes/explore/components/download-button";
 import { type ChubCharacter } from "@/types/explore/chub";
@@ -55,7 +54,7 @@ export function ChubCharacterItem({
         >
             <ItemHeader>
                 <ItemMedia className="mx-auto">
-                    <Avatar className="size-59 overflow-visible">
+                    <Avatar className="size-59 overflow-visible rounded-md after:rounded-md">
                         <AvatarImage
                             src={character.avatar_url}
                             className="absolute scale-150 blur-xl"
@@ -66,9 +65,7 @@ export function ChubCharacterItem({
                             className="z-1 cursor-pointer rounded-md"
                             onClick={handleCardClick}
                         />
-                        <AvatarFallback className="rounded-xl">
-                            <Skeleton />
-                        </AvatarFallback>
+                        <AvatarFallback className="animate-pulse rounded-md" />
                     </Avatar>
                 </ItemMedia>
             </ItemHeader>

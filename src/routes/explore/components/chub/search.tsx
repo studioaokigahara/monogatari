@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
     SelectTrigger,
     SelectValue
@@ -39,7 +40,7 @@ import {
     UserPlus,
     UserSearch
 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 
 const namespaceOptions = [
     { label: "Characters", icon: <User />, value: "characters" },
@@ -103,24 +104,21 @@ export default function Search({
         });
     };
 
-    const [_isPending, startTransition] = useTransition();
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         const formData = new FormData(event.currentTarget);
         const formValues = SearchOptions.parse(Object.fromEntries(formData));
 
-        startTransition(() => {
-            onSearchOptionsChange({
-                ...formValues,
-                page: 1
-            });
+        onSearchOptionsChange({
+            ...formValues,
+            page: 1
         });
     };
 
     const handleReset = (event: React.FormEvent<HTMLFormElement>) => {
         event.currentTarget.reset();
-        startTransition(onReset);
+        onReset();
     };
 
     const selectNamespace = namespaceOptions.map((option) => (
@@ -144,7 +142,7 @@ export default function Search({
     ));
 
     return (
-        <Card className="w-full border-none bg-transparent py-4 shadow-none">
+        <Card size="sm" className="w-full bg-background/66 backdrop-blur">
             <CardContent>
                 <form onReset={handleReset} onSubmit={handleSubmit}>
                     <Collapsible
@@ -167,19 +165,21 @@ export default function Search({
                                 </Button>
                             </ButtonGroup>
                             <ButtonGroup>
-                                <CollapsibleTrigger asChild>
-                                    <Button
-                                        aria-label="Toggle Search Options"
-                                        variant="outline"
-                                        size="icon"
-                                    >
-                                        <FunnelPlus />
-                                    </Button>
-                                </CollapsibleTrigger>
+                                <CollapsibleTrigger
+                                    render={
+                                        <Button
+                                            aria-label="Toggle Search Options"
+                                            variant="outline"
+                                            size="icon"
+                                        >
+                                            <FunnelPlus />
+                                        </Button>
+                                    }
+                                />
                             </ButtonGroup>
                         </ButtonGroup>
                         <CollapsibleContent
-                            forceMount
+                            keepMounted
                             className={cn("w-full", isOpen ? "max-h-250" : "hidden max-h-0")}
                         >
                             <div className="mb-2 flex w-full gap-2">
@@ -223,15 +223,30 @@ export default function Search({
                                     <Select
                                         name="namespace"
                                         defaultValue="characters"
+                                        items={namespaceOptions}
                                         value={searchOptions.namespace}
                                         onValueChange={(value) => {
-                                            handleSelect("namespace", value);
+                                            handleSelect("namespace", value as string);
                                         }}
                                     >
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select namespace" />
+                                            <SelectValue placeholder="Select namespace">
+                                                {(value) => {
+                                                    const item = namespaceOptions.find(
+                                                        (option) => option.value === value
+                                                    );
+                                                    return (
+                                                        <span className="flex items-center gap-1.5">
+                                                            {item?.icon}
+                                                            {item?.label}
+                                                        </span>
+                                                    );
+                                                }}
+                                            </SelectValue>
                                         </SelectTrigger>
-                                        <SelectContent>{selectNamespace}</SelectContent>
+                                        <SelectContent>
+                                            <SelectGroup>{selectNamespace}</SelectGroup>
+                                        </SelectContent>
                                     </Select>
                                 </div>
                                 <div className="grow space-y-1">
@@ -240,28 +255,45 @@ export default function Search({
                                         name="itemsPerPage"
                                         value={searchOptions.itemsPerPage.toString()}
                                         onValueChange={(value) => {
-                                            handleSelect("itemsPerPage", value);
+                                            handleSelect("itemsPerPage", value as string);
                                         }}
                                     >
                                         <SelectTrigger>
                                             <SelectValue placeholder="Items per page" />
                                         </SelectTrigger>
-                                        <SelectContent>{selectItemsPerPage}</SelectContent>
+                                        <SelectContent>
+                                            <SelectGroup>{selectItemsPerPage}</SelectGroup>
+                                        </SelectContent>
                                     </Select>
                                 </div>
                                 <div className="grow space-y-1">
                                     <Label htmlFor="sort">Sort By</Label>
                                     <Select
                                         name="sort"
+                                        items={sortOptions}
                                         value={searchOptions.sort}
                                         onValueChange={(value) => {
-                                            handleSelect("sort", value);
+                                            handleSelect("sort", value as string);
                                         }}
                                     >
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Sort by" />
+                                            <SelectValue placeholder="Sort by">
+                                                {(value) => {
+                                                    const item = sortOptions.find(
+                                                        (option) => option.value === value
+                                                    );
+                                                    return (
+                                                        <span className="flex items-center gap-1.5">
+                                                            {item?.icon}
+                                                            {item?.label}
+                                                        </span>
+                                                    );
+                                                }}
+                                            </SelectValue>
                                         </SelectTrigger>
-                                        <SelectContent>{selectSort}</SelectContent>
+                                        <SelectContent>
+                                            <SelectGroup>{selectSort}</SelectGroup>
+                                        </SelectContent>
                                     </Select>
                                 </div>
                                 <div className="grow space-y-1">
@@ -274,17 +306,33 @@ export default function Search({
                                         }}
                                     >
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Sort direction" />
+                                            <SelectValue placeholder="Sort direction">
+                                                {(value) =>
+                                                    value === "desc" ? (
+                                                        <span className="flex items-center gap-1.5">
+                                                            <Icon iconNode={stairsArrowDownLeft} />
+                                                            Descending
+                                                        </span>
+                                                    ) : (
+                                                        <span className="flex items-center gap-1.5">
+                                                            <Icon iconNode={stairsArrowUpRight} />
+                                                            Ascending
+                                                        </span>
+                                                    )
+                                                }
+                                            </SelectValue>
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="desc">
-                                                <Icon iconNode={stairsArrowDownLeft} />
-                                                Descending
-                                            </SelectItem>
-                                            <SelectItem value="asc">
-                                                <Icon iconNode={stairsArrowUpRight} />
-                                                Ascending
-                                            </SelectItem>
+                                            <SelectGroup>
+                                                <SelectItem value="desc">
+                                                    <Icon iconNode={stairsArrowDownLeft} />
+                                                    Descending
+                                                </SelectItem>
+                                                <SelectItem value="asc">
+                                                    <Icon iconNode={stairsArrowUpRight} />
+                                                    Ascending
+                                                </SelectItem>
+                                            </SelectGroup>
                                         </SelectContent>
                                     </Select>
                                 </div>

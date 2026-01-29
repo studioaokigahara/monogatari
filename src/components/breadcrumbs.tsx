@@ -35,11 +35,13 @@ export function Breadcrumbs() {
             ) : (
                 <>
                     <BreadcrumbItem>
-                        <BreadcrumbLink asChild>
-                            <Link to={to} params={params}>
-                                {label}
-                            </Link>
-                        </BreadcrumbLink>
+                        <BreadcrumbLink
+                            render={
+                                <Link to={to} params={params}>
+                                    {label}
+                                </Link>
+                            }
+                        />
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                 </>

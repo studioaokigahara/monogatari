@@ -10,26 +10,21 @@ export function Description({ character }: { character: Character }) {
         character.data.scenario ||
         character.data.system_prompt ||
         character.data.post_history_instructions;
+
     return (
         <Card>
             <Tabs defaultValue="description">
                 <CardHeader className={cn(!showTabs && "hidden")}>
-                    <TabsList>
-                        <TabsTrigger value="description">
-                            Description
-                        </TabsTrigger>
+                    <TabsList variant="line">
+                        <TabsTrigger value="description">Description</TabsTrigger>
                         {character.data.personality && (
-                            <TabsTrigger value="personality">
-                                Personality
-                            </TabsTrigger>
+                            <TabsTrigger value="personality">Personality</TabsTrigger>
                         )}
                         {character.data.scenario && (
                             <TabsTrigger value="scenario">Scenario</TabsTrigger>
                         )}
                         {character.data.system_prompt && (
-                            <TabsTrigger value="system_prompt">
-                                System Prompt
-                            </TabsTrigger>
+                            <TabsTrigger value="system_prompt">System Prompt</TabsTrigger>
                         )}
                         {character.data.post_history_instructions && (
                             <TabsTrigger value="post_history_instructions">
@@ -59,17 +54,13 @@ export function Description({ character }: { character: Character }) {
                     )}
                     {character.data.post_history_instructions && (
                         <TabsContent value="post_history_instructions">
-                            <Markdown>
-                                {character.data.post_history_instructions}
-                            </Markdown>
+                            <Markdown>{character.data.post_history_instructions}</Markdown>
                         </TabsContent>
                     )}
                     {!character.data.description &&
                         !character.data.personality &&
                         !character.data.scenario && (
-                            <Markdown>
-                                Click edit to add character details...
-                            </Markdown>
+                            <Markdown>Click edit to add character details...</Markdown>
                         )}
                 </CardContent>
             </Tabs>

@@ -8,7 +8,6 @@ import {
     ItemMedia,
     ItemTitle
 } from "@/components/ui/item";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Character } from "@/database/schema/character";
 import { useImageURL } from "@/hooks/use-image-url";
 import { Link } from "@tanstack/react-router";
@@ -23,23 +22,24 @@ export default function CharacterItem({ character }: { character: Character }) {
     });
 
     return (
-        <Item variant="outline" className="h-48 flex-nowrap p-2 gap-2 overflow-hidden">
-            <ItemMedia className="h-full aspect-2/3 translate-y-[unset]!">
+        <Item variant="outline" className="h-48 flex-nowrap gap-2 overflow-hidden p-2">
+            <ItemMedia className="translate-y-0!">
                 <Link to="/characters/$id" params={{ id: character.id }}>
-                    <Avatar className="size-[unset] overflow-visible">
-                        <AvatarImage src={imageURL} className="absolute blur-3xl saturate-200" />
+                    <Avatar className="aspect-2/3 h-44 w-auto rounded-md after:rounded-md">
+                        <AvatarImage
+                            src={imageURL}
+                            className="absolute -z-1 blur-3xl saturate-200"
+                        />
                         <AvatarImage
                             src={imageURL}
                             alt={character.data.name}
-                            className="aspect-2/3 object-cover rounded-md z-1"
+                            className="rounded-md object-cover"
                         />
-                        <AvatarFallback className="rounded-md">
-                            <Skeleton className="h-full aspect-2/3" />
-                        </AvatarFallback>
+                        <AvatarFallback className="animate-pulse rounded-md" />
                     </Avatar>
                 </Link>
             </ItemMedia>
-            <ItemContent className="h-full z-1">
+            <ItemContent className="z-1 h-full">
                 <ItemTitle className="flex-col items-start gap-0 leading-none">
                     <Link to="/characters/$id" params={{ id: character.id }}>
                         {character.data.name}
@@ -48,7 +48,7 @@ export default function CharacterItem({ character }: { character: Character }) {
                         {character.data.creator}
                     </ItemDescription>
                 </ItemTitle>
-                <ItemDescription className="text-foreground line-clamp-4 leading-snug text-pretty">
+                <ItemDescription className="line-clamp-4 leading-snug text-pretty text-foreground">
                     {character?.data.extensions.monogatari?.tagline ??
                         character?.data.creator_notes}
                 </ItemDescription>

@@ -57,7 +57,7 @@ export function AvatarCropper({ open, onOpenChange, image, imageURL, character }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-full data-[state=open]:zoom-in-100 sm:max-w-[80dvw]">
+            <DialogContent className="w-full data-open:zoom-in-100 sm:max-w-[80dvw]">
                 <DialogHeader className="sr-only">
                     <DialogTitle>Avatar Cropper</DialogTitle>
                     <DialogDescription>

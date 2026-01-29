@@ -1,6 +1,7 @@
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
     SelectTrigger,
     SelectValue
@@ -16,12 +17,6 @@ const ExploreRepos = [
 export function SelectExploreRepo() {
     const { settings, updateSettings } = useSettings();
 
-    const changeExploreProvider = (value: string) => {
-        updateSettings((settings) => {
-            settings.explore.repo = value as "chub" | "anchorhold";
-        });
-    };
-
     const selectItems = ExploreRepos.map((provider) => (
         <SelectItem key={provider.value} value={provider.value}>
             {provider.icon}
@@ -30,11 +25,31 @@ export function SelectExploreRepo() {
     ));
 
     return (
-        <Select value={settings.explore.repo} onValueChange={changeExploreProvider}>
+        <Select
+            items={ExploreRepos}
+            value={settings.explore.repo}
+            onValueChange={(value) => {
+                updateSettings((settings) => {
+                    settings.explore.repo = value as "chub" | "anchorhold";
+                });
+            }}
+        >
             <SelectTrigger>
-                <SelectValue placeholder="Select provider..." />
+                <SelectValue placeholder="Select provider...">
+                    {(value) => {
+                        const item = ExploreRepos.find((item) => item.value === value);
+                        return (
+                            <span className="flex items-center gap-1.5">
+                                {item?.icon}
+                                {item?.label}
+                            </span>
+                        );
+                    }}
+                </SelectValue>
             </SelectTrigger>
-            <SelectContent>{selectItems}</SelectContent>
+            <SelectContent>
+                <SelectGroup>{selectItems}</SelectGroup>
+            </SelectContent>
         </Select>
     );
 }

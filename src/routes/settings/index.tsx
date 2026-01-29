@@ -1,5 +1,6 @@
 import { BackupStatus } from "@/components/backup-status";
 import { ExportDatabase, ImportDatabase } from "@/components/database-dialog";
+import Header from "@/components/header";
 import Password from "@/components/password-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -300,33 +301,36 @@ function GeneralSettings() {
     }, []);
 
     return (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(24rem,100%),1fr))] gap-4">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <RandomIcon />
-                        Miscellaneous
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-1">
-                        <Label htmlFor="select-repo">Default Character Repo</Label>
-                        <SelectExploreRepo />
-                    </div>
-                    <Password
-                        label="Character Hub API Key"
-                        tooltip={chubTooltip}
-                        value={settings.apiKeys.chub}
-                        onChange={(event) => {
-                            updateSettings((settings) => {
-                                settings.apiKeys.chub = event.target.value;
-                            });
-                        }}
-                    />
-                </CardContent>
-            </Card>
-            <StorageDisplay />
-        </div>
+        <>
+            <Header />
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(24rem,100%),1fr))] gap-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <RandomIcon />
+                            Miscellaneous
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-1">
+                            <Label htmlFor="select-repo">Default Character Repo</Label>
+                            <SelectExploreRepo />
+                        </div>
+                        <Password
+                            label="Character Hub API Key"
+                            tooltip={chubTooltip}
+                            value={settings.apiKeys.chub}
+                            onChange={(event) => {
+                                updateSettings((settings) => {
+                                    settings.apiKeys.chub = event.target.value;
+                                });
+                            }}
+                        />
+                    </CardContent>
+                </Card>
+                <StorageDisplay />
+            </div>
+        </>
     );
 }
 

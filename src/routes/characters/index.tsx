@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { ItemGroup } from "@/components/ui/item";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
 import { db } from "@/database/monogatari-db";
 import { Character } from "@/database/schema/character";
 import { useFileDialog } from "@/hooks/use-file-dialog";
@@ -40,15 +39,13 @@ function Favorites({ favorites }: { favorites: Character[] }) {
 
     const favoriteCards = favorites.map((character, index) => (
         <Link key={character.id} to="/characters/$id" params={{ id: character.id }}>
-            <Avatar className="h-36 w-full scale-95 rounded-md transition duration-75 hover:scale-100">
+            <Avatar className="aspect-2/3 h-36 w-auto scale-95 rounded-md transition duration-75 after:rounded-md hover:scale-100">
                 <AvatarImage
                     src={imageURLs[index]}
                     alt={character.data.name}
-                    className="aspect-2/3 object-cover hover:brightness-100 hover:saturate-100 sm:brightness-50 sm:saturate-75"
+                    className="z-1 aspect-2/3 rounded-md object-cover hover:brightness-100 hover:saturate-100 sm:brightness-50 sm:saturate-75"
                 />
-                <AvatarFallback className="rounded-md">
-                    <Skeleton className="aspect-2/3 h-full" />
-                </AvatarFallback>
+                <AvatarFallback className="animate-pulse rounded-md" />
             </Avatar>
         </Link>
     ));
@@ -184,14 +181,14 @@ function Characters() {
         <>
             <Header className="justify-between">
                 <ButtonGroup>
+                    <Button variant="outline" onClick={createNewCharacter}>
+                        <UserPlus />
+                        New
+                    </Button>
                     <Button variant="outline" onClick={browse}>
                         {input}
                         <Import />
                         Import
-                    </Button>
-                    <Button variant="outline" onClick={createNewCharacter}>
-                        <UserPlus />
-                        New
                     </Button>
                 </ButtonGroup>
             </Header>

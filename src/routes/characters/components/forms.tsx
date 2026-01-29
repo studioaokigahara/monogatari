@@ -1,21 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { useCharacterFormContext } from "@/contexts/character-form";
-import { characterFormOptions, withCharacterForm } from "@/hooks/use-character-form";
+import { withForm } from "@/hooks/use-app-form";
 import { cn } from "@/lib/utils";
-import { useField, useStore } from "@tanstack/react-form";
+import { characterFormOptions } from "@/types/character-form";
 import { useNavigate } from "@tanstack/react-router";
 import { Plus, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
-export const HeaderFields = withCharacterForm({
+export const HeaderFields = withForm({
     ...characterFormOptions,
-    render: function Render({ form }) {
+    render: function ({ form }) {
         const { mode, setEditing } = useCharacterFormContext();
         const navigate = useNavigate();
 
@@ -35,179 +32,40 @@ export const HeaderFields = withCharacterForm({
 
         return (
             <div className="z-1 flex w-full flex-col gap-4 rounded-xl">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <form.AppField name="name">
-                        {(field) => (
-                            <div>
-                                <label
-                                    htmlFor={field.name}
-                                    className="block text-sm font-medium text-muted-foreground"
-                                >
-                                    Name
-                                </label>
-                                <Input
-                                    id={field.name}
-                                    name={field.name}
-                                    value={field.state.value as string}
-                                    onChange={(e) => field.handleChange(e.target.value)}
-                                    onBlur={field.handleBlur}
-                                />
-                                {field.state.meta.errors && (
-                                    <em className="text-destructive">
-                                        {field.state.meta.errors
-                                            // @ts-expect-error withForm does not narrow types
-                                            .map((err) => err.message)
-                                            .join(",")}
-                                    </em>
-                                )}
-                            </div>
-                        )}
+                        {(field) => <field.InputField type="text" label="Name" />}
                     </form.AppField>
                     <form.AppField name="nickname">
-                        {(field) => (
-                            <div>
-                                <label
-                                    htmlFor={field.name}
-                                    className="block text-sm font-medium text-muted-foreground"
-                                >
-                                    Nickname
-                                </label>
-                                <Input
-                                    id={field.name}
-                                    name={field.name}
-                                    value={field.state.value as string}
-                                    onChange={(e) => field.handleChange(e.target.value)}
-                                    onBlur={field.handleBlur}
-                                />
-                            </div>
-                        )}
+                        {(field) => <field.InputField type="text" label="Nickname" />}
                     </form.AppField>
                     <form.AppField name="creator">
+                        {(field) => <field.InputField type="text" label="Creator" />}
+                    </form.AppField>
+                </div>
+                {/* TODO: combobox tag selection, central DB store with
+                editing/tag coloring/etc */}
+                <div className="grid grid-cols-5 gap-4">
+                    <form.AppField name="tags">
                         {(field) => (
-                            <div>
-                                <label
-                                    htmlFor={field.name}
-                                    className="block text-sm font-medium text-muted-foreground"
-                                >
-                                    Creator
-                                </label>
-                                <Input
-                                    id={field.name}
-                                    name={field.name}
-                                    value={field.state.value as string}
-                                    onChange={(e) => field.handleChange(e.target.value)}
-                                    onBlur={field.handleBlur}
-                                />
-                                {field.state.meta.errors && (
-                                    <em className="text-destructive">
-                                        {field.state.meta.errors
-                                            // @ts-expect-error withForm does not narrow types
-                                            .map((err) => err.message)
-                                            .join(",")}
-                                    </em>
-                                )}
-                            </div>
+                            <field.InputField type="array" label="Tags" className="col-span-3" />
                         )}
                     </form.AppField>
                     <form.AppField name="character_version">
                         {(field) => (
-                            <div>
-                                <label
-                                    htmlFor={field.name}
-                                    className="block text-sm font-medium text-muted-foreground"
-                                >
-                                    Version
-                                </label>
-                                <Input
-                                    id={field.name}
-                                    name={field.name}
-                                    type="number"
-                                    value={field.state.value as string}
-                                    onChange={(e) => field.handleChange(e.target.value)}
-                                    onBlur={field.handleBlur}
-                                />
-                                {field.state.meta.errors && (
-                                    <em className="text-destructive">
-                                        {field.state.meta.errors
-                                            // @ts-expect-error withForm does not narrow types
-                                            .map((err) => err.message)
-                                            .join(",")}
-                                    </em>
-                                )}
-                            </div>
-                        )}
-                    </form.AppField>
-                    {/* TODO: combobox tag selection, central DB store with
-                    editing/tag coloring/etc */}
-                    <form.AppField name="tags">
-                        {(field) => (
-                            <div className="md:col-span-2">
-                                <label
-                                    htmlFor={field.name}
-                                    className="block text-sm font-medium text-muted-foreground"
-                                >
-                                    Tags
-                                </label>
-                                <Input
-                                    id={field.name}
-                                    name={field.name}
-                                    value={field.state.value.join(", ")}
-                                    onChange={(e) => field.handleChange(e.target.value.split(", "))}
-                                    onBlur={field.handleBlur}
-                                />
-                                {field.state.meta.errors && (
-                                    <em className="text-destructive">
-                                        {field.state.meta.errors
-                                            // @ts-expect-error withForm does not narrow types
-                                            .map((err) => err.message)
-                                            .join(",")}
-                                    </em>
-                                )}
-                            </div>
+                            <field.InputField type="text" label="Version" className="col-span-2" />
                         )}
                     </form.AppField>
                 </div>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-5 gap-4 *:not-last:col-span-2 *:not-last:max-h-[6lh]">
                     <form.AppField name="creator_notes">
-                        {(field) => (
-                            <div className="w-1/2">
-                                <label
-                                    htmlFor={field.name}
-                                    className="block text-sm font-medium text-muted-foreground"
-                                >
-                                    Creator Notes
-                                </label>
-                                <Textarea
-                                    id={field.name}
-                                    name={field.name}
-                                    value={field.state.value as string}
-                                    onChange={(e) => field.handleChange(e.target.value)}
-                                    onBlur={field.handleBlur}
-                                />
-                            </div>
-                        )}
+                        {(field) => <field.TextareaField label="Creator Notes" />}
                     </form.AppField>
                     <form.AppField name="extensions.monogatari.tagline">
-                        {(field) => (
-                            <div className="w-1/2">
-                                <label
-                                    htmlFor={field.name}
-                                    className="block text-sm font-medium text-muted-foreground"
-                                >
-                                    Tagline
-                                </label>
-                                <Textarea
-                                    id={field.name}
-                                    name={field.name}
-                                    value={field.state.value as string}
-                                    onChange={(e) => field.handleChange(e.target.value)}
-                                    onBlur={field.handleBlur}
-                                />
-                            </div>
-                        )}
+                        {(field) => <field.TextareaField label="Tagline" />}
                     </form.AppField>
-                    <div className="flex items-end gap-2">
-                        <Button variant="secondary" onClick={handleCancel}>
+                    <div className="col-span-1 flex place-items-end gap-2">
+                        <Button variant="outline" onClick={handleCancel}>
                             Cancel
                         </Button>
                         <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
@@ -231,183 +89,133 @@ export const HeaderFields = withCharacterForm({
     }
 });
 
-export const DescriptionFields = withCharacterForm({
+export const DescriptionFields = withForm({
     ...characterFormOptions,
-    render: function Render({ form }) {
+    render: function ({ form }) {
         return (
             <Card>
                 <CardContent className="space-y-4">
                     <form.AppField name="description">
                         {(field) => (
-                            <div className="space-y-2">
-                                <Label htmlFor={field.name}>Description</Label>
-                                <Textarea
-                                    id={field.name}
-                                    name={field.name}
-                                    placeholder="Describe your character's appearance, background, and key details..."
-                                    value={field.state.value as string}
-                                    onChange={(e) => field.handleChange(e.target.value)}
-                                    onBlur={field.handleBlur}
-                                    className="font-mono text-sm"
-                                />
-                                {field.state.meta.errors && (
-                                    <em className="text-destructive">
-                                        {field.state.meta.errors
-                                            // @ts-expect-error withForm does not narrow types
-                                            .map((err) => err.message)
-                                            .join(",")}
-                                    </em>
-                                )}
-                            </div>
+                            <field.TextareaField
+                                label="Description"
+                                placeholder="main"
+                                className="font-mono text-sm"
+                            />
                         )}
                     </form.AppField>
                     <form.AppField name="personality">
                         {(field) => (
-                            <div className="space-y-2">
-                                <Label htmlFor={field.name}>Personality</Label>
-                                <Textarea
-                                    id={field.name}
-                                    name={field.name}
-                                    placeholder="Describe their personality, speech patterns, mannerisms, and what makes them unique..."
-                                    value={field.state.value as string}
-                                    onChange={(e) => field.handleChange(e.target.value)}
-                                    onBlur={field.handleBlur}
-                                    className="font-mono text-sm"
-                                />
-                            </div>
+                            <field.TextareaField
+                                label="Personality"
+                                placeholder="personality"
+                                className="font-mono text-sm"
+                            />
                         )}
                     </form.AppField>
                     <form.AppField name="scenario">
                         {(field) => (
-                            <div className="space-y-2">
-                                <Label htmlFor={field.name}>Scenario</Label>
-                                <Textarea
-                                    id={field.name}
-                                    name={field.name}
-                                    placeholder="Describe the setting and circumstances where this character would be encountered..."
-                                    value={field.state.value as string}
-                                    onChange={(e) => field.handleChange(e.target.value)}
-                                    onBlur={field.handleBlur}
-                                    className="font-mono text-sm"
-                                />
-                            </div>
+                            <field.TextareaField
+                                label="Scenario"
+                                placeholder="scenario"
+                                className="font-mono text-sm"
+                            />
                         )}
                     </form.AppField>
-                    <form.Field name="system_prompt">
+                    <form.AppField name="system_prompt">
                         {(field) => (
-                            <div className="space-y-2">
-                                <Label htmlFor={field.name}>System Prompt</Label>
-                                <Textarea
-                                    id={field.name}
-                                    name={field.name}
-                                    value={field.state.value as string}
-                                    onChange={(e) => field.handleChange(e.target.value)}
-                                    onBlur={field.handleBlur}
-                                    className="font-mono text-sm"
-                                />
-                            </div>
+                            <field.TextareaField
+                                label="System Prompt"
+                                placeholder="sys"
+                                className="font-mono text-sm"
+                            />
                         )}
-                    </form.Field>
-                    <form.Field name="post_history_instructions">
+                    </form.AppField>
+                    <form.AppField name="post_history_instructions">
                         {(field) => (
-                            <div className="space-y-2">
-                                <Label htmlFor={field.name}>Post-History Instructions</Label>
-                                <Textarea
-                                    id={field.name}
-                                    name={field.name}
-                                    value={field.state.value as string}
-                                    onChange={(e) => field.handleChange(e.target.value)}
-                                    onBlur={field.handleBlur}
-                                    className="font-mono text-sm"
-                                />
-                            </div>
+                            <field.TextareaField
+                                label="Post-History Instructions"
+                                placeholder="post"
+                                className="font-mono text-sm"
+                            />
                         )}
-                    </form.Field>
+                    </form.AppField>
                 </CardContent>
             </Card>
         );
     }
 });
 
-export const GreetingsField = withCharacterForm({
+export const GreetingsField = withForm({
     ...characterFormOptions,
-    render: function Render({ form }) {
-        const alternateGreetingsField = useField({
-            form,
-            name: "alternate_greetings",
-            mode: "array"
-        });
-
-        const greetings = useStore(form.store, (state) => [
-            state.values.first_mes,
-            ...(state.values.alternate_greetings ?? [])
-        ]);
-
-        const [activeTab, setActiveTab] = useState("greeting-1");
-        const activeIndex = useMemo(() => {
-            const index = Number(activeTab.split("-")[1]) - 1;
-            return Math.max(0, Math.min(greetings.length - 1, index));
-        }, [activeTab, greetings.length]);
-
-        const addGreeting = () => {
-            alternateGreetingsField.pushValue("" as string as never);
-            setActiveTab(`greeting-${greetings.length + 1}`);
-            toast.success("Added new greeting.");
-        };
-
-        const deleteGreeting = () => {
-            if (activeIndex === 0) {
-                toast.error("You can't delete the first greeting, dummy.");
-                return;
-            }
-
-            alternateGreetingsField.removeValue(activeIndex - 1);
-            setActiveTab(`greeting-${activeIndex}`);
-            toast.success(`Deleted greeting ${activeIndex + 1}.`);
-        };
+    render: function ({ form }) {
+        const [activeIndex, setActiveIndex] = useState(0);
 
         return (
             <Card className="overflow-hidden">
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <CardHeader>
-                        <TabsList
-                            className={cn(
-                                greetings.length > 10
-                                    ? "flex h-auto flex-wrap justify-start *:flex-0"
-                                    : ""
-                            )}
-                        >
-                            {greetings.map((greeting, idx) => (
+                <Tabs
+                    value={String(activeIndex)}
+                    onValueChange={(value) => setActiveIndex(Number(value))}
+                >
+                    <form.AppField name="alternate_greetings" mode="array">
+                        {(field) => {
+                            const greetings = [
+                                form.getFieldValue("first_mes"),
+                                ...field.state.value
+                            ];
+
+                            const addGreeting = () => {
+                                field.pushValue("");
+                                setActiveIndex(greetings.length);
+                                toast.success("Added new greeting.");
+                            };
+
+                            const deleteGreeting = () => {
+                                if (activeIndex === 0) {
+                                    toast.error("You can't delete the first greeting, dummy.");
+                                    return;
+                                }
+
+                                field.removeValue(activeIndex - 1);
+                                setActiveIndex((prev) => prev - 1);
+                                toast.success(`Deleted greeting ${activeIndex + 1}.`);
+                            };
+
+                            const tabTriggers = greetings.map((greeting, index) => (
                                 <TabsTrigger
-                                    key={greeting.slice(0, 9)}
-                                    value={`greeting-${idx + 1}`}
+                                    key={`${index}-${greeting?.slice(0, 9)}`}
+                                    value={String(index)}
                                 >
-                                    Greeting {idx + 1}
+                                    Greeting {index + 1}
                                 </TabsTrigger>
-                            ))}
-                            <>
-                                <TabsTrigger
-                                    value="greeting-new"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        addGreeting();
-                                    }}
-                                >
-                                    <Plus />
-                                </TabsTrigger>
-                                <TabsTrigger
-                                    data-state="inactive"
-                                    value={activeTab}
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        deleteGreeting();
-                                    }}
-                                >
-                                    <Trash2 />
-                                </TabsTrigger>
-                            </>
-                        </TabsList>
-                    </CardHeader>
+                            ));
+
+                            return (
+                                <CardHeader>
+                                    <TabsList
+                                        variant="line"
+                                        className={cn(
+                                            greetings.length > 10
+                                                ? "flex h-auto flex-wrap justify-start *:flex-0"
+                                                : ""
+                                        )}
+                                    >
+                                        {tabTriggers}
+                                        <TabsTrigger value="greeting-new" onClick={addGreeting}>
+                                            <Plus />
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            data-state="inactive"
+                                            value={activeIndex}
+                                            onClick={deleteGreeting}
+                                        >
+                                            <Trash2 />
+                                        </TabsTrigger>
+                                    </TabsList>
+                                </CardHeader>
+                            );
+                        }}
+                    </form.AppField>
                     <CardContent className="overflow-y-auto">
                         <form.AppField
                             name={
@@ -417,11 +225,7 @@ export const GreetingsField = withCharacterForm({
                             }
                         >
                             {(field) => (
-                                <Textarea
-                                    key={field.name}
-                                    value={field.state.value as string}
-                                    onChange={(e) => field.handleChange(e.currentTarget.value)}
-                                    onBlur={field.handleBlur}
+                                <field.TextareaField
                                     placeholder="Write a message..."
                                     className="font-mono text-sm"
                                 />
@@ -434,20 +238,16 @@ export const GreetingsField = withCharacterForm({
     }
 });
 
-export const ExampleDialogueField = withCharacterForm({
+export const ExampleDialogueField = withForm({
     ...characterFormOptions,
-    render: ({ form }) => {
+    render: function ({ form }) {
         return (
             <Card>
                 <CardContent>
                     <form.AppField name="mes_example">
                         {(field) => (
-                            <Textarea
-                                id={field.name}
-                                name={field.name}
-                                value={field.state.value as string}
-                                onChange={(e) => field.handleChange(e.target.value)}
-                                onBlur={field.handleBlur}
+                            <field.TextareaField
+                                label="Example Dialogue"
                                 placeholder={`<START>\n{{char}}: Hello!\n{{user}}: Hi!`}
                                 className="font-mono text-sm"
                             />

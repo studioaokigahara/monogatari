@@ -1,7 +1,6 @@
 import { Markdown } from "@/components/markdown";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@/components/ui/item";
-import { Skeleton } from "@/components/ui/skeleton";
 import { AnchorholdPost } from "@/lib/explore/anchorhold/api";
 import { cn } from "@/lib/utils";
 import { DownloadButton } from "@/routes/explore/components/download-button";
@@ -23,16 +22,14 @@ export function AnchorholdItem({ post, isDownloaded, onClick: handleClick }: Pro
             )}
         >
             <ItemMedia className="h-full">
-                <Avatar className="aspect-2/3 size-[unset] max-h-full overflow-visible">
+                <Avatar className="aspect-2/3 size-[unset] max-h-full overflow-visible rounded-xl after:rounded-xl">
                     <AvatarImage src={post.imageURL} className="absolute z-0 blur-xl" />
                     <AvatarImage
                         src={post.imageURL}
                         alt={post.postID}
                         className="z-1 rounded-xl object-cover"
                     />
-                    <AvatarFallback className="rounded-xl">
-                        <Skeleton className="aspect-2/3 h-88" />
-                    </AvatarFallback>
+                    <AvatarFallback className="animate-pulse rounded-xl" />
                     <DownloadButton
                         initialState={buttonState}
                         onClick={handleClick}

@@ -50,11 +50,7 @@ type WorkerMessage =
     | { type: "importDone"; payload: null }
     | { type: "error"; payload: string };
 
-interface ExportProps {
-    size?: "default" | "sm";
-}
-
-export function ExportDatabase({ size = "sm" }: ExportProps) {
+export function ExportDatabase() {
     const workerRef = useRef<Worker | null>(null);
     const [open, setOpen] = useState(false);
     const [exporting, setExporting] = useState(false);
@@ -134,12 +130,14 @@ export function ExportDatabase({ size = "sm" }: ExportProps) {
 
     return (
         <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger asChild>
-                <Button size={size} onClick={() => setOpen(true)}>
-                    <HardDriveUpload />
-                    Export
-                </Button>
-            </AlertDialogTrigger>
+            <AlertDialogTrigger
+                render={
+                    <Button onClick={() => setOpen(true)}>
+                        <HardDriveUpload />
+                        Export
+                    </Button>
+                }
+            />
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>
@@ -177,7 +175,7 @@ export function ExportDatabase({ size = "sm" }: ExportProps) {
 export function ImportDatabase() {
     const workerRef = useRef<Worker | null>(null);
     const [open, setOpen] = useState(false);
-    const [replaceDatabase, setReplaceDatabase] = useState(false);
+    const [replaceDatabase, setReplaceDatabase] = useState(true);
     const [importing, setImporting] = useState(false);
     const [done, setDone] = useState(false);
     const [progress, setProgress] = useState<ExportProgress>();
@@ -252,13 +250,15 @@ export function ImportDatabase() {
 
     return (
         <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger asChild>
-                <Button size="sm" onClick={() => setOpen(true)}>
-                    {input}
-                    <HardDriveDownload />
-                    Import
-                </Button>
-            </AlertDialogTrigger>
+            <AlertDialogTrigger
+                render={
+                    <Button onClick={() => setOpen(true)}>
+                        {input}
+                        <HardDriveDownload />
+                        Import
+                    </Button>
+                }
+            />
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle className="flex items-center">
@@ -272,17 +272,6 @@ export function ImportDatabase() {
                         ) : (
                             "Import Database"
                         )}
-                        <div className="ml-auto flex items-center gap-2">
-                            <Switch
-                                id="replace-database"
-                                disabled={importing}
-                                checked={replaceDatabase}
-                                onCheckedChange={setReplaceDatabase}
-                            />
-                            <Label htmlFor="replace-database">
-                                {replaceDatabase ? "Mode: Replace" : "Mode: Merge"}
-                            </Label>
-                        </div>
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                         {importing
@@ -300,6 +289,15 @@ export function ImportDatabase() {
                     />
                 )}
                 <AlertDialogFooter>
+                    <div className="mr-auto flex items-center gap-2">
+                        <Label htmlFor="replace-database">Replace Database</Label>
+                        <Switch
+                            id="replace-database"
+                            disabled={importing}
+                            checked={replaceDatabase}
+                            onCheckedChange={setReplaceDatabase}
+                        />
+                    </div>
                     <AlertDialogCancel disabled={importing}>Cancel</AlertDialogCancel>
                     <AlertDialogAction disabled={importing} onClick={handleAction}>
                         {importing ? "Importing..." : done ? "Close" : "Continue"}

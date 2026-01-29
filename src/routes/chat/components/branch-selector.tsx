@@ -44,18 +44,20 @@ export function BranchSelector({ message, editing, className }: Props) {
             )}
         >
             <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button
-                        aria-label="Previous Branch"
-                        size="icon"
-                        variant="ghost"
-                        disabled={status !== "ready"}
-                        className={cn("peer", className)}
-                        onClick={selectPreviousBranch}
-                    >
-                        <ChevronLeft />
-                    </Button>
-                </TooltipTrigger>
+                <TooltipTrigger
+                    render={
+                        <Button
+                            aria-label="Previous Branch"
+                            size="icon"
+                            variant="ghost"
+                            disabled={status !== "ready"}
+                            className={cn("peer", className)}
+                            onClick={selectPreviousBranch}
+                        >
+                            <ChevronLeft />
+                        </Button>
+                    }
+                />
                 <TooltipContent side="bottom">Previous Branch</TooltipContent>
             </Tooltip>
             <ButtonGroupText
@@ -64,18 +66,20 @@ export function BranchSelector({ message, editing, className }: Props) {
                 {siblings.current} / {siblings.total}
             </ButtonGroupText>
             <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button
-                        aria-label="Next Branch"
-                        size="icon"
-                        variant="ghost"
-                        disabled={status !== "ready"}
-                        className={className}
-                        onClick={selectNextBranch}
-                    >
-                        <ChevronRight />
-                    </Button>
-                </TooltipTrigger>
+                <TooltipTrigger
+                    render={
+                        <Button
+                            aria-label="Next Branch"
+                            size="icon"
+                            variant="ghost"
+                            disabled={status !== "ready"}
+                            className={className}
+                            onClick={selectNextBranch}
+                        >
+                            <ChevronRight />
+                        </Button>
+                    }
+                />
                 <TooltipContent side="bottom">Next Branch</TooltipContent>
             </Tooltip>
         </ButtonGroup>

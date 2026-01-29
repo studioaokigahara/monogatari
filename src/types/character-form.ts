@@ -1,5 +1,5 @@
 import { CharacterCardV3Data } from "@/database/schema/character";
-import { createFormHook, createFormHookContexts, formOptions } from "@tanstack/react-form";
+import { formOptions } from "@tanstack/react-form";
 import z from "zod";
 
 const CharacterFormSchema = z.object({
@@ -10,20 +10,6 @@ const CharacterFormSchema = z.object({
     creator: z.string().min(1, "Let people know who created this character!")
 });
 export type CharacterFormSchema = z.infer<typeof CharacterFormSchema>;
-
-export const { fieldContext, useFieldContext, formContext, useFormContext } =
-    createFormHookContexts();
-
-export const {
-    useAppForm: useCharacterForm,
-    withForm: withCharacterForm,
-    withFieldGroup: withCharacterFieldGroup
-} = createFormHook({
-    fieldComponents: {},
-    formComponents: {},
-    fieldContext,
-    formContext
-});
 
 const defaultValues: CharacterFormSchema = {
     name: "",

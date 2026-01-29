@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { db } from "@/database/monogatari-db";
 import { Asset } from "@/database/schema/asset";
 import { Character, CharacterCardV3Asset } from "@/database/schema/character";
 import { useFileDialog } from "@/hooks/use-file-dialog";
@@ -62,8 +61,7 @@ function GalleryScanner({ character }: { character: Character }) {
     }
 
     const label = loading ? "Scanning…" : done ? "Close" : "Continue";
-    const handleAction = async (e: React.MouseEvent) => {
-        e.preventDefault();
+    const handleAction = async () => {
         if (done) setOpen(false);
         else await handleScan();
     };
@@ -71,11 +69,13 @@ function GalleryScanner({ character }: { character: Character }) {
     return (
         <>
             <AlertDialog open={open} onOpenChange={setOpen}>
-                <AlertDialogTrigger asChild>
-                    <Button variant="outline" onClick={() => setOpen(true)}>
-                        <Radar /> Scan for Images
-                    </Button>
-                </AlertDialogTrigger>
+                <AlertDialogTrigger
+                    render={
+                        <Button variant="outline" onClick={() => setOpen(true)}>
+                            <Radar /> Scan for Images
+                        </Button>
+                    }
+                />
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Download Images?</AlertDialogTitle>
@@ -124,20 +124,16 @@ export default function Gallery({ character }: { character: Character }) {
     const deleteAsset = async (index: number) => {
         const pointer = character.data.assets[index];
         const assetName = `${pointer.name}.${pointer.ext}`;
-        const assetToDelete = await db.assets.get({
-            "[parentID+file.name]": [character.id, assetName]
+        const assetToDelete = await Asset.load(character.id, assetName);
+        await assetToDelete.delete();
+        const newAssets = character.data.assets.filter(
+            (asset) => `${asset.name}.${asset.ext}` !== assetName
+        );
+        await character.update({
+            assets: newAssets
         });
-        if (assetToDelete) {
-            await assetToDelete.delete();
-            const newAssets = character.data.assets.filter(
-                (asset) => `${asset.name}.${asset.ext}` !== assetName
-            );
-            await character.update({
-                assets: newAssets
-            });
-            setOpenIndex(undefined);
-            toast.success(`Deleted ${assetName}`);
-        }
+        setOpenIndex(undefined);
+        toast.success(`Deleted ${assetName}`);
     };
 
     const addToGallery = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -209,7 +205,7 @@ export default function Gallery({ character }: { character: Character }) {
         const pointer = character.data.assets[index];
         const filename = `${pointer.name}.${pointer.ext}`;
         const asset = await Asset.load(character.id, filename);
-        if (asset) downloadFile(asset.file);
+        downloadFile(asset.file);
     };
 
     const galleryImages = character.data.assets.map((asset, index) => (
@@ -224,13 +220,15 @@ export default function Gallery({ character }: { character: Character }) {
                     {asset.name}
                     {asset.ext}
                 </DialogDescription>
-                <DialogTrigger asChild>
-                    <img
-                        src={imageURLs[index]}
-                        alt={asset.name}
-                        className="max-h-[50dvh] cursor-pointer rounded-lg"
-                    />
-                </DialogTrigger>
+                <DialogTrigger
+                    render={
+                        <img
+                            src={imageURLs[index]}
+                            alt={asset.name}
+                            className="max-h-[50dvh] cursor-pointer rounded-lg"
+                        />
+                    }
+                />
                 <DialogContent className="w-max sm:max-w-[80dvw]">
                     <img
                         src={imageURLs[index]}
@@ -251,22 +249,23 @@ export default function Gallery({ character }: { character: Character }) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-            <figcaption className="pt-2 text-xs font-medium text-muted-foreground">
-                {copied && copyIndex === index ? (
-                    <span className="flex flex-row gap-1">
-                        <Check className="size-4 text-green-500" />
-                        Copied!
-                    </span>
-                ) : (
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="cursor-copy"
-                        onClick={() => copyFilename(index)}
-                    >
-                        {asset.name}.{asset.ext}
-                    </Button>
-                )}
+            <figcaption className="pt-2">
+                <Button
+                    variant="link"
+                    size="sm"
+                    className="cursor-copy px-0 text-xs font-medium text-muted-foreground"
+                    disabled={copied && copyIndex === index}
+                    onClick={() => copyFilename(index)}
+                >
+                    {copied && copyIndex === index ? (
+                        <>
+                            <Check className="text-green-500" />
+                            Copied!
+                        </>
+                    ) : (
+                        `${asset.name}.${asset.ext}`
+                    )}
+                </Button>
             </figcaption>
         </figure>
     ));
@@ -283,7 +282,9 @@ export default function Gallery({ character }: { character: Character }) {
             </CardHeader>
             <CardContent className="overflow-hidden px-0">
                 <ScrollArea>
-                    <div className="flex w-max shrink gap-4 px-6 pb-4">{galleryImages}</div>
+                    <div className="flex w-max shrink items-end gap-4 px-6 pb-4">
+                        {galleryImages}
+                    </div>
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>
             </CardContent>
