@@ -40,7 +40,7 @@ export function Markdown({
     const rehypePlugins = streaming ? [] : [rehypeRaw];
 
     const components: Options["components"] = {
-        img: ({ alt, ...props }) => (
+        img: ({ alt, node: _node, ...props }) => (
             <img
                 {...props}
                 alt={alt ?? ""}
@@ -55,7 +55,7 @@ export function Markdown({
                 }}
             />
         ),
-        a: ({ children, ...props }) => (
+        a: ({ children, node: _node, ...props }) => (
             <a {...props} target="_blank" rel="noopener noreferrer">
                 {children}
             </a>
