@@ -39,19 +39,23 @@ interface DecoratorContext {
     userIcon?: string;
 }
 
-enum positionOptions {
-    "after_desc",
-    "before_desc",
-    "personality",
-    "scenario"
+interface InsertionPosition {
+    position: "before" | "after" | "depth" | "position";
+    depth?: number;
+    role?: "system" | "user" | "assistant";
+    positionType?: string;
 }
 
-enum depthOptions {
+const PositionDecorators = ["after_desc", "before_desc", "personality", "scenario"] as const;
+type PositionDecorator = (typeof PositionDecorators)[number];
+
+const DepthDecorators = [
     "depth",
     "reverse_depth",
     "instruct_depth",
     "reverse_instruct_depth"
-}
+] as const;
+type DepthDecorator = (typeof DepthDecorators)[number];
 
 export class DecoratorParser {
     static parseValue(value: string) {
@@ -118,14 +122,9 @@ export class DecoratorParser {
     static getInsertionPosition(
         decorators: Decorator[],
         context: DecoratorContext
-    ): {
-        position: "before" | "after" | "depth" | "position";
-        depth?: number;
-        role?: "system" | "user" | "assistant";
-        positionType?: string;
-    } {
+    ): InsertionPosition {
         const positionDecorator = decorators.find((decorator) =>
-            Object.values(positionOptions).includes(decorator.name)
+            PositionDecorators.includes(decorator.name as PositionDecorator)
         );
 
         if (positionDecorator) {
@@ -136,7 +135,7 @@ export class DecoratorParser {
         }
 
         const depthDecorator = decorators.find((decorator) =>
-            Object.values(depthOptions).includes(decorator.name)
+            DepthDecorators.includes(decorator.name as DepthDecorator)
         );
 
         if (depthDecorator) {
@@ -148,9 +147,7 @@ export class DecoratorParser {
                 depth = context.tokenCount - depth;
             }
 
-            const roleDecorator = decorators.find(
-                (decorator) => decorator.name === "role"
-            );
+            const roleDecorator = decorators.find((decorator) => decorator.name === "role");
 
             return {
                 position: "depth",
@@ -163,12 +160,8 @@ export class DecoratorParser {
     }
 
     static getScanDepth(decorators: Decorator[], scanDepth: number): number {
-        const scanDepthDecorator = decorators.find(
-            (decorator) => decorator.name === "scan_depth"
-        );
+        const scanDepthDecorator = decorators.find((decorator) => decorator.name === "scan_depth");
 
-        return scanDepthDecorator
-            ? (scanDepthDecorator.value as number)
-            : scanDepth;
+        return scanDepthDecorator ? (scanDepthDecorator.value as number) : scanDepth;
     }
 }
