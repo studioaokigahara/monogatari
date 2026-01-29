@@ -95,7 +95,7 @@ export function Markdown({
     return (
         <article
             className={cn(
-                "prose dark:prose-invert prose-img:max-h-[75dvh] prose-img:justify-self-center prose-img:rounded-lg",
+                "prose dark:prose-invert",
                 streaming &&
                     "*:last:after:inline *:last:after:align-baseline *:last:after:content-['_▋']",
                 className

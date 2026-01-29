@@ -48,7 +48,13 @@ module.exports = {
                         },
                         img: {
                             marginTop: "1lh",
-                            marginBottom: "1lh"
+                            marginBottom: "1lh",
+                            maxHeight: "80dvh",
+                            justifySelf: "center",
+                            borderRadius: "var(--radius)"
+                        },
+                        ":has(img:last-child):last-child img:last-child": {
+                            marginBottom: "0"
                         },
                         picture: {
                             marginTop: "1lh",
@@ -113,10 +119,9 @@ module.exports = {
                             marginTop: "0",
                             marginBottom: "0"
                         },
-                        "ol:has(li > ol, li > ul) + p, ul:has(li > ol, li > ul) + p":
-                            {
-                                marginBottom: "1lh"
-                            },
+                        "ol:has(li > ol, li > ul) + p, ul:has(li > ol, li > ul) + p": {
+                            marginBottom: "1lh"
+                        },
                         "ol > li, ul > li": {
                             paddingInlineStart: "0"
                         },
