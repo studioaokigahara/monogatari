@@ -32,8 +32,8 @@ const Samplers = z
         topK: z.int().nonnegative().default(0),
         topP: z.number().min(0).max(1).default(1),
         repetitionPenalty: z.number().min(0).max(2).default(1),
-        minP: z.number().min(0).max(1).default(1),
-        topA: z.number().min(0).max(1).default(1)
+        minP: z.number().min(0).max(1).default(0),
+        topA: z.number().min(0).max(1).default(0)
     })
     .prefault({});
 
