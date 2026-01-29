@@ -248,8 +248,7 @@ export class LorebookMatcher {
         macroContext: MacroContext,
         scanDepth: number = Infinity,
         currentRecursionDepth = 0,
-        visitedMatches: Set<string | number> = new Set(),
-        initialScan = true
+        visitedMatches: Set<string | number> = new Set()
     ): MatchResult[] {
         const results: MatchResult[] = [];
 
@@ -262,13 +261,13 @@ export class LorebookMatcher {
                 (decorator) => decorator.name === "ignore_on_recursion"
             );
 
-            if (ignoreOnRecursion && !initialScan) continue;
+            if (ignoreOnRecursion && currentRecursionDepth > 0) continue;
 
             const activateOnlyOnRecursion = decorators.some(
                 (decorator) => decorator.name === "activate_only_on_recursion"
             );
 
-            if (activateOnlyOnRecursion && initialScan) continue;
+            if (activateOnlyOnRecursion && currentRecursionDepth === 0) continue;
 
             if (this.entryMatches(entry, decorators, context)) {
                 const resolvedContent = replaceMacros(content, macroContext);
@@ -286,7 +285,7 @@ export class LorebookMatcher {
                     (decorator) => decorator.name === "recursion_depth"
                 );
 
-                const maxRecursionDepth = Number(recursionDepth?.value) ?? Infinity;
+                const maxRecursionDepth = Number(recursionDepth?.value ?? Infinity);
                 if (currentRecursionDepth >= maxRecursionDepth) continue;
 
                 const newContext = {
@@ -300,8 +299,7 @@ export class LorebookMatcher {
                     macroContext,
                     scanDepth,
                     ++currentRecursionDepth,
-                    visitedMatches,
-                    false
+                    visitedMatches
                 );
 
                 results.push(...recursiveMatches);
