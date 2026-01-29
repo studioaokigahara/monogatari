@@ -1,6 +1,7 @@
 import { Asset } from "@/database/schema/asset";
 import { Character, CharacterCardV3Asset } from "@/database/schema/character";
 import { Area } from "react-easy-crop";
+import { toast } from "sonner";
 
 function createImage(url: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
@@ -16,11 +17,11 @@ function getRadianAngle(degreeValue: number) {
 }
 
 function rotateSize(width: number, height: number, rotation: number) {
-    const rotRad = getRadianAngle(rotation);
+    const angle = getRadianAngle(rotation);
 
     return {
-        width: Math.abs(Math.cos(rotRad) * width) + Math.abs(Math.sin(rotRad) * height),
-        height: Math.abs(Math.sin(rotRad) * width) + Math.abs(Math.cos(rotRad) * height)
+        width: Math.abs(Math.cos(angle) * width) + Math.abs(Math.sin(angle) * height),
+        height: Math.abs(Math.sin(angle) * width) + Math.abs(Math.cos(angle) * height)
     };
 }
 
@@ -71,7 +72,7 @@ export async function getCroppedImage(
         cropArea.height
     );
 
-    return await new Promise<Blob>((resolve, reject) => {
+    const blobPromise = new Promise<Blob>((resolve, reject) => {
         croppedCanvas.toBlob((blob) => {
             if (!blob) {
                 reject(new Error("toBlob returned null"));
@@ -80,6 +81,17 @@ export async function getCroppedImage(
             }
         }, fileType);
     });
+
+    toast.promise(blobPromise, {
+        loading: "Cropping image",
+        success: "Cropped image successfully",
+        error: (error) => ({
+            message: "Failed to crop image",
+            description: error.message
+        })
+    });
+
+    return await blobPromise;
 }
 
 export async function saveCroppedImage(
