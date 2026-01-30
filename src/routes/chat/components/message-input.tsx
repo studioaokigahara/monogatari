@@ -176,11 +176,11 @@ export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
     }, []);
 
     return (
-        <div className="sticky bottom-2 sm:mx-auto sm:w-2xl @min-[1025px]:w-3xl">
+        <div className="sticky bottom-2 flex flex-col gap-2 sm:mx-auto sm:w-2xl @min-[1025px]:w-3xl">
             <Button
                 variant="outline"
                 className={cn(
-                    "mx-auto -mt-9 mb-2 flex rounded-full opacity-0 backdrop-blur transition dark:bg-sidebar/50",
+                    "mx-auto -mt-8 rounded-full opacity-0 backdrop-blur transition dark:bg-sidebar/50",
                     !autoScroll ? "opacity-100" : "pointer-events-none"
                 )}
                 onClick={scrollToBottom}
@@ -189,7 +189,7 @@ export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
                 <ArrowDown />
             </Button>
             <form onSubmit={handleSubmit}>
-                <InputGroup className="rounded-3xl border-input! ring-0! backdrop-blur transition-[height] dark:bg-sidebar/50">
+                <InputGroup className="rounded-3xl border-border ring-0! backdrop-blur transition-[height] focus-within:border-border! has-disabled:opacity-100 dark:bg-sidebar/50 dark:has-disabled:bg-sidebar/50">
                     <InputGroupTextarea
                         name="message-input"
                         onKeyDown={handleKeyDown}
@@ -198,8 +198,7 @@ export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
                         value={input}
                         placeholder={placeholder}
                         className={cn(
-                            "transition-[position,margin,padding] transition-discrete",
-                            "min-h-0 resize-none border-none shadow-none focus-visible:ring-0 dark:bg-transparent dark:text-foreground",
+                            "min-h-0 transition-[position,margin,padding] transition-discrete",
                             !lineWrapped
                                 ? "absolute mt-1.5 px-12 delay-[20ms,0ms,0ms]"
                                 : "delay-[0ms,20ms,20ms]"
@@ -223,11 +222,11 @@ export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
                                         variant="outline"
                                         size="icon-sm"
                                         className="z-1 rounded-full"
-                                    >
-                                        <Plus />
-                                    </InputGroupButton>
+                                    />
                                 }
-                            />
+                            >
+                                <Plus />
+                            </DropdownMenuTrigger>
                             <DropdownMenuContent>
                                 <DropdownMenuItem onClick={browse}>
                                     {fileInput}
@@ -242,6 +241,7 @@ export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
                         </DropdownMenu>
                         <Tooltip>
                             <TooltipTrigger
+                                onClick={handleButtonClick}
                                 render={
                                     <InputGroupButton
                                         variant="default"
@@ -249,16 +249,15 @@ export function MessageInput({ scrollRef: scrollAnchorRef }: Props) {
                                         type={status === "ready" ? "submit" : "button"}
                                         className="z-1 ml-auto rounded-full"
                                         disabled={status === "ready" && !input.trim()}
-                                        onClick={handleButtonClick}
-                                    >
-                                        {status === "ready" && <ArrowUp className="size-6" />}
-                                        {(status === "streaming" || status === "submitted") && (
-                                            <Square fill="currentColor" />
-                                        )}
-                                        {status === "error" && <TriangleAlert className="size-6" />}
-                                    </InputGroupButton>
+                                    />
                                 }
-                            />
+                            >
+                                {status === "ready" && <ArrowUp className="size-6" />}
+                                {(status === "streaming" || status === "submitted") && (
+                                    <Square fill="currentColor" />
+                                )}
+                                {status === "error" && <TriangleAlert className="size-6" />}
+                            </TooltipTrigger>
                             <TooltipContent>
                                 {status === "ready" && "Submit"}
                                 {(status === "streaming" || status === "submitted") && "Stop"}

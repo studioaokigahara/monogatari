@@ -143,14 +143,10 @@ function ChatHistoryItem({ chat, isActive }: ChatHistoryItem) {
                 }
             />
             <DropdownMenu>
-                <DropdownMenuTrigger
-                    render={
-                        <SidebarMenuAction showOnHover>
-                            <MoreHorizontal />
-                            <span className="sr-only">More</span>
-                        </SidebarMenuAction>
-                    }
-                />
+                <DropdownMenuTrigger render={<SidebarMenuAction showOnHover />}>
+                    <MoreHorizontal />
+                    <span className="sr-only">More</span>
+                </DropdownMenuTrigger>
                 <DropdownMenuContent
                     className="w-48 rounded-lg"
                     side={isMobile ? "bottom" : "right"}
@@ -192,13 +188,9 @@ function ChatHistoryItem({ chat, isActive }: ChatHistoryItem) {
                         />
                     </div>
                     <DialogFooter>
-                        <DialogClose
-                            render={
-                                <Button type="button" variant="outline">
-                                    Close
-                                </Button>
-                            }
-                        />
+                        <DialogClose render={<Button type="button" variant="outline" />}>
+                            Close
+                        </DialogClose>
                         <Button onClick={renameChat}>Save changes</Button>
                     </DialogFooter>
                 </DialogContent>

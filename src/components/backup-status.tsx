@@ -172,26 +172,25 @@ export function BackupStatus({ showDialogTrigger = false }: Props) {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel
-                            render={
-                                <Button type="button" variant="outline" onClick={handleSnooze}>
-                                    <AlarmClock />
-                                    Snooze
-                                </Button>
-                            }
-                        />
+                            onClick={handleSnooze}
+                            render={<Button type="button" variant="outline" />}
+                        >
+                            <AlarmClock />
+                            Snooze
+                        </AlertDialogCancel>
                         <AlertDialogCancel
+                            onClick={handleDisable}
                             render={
                                 <Button
                                     type="button"
                                     variant="destructive"
                                     className="text-foreground"
-                                    onClick={handleDisable}
-                                >
-                                    <AlarmClockOff />
-                                    Don't remind me again
-                                </Button>
+                                />
                             }
-                        />
+                        >
+                            <AlarmClockOff />
+                            Don't remind me again
+                        </AlertDialogCancel>
                         <AlertDialogAction render={<ExportDatabase />} />
                     </AlertDialogFooter>
                 </AlertDialogContent>

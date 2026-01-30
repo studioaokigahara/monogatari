@@ -7,9 +7,9 @@ import {
     ComboboxEmpty,
     ComboboxItem,
     ComboboxList,
-    ComboboxValue,
-    useComboboxAnchor
+    ComboboxValue
 } from "@/components/ui/combobox";
+import { useRef } from "react";
 
 interface Item {
     value: string;
@@ -32,7 +32,7 @@ export function ComboboxMultiple({
     onBlur,
     ...props
 }: Props) {
-    const anchor = useComboboxAnchor();
+    const anchor = useRef<HTMLDivElement | null>(null);
     const selectedItems = items.filter((item) => value.includes(item.value));
     const handleValueChange = (items: unknown) => {
         onValueChange((items as Item[]).map((item) => item.value));

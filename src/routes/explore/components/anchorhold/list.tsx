@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { db } from "@/database/monogatari-db";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { importCharacter, readCharacterImage } from "@/lib/character/io";
 import { scanGallery } from "@/lib/character/scanner";
 import { AnchorholdPost } from "@/lib/explore/anchorhold/api";
@@ -192,7 +192,7 @@ export default function AnchorholdList({
         }
     });
 
-    const isMobile = useMobile();
+    const isMobile = useIsMobile();
     const listRef = useRef<HTMLDivElement>(null);
 
     const scrollEntry = useElementScrollRestoration({

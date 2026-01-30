@@ -33,20 +33,14 @@ function ChatLayout() {
                 {character && (
                     <div className="flex w-full items-center justify-center gap-2">
                         <Dialog>
-                            <DialogTrigger
-                                render={
-                                    <Avatar className="size-12 cursor-pointer">
-                                        <AvatarImage
-                                            src={imageURL}
-                                            alt={character?.data.name}
-                                            className="object-cover"
-                                        />
-                                        <AvatarFallback>
-                                            {character?.data.name.slice(0, 2)}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                }
-                            />
+                            <DialogTrigger render={<Avatar className="size-12 cursor-pointer" />}>
+                                <AvatarImage
+                                    src={imageURL}
+                                    alt={character?.data.name}
+                                    className="object-cover"
+                                />
+                                <AvatarFallback>{character?.data.name.slice(0, 2)}</AvatarFallback>
+                            </DialogTrigger>
                             <DialogContent>
                                 <DialogHeader className="sr-only">
                                     <DialogTitle>{character?.data.name}</DialogTitle>

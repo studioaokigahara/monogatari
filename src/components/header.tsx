@@ -1,7 +1,7 @@
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 interface HeaderProps extends React.ComponentProps<"header"> {
@@ -10,13 +10,13 @@ interface HeaderProps extends React.ComponentProps<"header"> {
 }
 
 export default function Header({ children, className, ...props }: HeaderProps) {
-    const mobile = useMobile();
+    const mobile = useIsMobile();
 
     return (
         <header
             className={cn(
                 mobile &&
-                    "sticky top-0 z-8 border-b bg/background/33 backdrop-blur -mx-4 -ml-8 mb-2 px-4 pl-8",
+                    "bg/background/33 sticky top-0 z-8 -mx-4 mb-2 -ml-8 border-b px-4 pl-8 backdrop-blur",
                 "flex h-16 shrink-0 items-center transition-[width,height] ease-in-out group-has-data-[collapsible=icon]/sidebar-wrapper:h-12",
                 className
             )}
@@ -24,7 +24,7 @@ export default function Header({ children, className, ...props }: HeaderProps) {
         >
             <div className="flex items-center gap-2">
                 <SidebarTrigger />
-                <Separator orientation="vertical" className="h-4! my-auto mr-1" />
+                <Separator orientation="vertical" className="my-auto mr-1 h-4!" />
                 <Breadcrumbs />
             </div>
             {children}

@@ -1,3 +1,5 @@
+"use client";
+
 import { Slider as SliderPrimitive } from "@base-ui/react/slider";
 import * as React from "react";
 
@@ -34,7 +36,7 @@ function Slider({
             <SliderPrimitive.Control className="relative flex w-full touch-none items-center select-none data-disabled:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-40 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col">
                 <SliderPrimitive.Track
                     data-slot="slider-track"
-                    className="relative grow overflow-hidden rounded-full bg-muted select-none data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5"
+                    className="relative grow overflow-hidden rounded-full bg-muted select-none data-[orientation=horizontal]:h-1 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1"
                 >
                     <SliderPrimitive.Indicator
                         data-slot="slider-range"
@@ -45,7 +47,7 @@ function Slider({
                     <SliderPrimitive.Thumb
                         data-slot="slider-thumb"
                         key={index}
-                        className="block size-4 shrink-0 rounded-full border border-primary bg-white shadow-sm ring-ring/50 transition-[color,box-shadow] select-none hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+                        className="relative block size-3 shrink-0 rounded-full border border-ring bg-white ring-ring/50 transition-[color,box-shadow] select-none after:absolute after:-inset-2 hover:ring-[3px] focus-visible:ring-[3px] focus-visible:outline-hidden active:ring-[3px] disabled:pointer-events-none disabled:opacity-50"
                     />
                 ))}
             </SliderPrimitive.Control>

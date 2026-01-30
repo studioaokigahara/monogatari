@@ -16,7 +16,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SidebarContext, SidebarContextProps, useSidebarContext } from "@/contexts/sidebar";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { PanelLeftCloseIcon, PanelLeftOpenIcon } from "lucide-react";
 
@@ -40,7 +40,7 @@ function SidebarProvider({
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
 }) {
-    const isMobile = useMobile();
+    const isMobile = useIsMobile();
     const [openMobile, setOpenMobile] = React.useState(false);
 
     // This is the internal state of the sidebar.
@@ -123,14 +123,14 @@ function SidebarProvider({
 function Sidebar({
     side = "left",
     variant = "sidebar",
-    collapsible = "offExamples",
+    collapsible = "offcanvas",
     className,
     children,
     ...props
 }: React.ComponentProps<"div"> & {
     side?: "left" | "right";
     variant?: "sidebar" | "floating" | "inset";
-    collapsible?: "offExamples" | "icon" | "none";
+    collapsible?: "offcanvas" | "icon" | "none";
 }) {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebarContext();
 
@@ -188,7 +188,7 @@ function Sidebar({
                 data-slot="sidebar-gap"
                 className={cn(
                     "relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear",
-                    "group-data-[collapsible=offExamples]:w-0",
+                    "group-data-[collapsible=offcanvas]:w-0",
                     "group-data-[side=right]:rotate-180",
                     variant === "floating" || variant === "inset"
                         ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]"
@@ -200,8 +200,8 @@ function Sidebar({
                 className={cn(
                     "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
                     side === "left"
-                        ? "left-0 group-data-[collapsible=offExamples]:left-[calc(var(--sidebar-width)*-1)]"
-                        : "right-0 group-data-[collapsible=offExamples]:right-[calc(var(--sidebar-width)*-1)]",
+                        ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
+                        : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
                     // Adjust the padding for floating and inset variants.
                     variant === "floating" || variant === "inset"
                         ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
@@ -257,6 +257,7 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
 
     return (
         <button
+            type="button"
             data-sidebar="rail"
             data-slot="sidebar-rail"
             aria-label="Toggle Sidebar"
@@ -267,9 +268,9 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
                 "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-0.5 hover:after:bg-sidebar-border sm:flex",
                 "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",
                 "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
-                "group-data-[collapsible=offExamples]:translate-x-0 group-data-[collapsible=offExamples]:after:left-full hover:group-data-[collapsible=offExamples]:bg-sidebar",
-                "[[data-side=left][data-collapsible=offExamples]_&]:-right-2",
-                "[[data-side=right][data-collapsible=offExamples]_&]:-left-2",
+                "group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full hover:group-data-[collapsible=offcanvas]:bg-sidebar",
+                "[[data-side=left][data-collapsible=offcanvas]_&]:-right-2",
+                "[[data-side=right][data-collapsible=offcanvas]_&]:-left-2",
                 className
             )}
             {...props}
@@ -340,7 +341,7 @@ function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
             data-slot="sidebar-content"
             data-sidebar="content"
             className={cn(
-                "no-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
+                "no-scrollbar flex min-h-0 flex-1 flex-col gap-0 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
                 className
             )}
             {...props}
@@ -423,7 +424,7 @@ function SidebarMenu({ className, ...props }: React.ComponentProps<"ul">) {
         <ul
             data-slot="sidebar-menu"
             data-sidebar="menu"
-            className={cn("flex w-full min-w-0 flex-col gap-1", className)}
+            className={cn("flex w-full min-w-0 flex-col gap-0", className)}
             {...props}
         />
     );
@@ -675,6 +676,5 @@ export {
     SidebarProvider,
     SidebarRail,
     SidebarSeparator,
-    SidebarTrigger,
-    useSidebarContext as useSidebar
+    SidebarTrigger
 };

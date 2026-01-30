@@ -114,7 +114,7 @@ export function CommandMenu() {
     ));
 
     return (
-        <CommandDialog open={open} onOpenChange={setOpen}>
+        <CommandDialog open={open} onOpenChange={setOpen} className="sm:max-w-md">
             <CommandInput placeholder="Search..." />
             <CommandList>
                 <CommandEmpty>No results found.</CommandEmpty>

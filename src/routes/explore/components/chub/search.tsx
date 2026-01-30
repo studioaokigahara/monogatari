@@ -2,8 +2,9 @@ import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Card, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import {
     Select,
     SelectContent,
@@ -20,8 +21,8 @@ import {
     BookOpenText,
     Cake,
     Clock,
-    CopyMinus,
-    CopyPlus,
+    CopyMinusIcon,
+    CopyPlusIcon,
     Dices,
     Download,
     Fingerprint,
@@ -38,7 +39,7 @@ import {
     TrendingUp,
     User,
     UserPlus,
-    UserSearch
+    UserSearchIcon
 } from "lucide-react";
 import { useState } from "react";
 
@@ -171,200 +172,227 @@ export default function Search({
                                             aria-label="Toggle Search Options"
                                             variant="outline"
                                             size="icon"
-                                        >
-                                            <FunnelPlus />
-                                        </Button>
+                                        />
                                     }
-                                />
+                                >
+                                    <FunnelPlus />
+                                </CollapsibleTrigger>
                             </ButtonGroup>
                         </ButtonGroup>
                         <CollapsibleContent
                             keepMounted
                             className={cn("w-full", isOpen ? "max-h-250" : "hidden max-h-0")}
                         >
-                            <div className="mb-2 flex w-full gap-2">
-                                <div className="relative grow space-y-1">
-                                    <Label htmlFor="creator">Creator</Label>
-                                    <UserSearch className="absolute top-1/2 left-2 size-4 opacity-50" />
-                                    <Input
-                                        id="creator"
-                                        className="pl-7"
-                                        name="creator"
-                                        placeholder="@creator"
-                                        defaultValue={searchOptions.creator}
-                                    />
+                            <FieldGroup className="mb-2 flex w-full gap-2">
+                                <div className="grid grid-cols-3 gap-2">
+                                    <Field>
+                                        <FieldLabel htmlFor="creator">Creator</FieldLabel>
+                                        <InputGroup>
+                                            <InputGroupInput
+                                                id="creator"
+                                                name="creator"
+                                                placeholder="@creator"
+                                                defaultValue={searchOptions.creator}
+                                            />
+                                            <InputGroupAddon>
+                                                <UserSearchIcon />
+                                            </InputGroupAddon>
+                                        </InputGroup>
+                                    </Field>
+                                    <Field>
+                                        <FieldLabel htmlFor="includedTags">
+                                            Included Tags
+                                        </FieldLabel>
+                                        <InputGroup>
+                                            <InputGroupInput
+                                                id="includedTags"
+                                                name="includedTags"
+                                                placeholder="tag1, tag2, tag3"
+                                                defaultValue={searchOptions.includedTags}
+                                            />
+                                            <InputGroupAddon>
+                                                <CopyPlusIcon />
+                                            </InputGroupAddon>
+                                        </InputGroup>
+                                    </Field>
+                                    <Field>
+                                        <FieldLabel htmlFor="excludedTags">
+                                            Excluded Tags
+                                        </FieldLabel>
+                                        <InputGroup>
+                                            <InputGroupInput
+                                                id="excludedTags"
+                                                name="excludedTags"
+                                                placeholder="tag1, tag2, tag3"
+                                                defaultValue={searchOptions.excludedTags}
+                                            />
+                                            <InputGroupAddon>
+                                                <CopyMinusIcon />
+                                            </InputGroupAddon>
+                                        </InputGroup>
+                                    </Field>
                                 </div>
-                                <div className="relative grow space-y-1">
-                                    <Label htmlFor="includedTags">Included Tags</Label>
-                                    <CopyPlus className="absolute top-1/2 left-2 size-4 opacity-50" />
-                                    <Input
-                                        id="includedTags"
-                                        className="pl-7"
-                                        name="includedTags"
-                                        placeholder="tag1, tag2, tag3"
-                                        defaultValue={searchOptions.includedTags}
-                                    />
+                                <div className="grid grid-cols-4 gap-2">
+                                    <Field>
+                                        <FieldLabel htmlFor="namespace">Namespace</FieldLabel>
+                                        <Select
+                                            name="namespace"
+                                            defaultValue="characters"
+                                            items={namespaceOptions}
+                                            value={searchOptions.namespace}
+                                            onValueChange={(value) => {
+                                                handleSelect("namespace", value as string);
+                                            }}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select namespace">
+                                                    {(value) => {
+                                                        const item = namespaceOptions.find(
+                                                            (option) => option.value === value
+                                                        );
+                                                        return (
+                                                            <span className="flex items-center gap-1.5">
+                                                                {item?.icon}
+                                                                {item?.label}
+                                                            </span>
+                                                        );
+                                                    }}
+                                                </SelectValue>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>{selectNamespace}</SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    </Field>
+                                    <Field>
+                                        <FieldLabel htmlFor="itemsPerPage">
+                                            Items Per Page
+                                        </FieldLabel>
+                                        <Select
+                                            name="itemsPerPage"
+                                            value={searchOptions.itemsPerPage.toString()}
+                                            onValueChange={(value) => {
+                                                handleSelect("itemsPerPage", value as string);
+                                            }}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Items per page" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>{selectItemsPerPage}</SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    </Field>
+                                    <Field>
+                                        <FieldLabel htmlFor="sort">Sort By</FieldLabel>
+                                        <Select
+                                            name="sort"
+                                            items={sortOptions}
+                                            value={searchOptions.sort}
+                                            onValueChange={(value) => {
+                                                handleSelect("sort", value as string);
+                                            }}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Sort by">
+                                                    {(value) => {
+                                                        const item = sortOptions.find(
+                                                            (option) => option.value === value
+                                                        );
+                                                        return (
+                                                            <span className="flex items-center gap-1.5">
+                                                                {item?.icon}
+                                                                {item?.label}
+                                                            </span>
+                                                        );
+                                                    }}
+                                                </SelectValue>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>{selectSort}</SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    </Field>
+                                    <Field>
+                                        <FieldLabel htmlFor="sortDirection">
+                                            Sort Direction
+                                        </FieldLabel>
+                                        <Select
+                                            name="sortAscending"
+                                            value={searchOptions.sortAscending ? "asc" : "desc"}
+                                            onValueChange={(value) => {
+                                                handleSelect("sortAscending", value === "asc");
+                                            }}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Sort direction">
+                                                    {(value) =>
+                                                        value === "desc" ? (
+                                                            <span className="flex items-center gap-1.5">
+                                                                <Icon
+                                                                    iconNode={stairsArrowDownLeft}
+                                                                />
+                                                                Descending
+                                                            </span>
+                                                        ) : (
+                                                            <span className="flex items-center gap-1.5">
+                                                                <Icon
+                                                                    iconNode={stairsArrowUpRight}
+                                                                />
+                                                                Ascending
+                                                            </span>
+                                                        )
+                                                    }
+                                                </SelectValue>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>
+                                                    <SelectItem value="desc">
+                                                        <Icon iconNode={stairsArrowDownLeft} />
+                                                        Descending
+                                                    </SelectItem>
+                                                    <SelectItem value="asc">
+                                                        <Icon iconNode={stairsArrowUpRight} />
+                                                        Ascending
+                                                    </SelectItem>
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    </Field>
                                 </div>
-                                <div className="relative grow space-y-1">
-                                    <Label htmlFor="excludedTags">Excluded Tags</Label>
-                                    <CopyMinus className="absolute top-1/2 left-2 size-4 opacity-50" />
-                                    <Input
-                                        id="excludedTags"
-                                        className="pl-7"
-                                        name="excludedTags"
-                                        placeholder="tag1, tag2, tag3"
-                                        defaultValue={searchOptions.excludedTags}
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex w-full flex-wrap gap-2">
-                                <div className="grow space-y-1">
-                                    <Label htmlFor="namespace">Namespace</Label>
-                                    <Select
-                                        name="namespace"
-                                        defaultValue="characters"
-                                        items={namespaceOptions}
-                                        value={searchOptions.namespace}
-                                        onValueChange={(value) => {
-                                            handleSelect("namespace", value as string);
-                                        }}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select namespace">
-                                                {(value) => {
-                                                    const item = namespaceOptions.find(
-                                                        (option) => option.value === value
-                                                    );
-                                                    return (
-                                                        <span className="flex items-center gap-1.5">
-                                                            {item?.icon}
-                                                            {item?.label}
-                                                        </span>
-                                                    );
-                                                }}
-                                            </SelectValue>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectGroup>{selectNamespace}</SelectGroup>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="grow space-y-1">
-                                    <Label htmlFor="itemsPerPage">Items Per Page</Label>
-                                    <Select
-                                        name="itemsPerPage"
-                                        value={searchOptions.itemsPerPage.toString()}
-                                        onValueChange={(value) => {
-                                            handleSelect("itemsPerPage", value as string);
-                                        }}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Items per page" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectGroup>{selectItemsPerPage}</SelectGroup>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="grow space-y-1">
-                                    <Label htmlFor="sort">Sort By</Label>
-                                    <Select
-                                        name="sort"
-                                        items={sortOptions}
-                                        value={searchOptions.sort}
-                                        onValueChange={(value) => {
-                                            handleSelect("sort", value as string);
-                                        }}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Sort by">
-                                                {(value) => {
-                                                    const item = sortOptions.find(
-                                                        (option) => option.value === value
-                                                    );
-                                                    return (
-                                                        <span className="flex items-center gap-1.5">
-                                                            {item?.icon}
-                                                            {item?.label}
-                                                        </span>
-                                                    );
-                                                }}
-                                            </SelectValue>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectGroup>{selectSort}</SelectGroup>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="grow space-y-1">
-                                    <Label htmlFor="sortDirection">Sort Direction</Label>
-                                    <Select
-                                        name="sortAscending"
-                                        value={searchOptions.sortAscending ? "asc" : "desc"}
-                                        onValueChange={(value) => {
-                                            handleSelect("sortAscending", value === "asc");
-                                        }}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Sort direction">
-                                                {(value) =>
-                                                    value === "desc" ? (
-                                                        <span className="flex items-center gap-1.5">
-                                                            <Icon iconNode={stairsArrowDownLeft} />
-                                                            Descending
-                                                        </span>
-                                                    ) : (
-                                                        <span className="flex items-center gap-1.5">
-                                                            <Icon iconNode={stairsArrowUpRight} />
-                                                            Ascending
-                                                        </span>
-                                                    )
+                                <div className="mt-4 flex w-fit items-center gap-2">
+                                    <Field>
+                                        <FieldLabel htmlFor="nsfw" className="bg-[unset]!">
+                                            NSFW
+                                            <Switch
+                                                id="nsfw"
+                                                name="nsfw"
+                                                checked={searchOptions.nsfw}
+                                                onCheckedChange={(checked) =>
+                                                    onSearchOptionsChange({
+                                                        nsfw: checked
+                                                    })
                                                 }
-                                            </SelectValue>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectGroup>
-                                                <SelectItem value="desc">
-                                                    <Icon iconNode={stairsArrowDownLeft} />
-                                                    Descending
-                                                </SelectItem>
-                                                <SelectItem value="asc">
-                                                    <Icon iconNode={stairsArrowUpRight} />
-                                                    Ascending
-                                                </SelectItem>
-                                            </SelectGroup>
-                                        </SelectContent>
-                                    </Select>
+                                            />
+                                        </FieldLabel>
+                                    </Field>
+                                    <Field>
+                                        <FieldLabel htmlFor="inclusiveOr" className="bg-[unset]!">
+                                            Match Any Tag
+                                            <Switch
+                                                id="inclusiveOr"
+                                                name="inclusiveOr"
+                                                checked={searchOptions.inclusiveOr}
+                                                onCheckedChange={(checked) =>
+                                                    onSearchOptionsChange({
+                                                        inclusiveOr: checked
+                                                    })
+                                                }
+                                            />
+                                        </FieldLabel>
+                                    </Field>
                                 </div>
-                                <div className="mt-4 flex items-center gap-2">
-                                    <Label htmlFor="nsfw">
-                                        NSFW
-                                        <Switch
-                                            id="nsfw"
-                                            name="nsfw"
-                                            checked={searchOptions.nsfw}
-                                            onCheckedChange={(checked) =>
-                                                onSearchOptionsChange({
-                                                    nsfw: checked
-                                                })
-                                            }
-                                        />
-                                    </Label>
-                                    <Label htmlFor="inclusiveOr">
-                                        Match Any Tag
-                                        <Switch
-                                            id="inclusiveOr"
-                                            name="inclusiveOr"
-                                            checked={searchOptions.inclusiveOr}
-                                            onCheckedChange={(checked) =>
-                                                onSearchOptionsChange({
-                                                    inclusiveOr: checked
-                                                })
-                                            }
-                                        />
-                                    </Label>
-                                </div>
-                            </div>
+                            </FieldGroup>
                         </CollapsibleContent>
                     </Collapsible>
                 </form>

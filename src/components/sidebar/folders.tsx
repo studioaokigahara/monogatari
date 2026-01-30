@@ -40,14 +40,10 @@ export function NavFolders({
                 }
             />
             <DropdownMenu>
-                <DropdownMenuTrigger
-                    render={
-                        <SidebarMenuAction showOnHover>
-                            <MoreHorizontal />
-                            <span className="sr-only">More</span>
-                        </SidebarMenuAction>
-                    }
-                />
+                <DropdownMenuTrigger render={<SidebarMenuAction showOnHover />}>
+                    <MoreHorizontal />
+                    <span className="sr-only">More</span>
+                </DropdownMenuTrigger>
                 <DropdownMenuContent
                     className="w-48 rounded-lg"
                     side={isMobile ? "bottom" : "right"}

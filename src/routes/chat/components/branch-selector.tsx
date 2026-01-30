@@ -38,13 +38,14 @@ export function BranchSelector({ message, editing, className }: Props) {
         <ButtonGroup
             aria-label="Branch Selector"
             className={cn(
-                "h-9 transition-[width,margin,opacity] will-change-[width,margin,opacity]",
+                "transition-[width,margin,opacity] will-change-[width,margin,opacity]",
                 siblings.total <= 1 &&
                     "pointer-events-none -ml-2 opacity-0 group-data-[role=assistant]:w-0"
             )}
         >
             <Tooltip>
                 <TooltipTrigger
+                    onClick={selectPreviousBranch}
                     render={
                         <Button
                             aria-label="Previous Branch"
@@ -52,12 +53,11 @@ export function BranchSelector({ message, editing, className }: Props) {
                             variant="ghost"
                             disabled={status !== "ready"}
                             className={cn("peer", className)}
-                            onClick={selectPreviousBranch}
-                        >
-                            <ChevronLeft />
-                        </Button>
+                        />
                     }
-                />
+                >
+                    <ChevronLeft />
+                </TooltipTrigger>
                 <TooltipContent side="bottom">Previous Branch</TooltipContent>
             </Tooltip>
             <ButtonGroupText
@@ -67,6 +67,7 @@ export function BranchSelector({ message, editing, className }: Props) {
             </ButtonGroupText>
             <Tooltip>
                 <TooltipTrigger
+                    onClick={selectNextBranch}
                     render={
                         <Button
                             aria-label="Next Branch"
@@ -74,12 +75,11 @@ export function BranchSelector({ message, editing, className }: Props) {
                             variant="ghost"
                             disabled={status !== "ready"}
                             className={className}
-                            onClick={selectNextBranch}
-                        >
-                            <ChevronRight />
-                        </Button>
+                        />
                     }
-                />
+                >
+                    <ChevronRight />
+                </TooltipTrigger>
                 <TooltipContent side="bottom">Next Branch</TooltipContent>
             </Tooltip>
         </ButtonGroup>

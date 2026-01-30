@@ -99,11 +99,11 @@ export function CharacterArchiveSearch({ query, updateQuery, resetQuery }: Props
                                             aria-label="Toggle Search Options"
                                             variant="outline"
                                             size="icon"
-                                        >
-                                            <FunnelPlus />
-                                        </Button>
+                                        />
                                     }
-                                />
+                                >
+                                    <FunnelPlus />
+                                </CollapsibleTrigger>
                             </ButtonGroup>
                         </ButtonGroup>
                         <CollapsibleContent

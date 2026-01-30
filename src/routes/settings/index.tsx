@@ -4,7 +4,6 @@ import Header from "@/components/header";
 import Password from "@/components/password-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Label } from "@/components/ui/label";
 import { db } from "@/database/monogatari-db";
 import { useSettings } from "@/hooks/use-settings";
 import { SelectExploreRepo } from "@/routes/settings/components/api/select-provider";
@@ -312,10 +311,7 @@ function GeneralSettings() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="space-y-1">
-                            <Label htmlFor="select-repo">Default Character Repo</Label>
-                            <SelectExploreRepo />
-                        </div>
+                        <SelectExploreRepo />
                         <Password
                             label="Character Hub API Key"
                             tooltip={chubTooltip}

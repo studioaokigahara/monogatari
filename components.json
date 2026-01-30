@@ -7,7 +7,7 @@
     "cssVariables": true,
     "prefix": ""
   },
-  "style": "new-york",
+  "style": "base-nova",
   "tsx": true,
   "rsc": false,
   "iconLibrary": "lucide",

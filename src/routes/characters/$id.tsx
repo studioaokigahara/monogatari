@@ -135,26 +135,26 @@ function CharacterProfile({ character }: { character: Character }) {
                     <DialogTrigger
                         nativeButton={false}
                         render={
-                            <Avatar className="h-64 w-auto overflow-visible rounded-xl after:rounded-xl">
-                                <AvatarImage
-                                    src={portraitURL}
-                                    className={cn(
-                                        "absolute -z-1 blur-3xl saturate-200",
-                                        editing && "self-center"
-                                    )}
-                                />
-                                <AvatarImage
-                                    src={portraitURL}
-                                    alt={character.data.name}
-                                    className={cn(
-                                        "aspect-[unset] cursor-pointer rounded-xl object-cover",
-                                        editing && "self-center"
-                                    )}
-                                />
-                                <AvatarFallback className="aspect-2/3 animate-pulse rounded-xl" />
-                            </Avatar>
+                            <Avatar className="h-64 w-auto cursor-pointer overflow-visible rounded-xl after:rounded-xl" />
                         }
-                    />
+                    >
+                        <AvatarImage
+                            src={portraitURL}
+                            className={cn(
+                                "absolute -z-1 blur-3xl saturate-200",
+                                editing && "self-center"
+                            )}
+                        />
+                        <AvatarImage
+                            src={portraitURL}
+                            alt={character.data.name}
+                            className={cn(
+                                "aspect-[unset] rounded-xl object-cover",
+                                editing && "self-center"
+                            )}
+                        />
+                        <AvatarFallback className="aspect-2/3 animate-pulse rounded-xl" />
+                    </DialogTrigger>
                     <DialogContent className="w-max sm:max-w-[80dvw]">
                         <DialogHeader className="sr-only">
                             <DialogTitle>Main Character Image</DialogTitle>

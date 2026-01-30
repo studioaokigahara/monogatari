@@ -70,12 +70,12 @@ function GalleryScanner({ character }: { character: Character }) {
         <>
             <AlertDialog open={open} onOpenChange={setOpen}>
                 <AlertDialogTrigger
-                    render={
-                        <Button variant="outline" onClick={() => setOpen(true)}>
-                            <Radar /> Scan for Images
-                        </Button>
-                    }
-                />
+                    onClick={() => setOpen(true)}
+                    render={<Button variant="outline" />}
+                >
+                    <Radar />
+                    Scan for Images
+                </AlertDialogTrigger>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Download Images?</AlertDialogTitle>
@@ -221,6 +221,7 @@ export default function Gallery({ character }: { character: Character }) {
                     {asset.ext}
                 </DialogDescription>
                 <DialogTrigger
+                    nativeButton={false}
                     render={
                         <img
                             src={imageURLs[index]}

@@ -123,22 +123,22 @@ export function PersonaSwitcher() {
                             <SidebarMenuButton
                                 size="lg"
                                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                            >
-                                <Avatar className="size-8">
-                                    <AvatarImage
-                                        src={activeImageURL}
-                                        alt={persona.name}
-                                        className="object-cover"
-                                    />
-                                    <AvatarFallback>{persona.name.slice(0, 2)}</AvatarFallback>
-                                </Avatar>
-                                <div className="grid flex-1 text-left text-sm leading-tight">
-                                    <span className="truncate font-medium">{persona.name}</span>
-                                </div>
-                                <ChevronsUpDown className="ml-auto" />
-                            </SidebarMenuButton>
+                            />
                         }
-                    />
+                    >
+                        <Avatar className="size-8">
+                            <AvatarImage
+                                src={activeImageURL}
+                                alt={persona.name}
+                                className="object-cover"
+                            />
+                            <AvatarFallback>{persona.name.slice(0, 2)}</AvatarFallback>
+                        </Avatar>
+                        <div className="grid flex-1 text-left text-sm leading-tight">
+                            <span className="truncate font-medium">{persona.name}</span>
+                        </div>
+                        <ChevronsUpDown className="ml-auto" />
+                    </DropdownMenuTrigger>
                     <DropdownMenuContent
                         className="min-w-56 rounded-lg"
                         align="start"

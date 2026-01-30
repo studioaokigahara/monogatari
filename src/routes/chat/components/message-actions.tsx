@@ -25,18 +25,13 @@ function MessageButton({ Icon, tooltip, onClick, disabled, className }: MessageB
     return (
         <Tooltip>
             <TooltipTrigger
+                onClick={onClick}
                 render={
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        disabled={disabled}
-                        className={className}
-                        onClick={onClick}
-                    >
-                        <Icon />
-                    </Button>
+                    <Button size="icon" variant="ghost" disabled={disabled} className={className} />
                 }
-            />
+            >
+                <Icon />
+            </TooltipTrigger>
             <TooltipContent side="bottom">{tooltip}</TooltipContent>
         </Tooltip>
     );

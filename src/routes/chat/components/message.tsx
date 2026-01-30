@@ -96,7 +96,7 @@ export function Message({ message, index, streaming, showTypingIndicator }: Mess
             <ButtonGroup
                 aria-label="Message Buttons"
                 className={cn(
-                    "my-2 flex min-h-9 items-center group-data-[role=user]:justify-self-end",
+                    "my-2 flex min-h-8 items-center group-data-[role=user]:justify-self-end",
                     !editing &&
                         "opacity-0 transition-opacity will-change-[opacity] group-hover:opacity-100"
                 )}

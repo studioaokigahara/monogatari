@@ -8,12 +8,12 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { Anthropic } from "@/components/ui/icon/anthropic";
 import { DeepSeek } from "@/components/ui/icon/deepseek";
 import { Google } from "@/components/ui/icon/google";
 import { OpenAI } from "@/components/ui/icon/openai";
 import { OpenRouter } from "@/components/ui/icon/openrouter";
-import { Label } from "@/components/ui/label";
 import {
     Select,
     SelectContent,
@@ -179,8 +179,8 @@ export default function SelectModel() {
             <CardContent className="space-y-6">
                 <div className="space-y-4">
                     <div className="flex flex-col gap-4 sm:flex-row">
-                        <div className="flex flex-col gap-1">
-                            <Label htmlFor="provider">Provider</Label>
+                        <Field>
+                            <FieldLabel htmlFor="provider">Provider</FieldLabel>
                             <Select
                                 value={settings.provider}
                                 onValueChange={(provider) => {
@@ -208,11 +208,10 @@ export default function SelectModel() {
                                     <SelectGroup>{selectProvider}</SelectGroup>
                                 </SelectContent>
                             </Select>
-                        </div>
-
+                        </Field>
                         {settings.provider && (
-                            <div className="flex flex-col gap-1">
-                                <Label htmlFor="model">Model</Label>
+                            <Field>
+                                <FieldLabel htmlFor="model">Model</FieldLabel>
                                 <Select
                                     open={open}
                                     onOpenChange={(open) => setOpen(open)}
@@ -239,7 +238,7 @@ export default function SelectModel() {
                                         </SelectContent>
                                     )}
                                 </Select>
-                            </div>
+                            </Field>
                         )}
                     </div>
                     {settings.provider && (

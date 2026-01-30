@@ -130,14 +130,10 @@ export function ExportDatabase() {
 
     return (
         <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger
-                render={
-                    <Button onClick={() => setOpen(true)}>
-                        <HardDriveUpload />
-                        Export
-                    </Button>
-                }
-            />
+            <AlertDialogTrigger onClick={() => setOpen(true)} render={<Button />}>
+                <HardDriveUpload />
+                Export
+            </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>
@@ -250,15 +246,11 @@ export function ImportDatabase() {
 
     return (
         <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger
-                render={
-                    <Button onClick={() => setOpen(true)}>
-                        {input}
-                        <HardDriveDownload />
-                        Import
-                    </Button>
-                }
-            />
+            <AlertDialogTrigger onClick={() => setOpen(true)} render={<Button />}>
+                {input}
+                <HardDriveDownload />
+                Import
+            </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle className="flex items-center">

@@ -116,12 +116,10 @@ export function Header({ character }: { character: Character }) {
                     </Button>
                     <DropdownMenu modal={false}>
                         <DropdownMenuTrigger
-                            render={
-                                <Button type="button" variant="outline" size="icon">
-                                    <MoreVertical className="mr-1" />
-                                </Button>
-                            }
-                        />
+                            render={<Button type="button" variant="outline" size="icon" />}
+                        >
+                            <MoreVertical className="mr-1" />
+                        </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuSub>
                                 <DropdownMenuSubTrigger>

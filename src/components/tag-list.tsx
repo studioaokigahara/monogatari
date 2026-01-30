@@ -144,12 +144,12 @@ export function TagList({
                                         className
                                     )}
                                     {...props}
-                                >
-                                    <MoreHorizontal />
-                                    {hiddenCount} more
-                                </Badge>
+                                />
                             }
-                        />
+                        >
+                            <MoreHorizontal />
+                            {hiddenCount} more
+                        </PopoverTrigger>
                         <PopoverContent className="flex flex-row flex-wrap gap-1">
                             {hiddenTags}
                         </PopoverContent>

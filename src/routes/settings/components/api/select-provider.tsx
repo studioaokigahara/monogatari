@@ -1,3 +1,4 @@
+import { Field, FieldLabel } from "@/components/ui/field";
 import {
     Select,
     SelectContent,
@@ -25,31 +26,35 @@ export function SelectExploreRepo() {
     ));
 
     return (
-        <Select
-            items={ExploreRepos}
-            value={settings.explore.repo}
-            onValueChange={(value) => {
-                updateSettings((settings) => {
-                    settings.explore.repo = value as "chub" | "anchorhold";
-                });
-            }}
-        >
-            <SelectTrigger>
-                <SelectValue placeholder="Select provider...">
-                    {(value) => {
-                        const item = ExploreRepos.find((item) => item.value === value);
-                        return (
-                            <span className="flex items-center gap-1.5">
-                                {item?.icon}
-                                {item?.label}
-                            </span>
-                        );
-                    }}
-                </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-                <SelectGroup>{selectItems}</SelectGroup>
-            </SelectContent>
-        </Select>
+        <Field>
+            <FieldLabel htmlFor="selectExplore">Default Character Repo</FieldLabel>
+            <Select
+                id="selectExplore"
+                items={ExploreRepos}
+                value={settings.explore.repo}
+                onValueChange={(value) => {
+                    updateSettings((settings) => {
+                        settings.explore.repo = value as "chub" | "anchorhold";
+                    });
+                }}
+            >
+                <SelectTrigger>
+                    <SelectValue placeholder="Select provider...">
+                        {(value) => {
+                            const item = ExploreRepos.find((item) => item.value === value);
+                            return (
+                                <span className="flex items-center gap-1.5">
+                                    {item?.icon}
+                                    {item?.label}
+                                </span>
+                            );
+                        }}
+                    </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectGroup>{selectItems}</SelectGroup>
+                </SelectContent>
+            </Select>
+        </Field>
     );
 }

@@ -1,4 +1,6 @@
-import { buttonVariants, type Button } from "@/components/ui/button";
+import * as React from "react";
+
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link, RegisteredRouter, ValidateLinkOptions } from "@tanstack/react-router";
 import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react";
@@ -6,7 +8,6 @@ import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-re
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
     return (
         <nav
-            role="navigation"
             aria-label="pagination"
             data-slot="pagination"
             className={cn("mx-auto flex w-full justify-center", className)}
@@ -19,7 +20,7 @@ function PaginationContent({ className, ...props }: React.ComponentProps<"ul">) 
     return (
         <ul
             data-slot="pagination-content"
-            className={cn("flex flex-row items-center gap-1", className)}
+            className={cn("flex items-center gap-0.5", className)}
             {...props}
         />
     );
@@ -72,10 +73,10 @@ function PaginationPrevious<TRouter extends RegisteredRouter, TOptions, TFrom ex
         <PaginationLink
             aria-label="Go to previous page"
             size="default"
-            className={cn("gap-1 px-2.5 sm:pl-2.5", className)}
-            {...(props as ValidateLinkOptions<TRouter, TOptions, TFrom>)}
+            className={cn("pl-1.5!", className)}
+            {...props}
         >
-            <ChevronLeftIcon />
+            <ChevronLeftIcon data-icon="inline-start" />
             <span className="hidden sm:block">Previous</span>
         </PaginationLink>
     );
@@ -90,11 +91,11 @@ function PaginationNext<TRouter extends RegisteredRouter, TOptions, TFrom extend
         <PaginationLink
             aria-label="Go to next page"
             size="default"
-            className={cn("gap-1 px-2.5 sm:pr-2.5", className)}
-            {...(props as ValidateLinkOptions<TRouter, TOptions, TFrom>)}
+            className={cn("pr-1.5!", className)}
+            {...props}
         >
             <span className="hidden sm:block">Next</span>
-            <ChevronRightIcon />
+            <ChevronRightIcon data-icon="inline-end" />
         </PaginationLink>
     );
 }
@@ -104,10 +105,13 @@ function PaginationEllipsis({ className, ...props }: React.ComponentProps<"span"
         <span
             aria-hidden
             data-slot="pagination-ellipsis"
-            className={cn("flex size-9 items-center justify-center", className)}
+            className={cn(
+                "flex size-8 items-center justify-center [&_svg:not([class*='size-'])]:size-4",
+                className
+            )}
             {...props}
         >
-            <MoreHorizontalIcon className="size-4" />
+            <MoreHorizontalIcon />
             <span className="sr-only">More pages</span>
         </span>
     );

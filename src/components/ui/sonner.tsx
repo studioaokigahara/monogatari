@@ -1,5 +1,5 @@
 import { useThemeContext } from "@/contexts/theme";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
     CircleCheckIcon,
     InfoIcon,
@@ -11,7 +11,7 @@ import { Toaster as Sonner, type ToasterProps } from "sonner";
 
 const Toaster = ({ ...props }: ToasterProps) => {
     const { theme = "system" } = useThemeContext();
-    const isMobile = useMobile();
+    const isMobile = useIsMobile();
 
     return (
         <Sonner

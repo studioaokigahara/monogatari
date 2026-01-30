@@ -270,7 +270,7 @@ export default function CharacterList({
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <DialogClose render={<Button variant="outline">Cancel</Button>} />
+                        <DialogClose render={<Button variant="outline" />}>Close</DialogClose>
                         <Button
                             onClick={() => {
                                 downloadMutation.mutate(selectedCharacter!);
