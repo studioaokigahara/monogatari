@@ -31,7 +31,6 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { BackupSettings, backupSettingsCollection } from "@/database/collections/backup-settings";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { AlarmClock, AlarmClockOff, AlertTriangle, DatabaseBackup } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -62,17 +61,17 @@ export function BackupStatus({ showDialogTrigger = false }: Props) {
         query.from({ backupSettings: backupSettingsCollection }).findOne()
     );
 
-    const { data: storageInfo } = useQuery({
-        queryKey: ["storage"],
-        queryFn: async () => {
-            const estimate = await navigator.storage?.estimate();
-            return {
-                usage: estimate?.usage || 0,
-                quota: estimate?.quota || 0,
-                persisted: await navigator.storage?.persisted()
-            };
-        }
-    });
+    // const { data: storageInfo } = useQuery({
+    //     queryKey: ["storage"],
+    //     queryFn: async () => {
+    //         const estimate = await navigator.storage?.estimate();
+    //         return {
+    //             usage: estimate?.usage || 0,
+    //             quota: estimate?.quota || 0,
+    //             persisted: await navigator.storage?.persisted()
+    //         };
+    //     }
+    // });
 
     useEffect(() => {
         void navigator.storage.persist().then((persisted) => {
@@ -119,7 +118,7 @@ export function BackupStatus({ showDialogTrigger = false }: Props) {
 
     const handleSnooze = () => {
         backupSettingsCollection.update("backup-settings", (draft) => {
-            draft.snoozeUntil = Date.now() * INTERVALS.daily;
+            draft.snoozeUntil = Date.now() + INTERVALS.daily;
         });
         toast.info("Reminder Snoozed", {
             description: "We'll remind you again tomorrow"
