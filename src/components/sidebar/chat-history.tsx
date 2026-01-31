@@ -119,7 +119,7 @@ function ChatHistoryItem({ chat, isActive }: ChatHistoryItem) {
         downloadFile(file);
     };
 
-    const title = chat.title ?? format(chat.updatedAt, "MMM d, HH:mm");
+    const title = chat.title ?? format(chat.createdAt, "MMM d, HH:mm");
 
     return (
         <SidebarMenuItem>
