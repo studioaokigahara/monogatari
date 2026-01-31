@@ -13,6 +13,7 @@ import { useCharacterContext } from "@/contexts/character";
 import { db } from "@/database/monogatari-db";
 import { useImageURL } from "@/hooks/use-image-url";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { format } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
     BookMarked,
@@ -113,6 +114,31 @@ export function CommandMenu() {
         </CommandItem>
     ));
 
+    const chats = useLiveQuery(() => db.chats.orderBy("updatedAt").toArray(), []);
+    const chatItems = chats?.map((chat) => {
+        const avatar = (characterImages as string[]).find((url) =>
+            url.includes(chat.characterIDs[0])
+        );
+        const title = chat.title ?? format(chat.createdAt, "MMM d, HH:mm");
+        return (
+            <Link key={chat.id} to="/chat/$id" params={{ id: chat.id }}>
+                <CommandItem
+                    onSelect={() => {
+                        void navigate({ to: "/chat/$id", params: { id: chat.id } });
+                        setOpen(false);
+                    }}
+                    className="cursor-pointer"
+                >
+                    <Avatar>
+                        <AvatarImage src={avatar} alt={title} className="object-cover" />
+                        <AvatarFallback>{title.slice(0, 2)}</AvatarFallback>
+                    </Avatar>
+                    {title}
+                </CommandItem>
+            </Link>
+        );
+    });
+
     return (
         <CommandDialog open={open} onOpenChange={setOpen} className="sm:max-w-md">
             <CommandInput placeholder="Search..." />
@@ -159,6 +185,8 @@ export function CommandMenu() {
                 <CommandGroup heading="Characters">{characterItems}</CommandGroup>
                 <CommandSeparator />
                 <CommandGroup heading="Personas">{personaItems}</CommandGroup>
+                <CommandSeparator />
+                <CommandGroup heading="Chats">{chatItems}</CommandGroup>
             </CommandList>
         </CommandDialog>
     );
