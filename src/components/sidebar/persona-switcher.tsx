@@ -36,10 +36,8 @@ export function PersonaSwitcher() {
     );
 
     useEffect(() => {
-        if (personas.length > 0) {
-            if (!persona || !personas.find((p) => p.id === persona.id)) {
-                setPersona(personas[0]);
-            }
+        if (personas.length > 0 && (!persona || !personas.find((p) => p.id === persona.id))) {
+            setPersona(personas[0]);
         }
     }, [personas, persona, setPersona]);
 
@@ -48,23 +46,27 @@ export function PersonaSwitcher() {
         activeIndex !== -1 && Array.isArray(imageURLs) ? imageURLs[activeIndex] : "";
 
     useEffect(() => {
-        const down = (e: KeyboardEvent) => {
+        const down = (event: KeyboardEvent) => {
             if (!open) return;
-            if (e.metaKey && /^([0-9])$/.test(e.key)) {
-                let index = parseInt(e.key, 10) - 1;
-                if (e.key === "0") index = 9;
+
+            if (event.metaKey && /^([0-9])$/.test(event.key)) {
+                let index = parseInt(event.key, 10) - 1;
+                if (event.key === "0") index = 9;
                 if (index >= 0 && index < personas.length) {
-                    e.preventDefault();
+                    event.preventDefault();
                     setPersona(personas[index]);
                     setOpen(false);
                 }
             }
-            if (e.key === "Escape") {
-                e.preventDefault();
+
+            if (event.key === "Escape") {
+                event.preventDefault();
                 setOpen(false);
             }
         };
+
         document.addEventListener("keydown", down);
+
         return () => document.removeEventListener("keydown", down);
     }, [open, personas, setPersona]);
 
