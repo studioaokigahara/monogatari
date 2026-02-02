@@ -40,6 +40,7 @@ type PaginationLinkProps<
     ValidateLinkOptions<TRouter, TOptions, TFrom>;
 
 function PaginationLink<TRouter extends RegisteredRouter, TOptions, TFrom extends string>({
+    children,
     className,
     isActive,
     size = "icon",
@@ -51,6 +52,7 @@ function PaginationLink<TRouter extends RegisteredRouter, TOptions, TFrom extend
             aria-current={isActive ? "page" : undefined}
             data-slot="pagination-link"
             data-active={isActive}
+            disabled={disabled}
             className={cn(
                 buttonVariants({
                     variant: isActive ? "outline" : "ghost",
@@ -60,7 +62,9 @@ function PaginationLink<TRouter extends RegisteredRouter, TOptions, TFrom extend
                 className
             )}
             {...(props as ValidateLinkOptions<TRouter, TOptions, TFrom>)}
-        />
+        >
+            {children}
+        </Link>
     );
 }
 
