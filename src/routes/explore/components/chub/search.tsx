@@ -43,14 +43,14 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-const namespaceOptions = [
+const NAMESPACE_OPTIONS = [
     { label: "Characters", icon: <User />, value: "characters" },
     { label: "Lorebooks", icon: <BookOpenText />, value: "lorebooks" }
 ];
 
-const itemsPerPageOptions = [8, 16, 24, 32, 40, 48, 64];
+const ITEMS_PER_PAGE_OPTIONS = [8, 16, 24, 32, 40, 48, 64];
 
-const sortOptions = [
+const SORT_OPTIONS = [
     {
         label: "Trending",
         icon: <TrendingUp />,
@@ -122,21 +122,21 @@ export default function Search({
         onReset();
     };
 
-    const selectNamespace = namespaceOptions.map((option) => (
-        <SelectItem key={option.value} value={option.value}>
+    const selectNamespace = NAMESPACE_OPTIONS.map((option) => (
+        <SelectItem key={option.value} value={option}>
             {option.icon}
             {option.label}
         </SelectItem>
     ));
 
-    const selectItemsPerPage = itemsPerPageOptions.map((number) => (
+    const selectItemsPerPage = ITEMS_PER_PAGE_OPTIONS.map((number) => (
         <SelectItem key={number} value={String(number)}>
             {number}
         </SelectItem>
     ));
 
-    const selectSort = sortOptions.map((option) => (
-        <SelectItem key={option.value} value={option.value}>
+    const selectSort = SORT_OPTIONS.map((option) => (
+        <SelectItem key={option.value} value={option}>
             {option.icon}
             {option.label}
         </SelectItem>
@@ -238,7 +238,6 @@ export default function Search({
                                         <Select
                                             name="namespace"
                                             defaultValue="characters"
-                                            items={namespaceOptions}
                                             value={searchOptions.namespace}
                                             onValueChange={(value) => {
                                                 handleSelect("namespace", value as string);
@@ -247,7 +246,7 @@ export default function Search({
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select namespace">
                                                     {(value) => {
-                                                        const item = namespaceOptions.find(
+                                                        const item = NAMESPACE_OPTIONS.find(
                                                             (option) => option.value === value
                                                         );
                                                         return (
@@ -287,7 +286,6 @@ export default function Search({
                                         <FieldLabel htmlFor="sort">Sort By</FieldLabel>
                                         <Select
                                             name="sort"
-                                            items={sortOptions}
                                             value={searchOptions.sort}
                                             onValueChange={(value) => {
                                                 handleSelect("sort", value as string);
@@ -296,7 +294,7 @@ export default function Search({
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Sort by">
                                                     {(value) => {
-                                                        const item = sortOptions.find(
+                                                        const item = SORT_OPTIONS.find(
                                                             (option) => option.value === value
                                                         );
                                                         return (
