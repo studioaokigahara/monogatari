@@ -114,7 +114,7 @@ export function CommandMenu() {
         </CommandItem>
     ));
 
-    const chats = useLiveQuery(() => db.chats.orderBy("updatedAt").toArray(), []);
+    const chats = useLiveQuery(() => db.chats.orderBy("updatedAt").reverse().toArray(), []);
     const chatItems = chats?.map((chat) => {
         const avatar = (characterImages as string[]).find((url) =>
             url.includes(chat.characterIDs[0])
