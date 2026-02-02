@@ -7,7 +7,8 @@ export const settingsCollection = createCollection(
         id: "settings",
         storageKey: "settings",
         getKey: () => "settings",
-        schema: Settings
+        schema: Settings,
+        startSync: true
     })
 );
 

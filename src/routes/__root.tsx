@@ -4,7 +4,6 @@ import { ThemeProvider } from "@/components/providers/theme";
 import { AppSidebar } from "@/components/sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
-import { settingsCollection } from "@/database/collections/settings";
 import { db } from "@/database/monogatari-db";
 import { Context } from "@/router";
 import { HeadContent, Outlet, createRootRouteWithContext, redirect } from "@tanstack/react-router";
@@ -42,8 +41,5 @@ export const Route = createRootRouteWithContext<Context>()({
         }
         return { breadcrumb: "Home" };
     },
-    loader: async () => {
-        await settingsCollection.preload();
-        return db.personas.toArray();
-    }
+    loader: () => db.personas.toArray()
 });
