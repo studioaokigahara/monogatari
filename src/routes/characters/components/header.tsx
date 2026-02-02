@@ -59,7 +59,9 @@ export function Header({ character }: { character: Character }) {
     };
 
     const deleteCharacter = async () => {
-        void navigate({ to: "/characters" });
+        // await navigation to ensure we're on the index before deletion
+        // otherwise error might flash
+        await navigate({ to: "/characters" });
         await character.delete();
         toast.success(`${character.data.name} deleted successfully.`);
     };
