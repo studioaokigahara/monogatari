@@ -39,7 +39,7 @@ import {
     FileVideo,
     FileVolume2
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 
 function formatNumber(number: number) {
     if (isNaN(number)) return "?";
@@ -92,8 +92,6 @@ const getApiKeyPlaceholder = (provider: Settings["provider"]) => {
 
 export default function SelectModel() {
     const { settings, updateSettings } = useSettings();
-
-    const [open, setOpen] = useState(false);
 
     const P = settings.provider as Settings["provider"];
     const fallback =
@@ -213,8 +211,6 @@ export default function SelectModel() {
                             <Field>
                                 <FieldLabel htmlFor="model">Model</FieldLabel>
                                 <Select
-                                    open={open}
-                                    onOpenChange={(open) => setOpen(open)}
                                     disabled={!settings.provider}
                                     value={settings.models[P] as string}
                                     onValueChange={(model) => {
@@ -228,15 +224,13 @@ export default function SelectModel() {
                                             {(settings.models[P] as string) || "Select a model..."}
                                         </span>
                                     </SelectTrigger>
-                                    {open && (
-                                        <SelectContent>
-                                            <SelectGroup>
-                                                {settings.provider === "openrouter"
-                                                    ? selectModelOpenRouter
-                                                    : selectModel}
-                                            </SelectGroup>
-                                        </SelectContent>
-                                    )}
+                                    <SelectContent>
+                                        <SelectGroup>
+                                            {settings.provider === "openrouter"
+                                                ? selectModelOpenRouter
+                                                : selectModel}
+                                        </SelectGroup>
+                                    </SelectContent>
                                 </Select>
                             </Field>
                         )}
@@ -276,7 +270,7 @@ export default function SelectModel() {
                                 <div className="space-y-1">
                                     <p className="text-sm font-medium">Knowledge Cutoff</p>
                                     <p className="text-2xl font-bold">
-                                        {format(currentModel.knowledgeCutoff, "LLL YYYY")}
+                                        {format(currentModel.knowledgeCutoff, "LLL y")}
                                     </p>
                                 </div>
                             )}
