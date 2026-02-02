@@ -18,8 +18,12 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
+import {
+    searchCollectionKey,
+    searchSettingsCollection
+} from "@/database/collections/character-search";
 import { usePaginationRange } from "@/hooks/use-pagination-range";
-import { characterSearchSchema, countCharacters } from "@/lib/character/search";
+import { CharacterSearch, countCharacters } from "@/lib/character/search";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { debounce } from "es-toolkit";
@@ -32,12 +36,11 @@ import {
     ClockArrowUp,
     Dices,
     Hash,
-    InfinityIcon,
     SearchIcon
 } from "lucide-react";
 import { useState } from "react";
 
-const sortOptions = [
+const SORT_OPTIONS = [
     { label: "A-Z", icon: <ArrowDownAZ />, value: "a-z" },
     { label: "Z-A", icon: <ArrowUpAZ />, value: "z-a" },
     { label: "Newest", icon: <CalendarArrowUp />, value: "newest" },
@@ -59,7 +62,7 @@ const sortOptions = [
     { label: "Random", icon: <Dices />, value: "random" }
 ];
 
-const limitOptions = [12, 24, 36, 48, 60, 1536];
+const LIMIT_OPTIONS = [12, 24, 36, 48, 60, 1536];
 
 export function Search() {
     const { page, sort, limit, search } = useSearch({ from: "/characters/" });
@@ -67,15 +70,21 @@ export function Search() {
     const characterCount = useLiveQuery(() => countCharacters(search), [search], 0);
     const totalPages = Math.max(1, Math.ceil(characterCount / limit));
 
-    const changeSort = (value: string) => {
+    const changeSort = (value: CharacterSearch["sort"]) => {
+        searchSettingsCollection.update(searchCollectionKey, (settings) => {
+            settings.sort = value;
+        });
         void navigate({
-            search: () => ({ sort: value as characterSearchSchema["sort"] })
+            search: (prev) => ({ ...prev, sort: value })
         });
     };
 
-    const changeLimit = (value: string) => {
+    const changeLimit = (value: number) => {
+        searchSettingsCollection.update(searchCollectionKey, (settings) => {
+            settings.limit = value;
+        });
         void navigate({
-            search: () => ({ limit: Number(value) })
+            search: (prev) => ({ ...prev, limit: value })
         });
     };
 
@@ -83,7 +92,7 @@ export function Search() {
 
     const debouncedSearch = debounce((value: string) => {
         void navigate({
-            search: () => ({ search: value.trim() })
+            search: (prev) => ({ ...prev, search: value.trim() })
         });
     }, 250);
 
@@ -93,26 +102,17 @@ export function Search() {
         debouncedSearch(value);
     };
 
-    const sortItems = sortOptions.map((option) => (
-        <SelectItem key={option.value} value={option}>
+    const sortItems = SORT_OPTIONS.map((option) => (
+        <SelectItem key={option.value} value={option.value}>
             {option.icon}
             {option.label}
         </SelectItem>
     ));
 
-    const limitItems = limitOptions.map((option) => (
+    const limitItems = LIMIT_OPTIONS.map((option) => (
         <SelectItem key={option} value={String(option)}>
-            {option === 1536 ? (
-                <>
-                    <InfinityIcon />
-                    All
-                </>
-            ) : (
-                <>
-                    <Hash />
-                    {String(option)}
-                </>
-            )}
+            <Hash />
+            {String(option)}
         </SelectItem>
     ));
 
@@ -138,14 +138,15 @@ export function Search() {
                 <CardContent className="flex flex-col gap-2">
                     <ButtonGroup className="w-full">
                         <Select
-                            items={sortOptions}
                             value={sort}
-                            onValueChange={(value) => changeSort(value as string)}
+                            onValueChange={(value) => {
+                                changeSort(value as CharacterSearch["sort"]);
+                            }}
                         >
                             <SelectTrigger>
                                 <SelectValue placeholder="Sort By...">
-                                    {(value) => {
-                                        const item = sortOptions.find(
+                                    {(value: string) => {
+                                        const item = SORT_OPTIONS.find(
                                             (option) => option.value === value
                                         );
                                         return (
@@ -163,23 +164,16 @@ export function Search() {
                         </Select>
                         <Select
                             value={String(limit)}
-                            onValueChange={(value) => changeLimit(value as string)}
+                            onValueChange={(value) => changeLimit(Number(value))}
                         >
                             <SelectTrigger>
                                 <SelectValue placeholder="Cards per page...">
-                                    {(value) =>
-                                        Number(value) === 1536 ? (
-                                            <span className="flex items-center gap-1.5">
-                                                <InfinityIcon />
-                                                All
-                                            </span>
-                                        ) : (
-                                            <span className="flex items-center gap-1.5">
-                                                <Hash />
-                                                {value}
-                                            </span>
-                                        )
-                                    }
+                                    {(value) => (
+                                        <span className="flex items-center gap-1.5">
+                                            <Hash />
+                                            {value}
+                                        </span>
+                                    )}
                                 </SelectValue>
                             </SelectTrigger>
                             <SelectContent>

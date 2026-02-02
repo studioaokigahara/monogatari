@@ -1,15 +1,15 @@
+import { CharacterSearchSettings } from "@/database/collections/character-search";
 import { db } from "@/database/monogatari-db";
 import { Character } from "@/database/schema/character";
 import { shuffle } from "es-toolkit";
 import z from "zod";
 
-export const characterSearchSchema = z.object({
+export const CharacterSearch = z.object({
+    ...CharacterSearchSettings.shape,
     search: z.string().default(""),
-    page: z.number().min(1).default(1),
-    limit: z.number().multipleOf(12).default(24),
-    sort: z.enum(["a-z", "z-a", "newest", "oldest", "recent", "stale", "random"]).default("a-z")
+    page: z.number().min(1).default(1)
 });
-export type characterSearchSchema = z.infer<typeof characterSearchSchema>;
+export type CharacterSearch = z.infer<typeof CharacterSearch>;
 
 const MAX_CACHE_SIZE = 64;
 const KeyCache = new Map<string, string[]>();
@@ -41,7 +41,7 @@ function installDatabaseHooks() {
     db.characters.hook("deleting", invalidate);
 }
 
-function getSortedCollection(sort: characterSearchSchema["sort"]) {
+function getSortedCollection(sort: CharacterSearch["sort"]) {
     switch (sort) {
         case "a-z":
             return db.characters.orderBy("data.name");
@@ -66,7 +66,7 @@ function getSearchCollection(query: string) {
     return db.characters.where("data.name").startsWithIgnoreCase(query);
 }
 
-async function getCharacterKeys(sort: characterSearchSchema["sort"], query?: string) {
+async function getCharacterKeys(sort: CharacterSearch["sort"], query?: string) {
     installDatabaseHooks();
 
     const normalizedQuery = query?.toLowerCase().trim() ?? "";
@@ -123,7 +123,7 @@ async function getCharacterKeys(sort: characterSearchSchema["sort"], query?: str
 export async function listCharacters(
     page: number,
     limit: number,
-    sort: characterSearchSchema["sort"] = "a-z",
+    sort: CharacterSearch["sort"] = "a-z",
     query?: string
 ) {
     const keys = await getCharacterKeys(sort, query);

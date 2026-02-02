@@ -4,12 +4,16 @@ import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { ItemGroup } from "@/components/ui/item";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+    searchCollectionKey,
+    searchSettingsCollection
+} from "@/database/collections/character-search";
 import { db } from "@/database/monogatari-db";
 import { Character } from "@/database/schema/character";
 import { useFileDialog } from "@/hooks/use-file-dialog";
 import { useImageURL } from "@/hooks/use-image-url";
 import { importCharacterFile } from "@/lib/character/io";
-import { characterSearchSchema, listCharacters } from "@/lib/character/search";
+import { CharacterSearch, listCharacters } from "@/lib/character/search";
 import { cn } from "@/lib/utils";
 import CharacterItem from "@/routes/characters/components/item";
 import { Search } from "@/routes/characters/components/search";
@@ -203,7 +207,13 @@ function Characters() {
 
 export const Route = createFileRoute("/characters/")({
     component: Characters,
-    validateSearch: characterSearchSchema,
+    validateSearch: (search) => {
+        const defaults = searchSettingsCollection.get(searchCollectionKey)!;
+        return CharacterSearch.parse({
+            ...defaults,
+            ...search
+        });
+    },
     beforeLoad: () => ({
         breadcrumb: null
     }),
