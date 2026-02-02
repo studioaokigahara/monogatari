@@ -10,7 +10,7 @@ import {
 import { useSettings } from "@/hooks/use-settings";
 import { Anchor, Eye } from "lucide-react";
 
-const ExploreRepos = [
+const EXPLORE_REPOS = [
     { value: "chub", icon: <Eye />, label: "Character Hub" },
     { value: "anchorhold", icon: <Anchor />, label: "Anchorhold" }
 ];
@@ -18,8 +18,8 @@ const ExploreRepos = [
 export function SelectExploreRepo() {
     const { settings, updateSettings } = useSettings();
 
-    const selectItems = ExploreRepos.map((provider) => (
-        <SelectItem key={provider.value} value={provider.value}>
+    const selectItems = EXPLORE_REPOS.map((provider) => (
+        <SelectItem key={provider.value} value={provider}>
             {provider.icon}
             {provider.label}
         </SelectItem>
@@ -30,7 +30,6 @@ export function SelectExploreRepo() {
             <FieldLabel htmlFor="selectExplore">Default Character Repo</FieldLabel>
             <Select
                 id="selectExplore"
-                items={ExploreRepos}
                 value={settings.explore.repo}
                 onValueChange={(value) => {
                     updateSettings((settings) => {
@@ -41,7 +40,7 @@ export function SelectExploreRepo() {
                 <SelectTrigger>
                     <SelectValue placeholder="Select provider...">
                         {(value) => {
-                            const item = ExploreRepos.find((item) => item.value === value);
+                            const item = EXPLORE_REPOS.find((item) => item.value === value);
                             return (
                                 <span className="flex items-center gap-1.5">
                                     {item?.icon}
