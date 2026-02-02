@@ -134,8 +134,7 @@ export function BackupStatus({ showDialogTrigger = false }: Props) {
         });
     };
 
-    const handleIntervalChange = (interval: BackupSettings["interval"] | null) => {
-        if (interval === null) return;
+    const handleIntervalChange = (interval: BackupSettings["interval"]) => {
         backupSettingsCollection.update("backup-settings", (draft) => {
             draft.interval = interval;
         });
@@ -214,7 +213,12 @@ export function BackupStatus({ showDialogTrigger = false }: Props) {
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="justify-around!">
-                        <Select value={settings?.interval} onValueChange={handleIntervalChange}>
+                        <Select
+                            value={settings?.interval}
+                            onValueChange={(value) => {
+                                handleIntervalChange(value as keyof typeof INTERVALS);
+                            }}
+                        >
                             <SelectTrigger>
                                 <SelectValue placeholder="Backup every...">
                                     {(value) => {
