@@ -119,6 +119,28 @@
   body {
     @apply bg-background text-foreground;
   }
+  .cm-editor {
+    --pm-link-color: var(--tw-prose-links);
+    --pm-muted-color: var(--tw-prose-counters);
+    --pm-header-mark-color: var(--tw-prose-counters);
+    --pm-blockquote-vertical-line-background-color: var(
+      --tw-prose-quote-borders
+    );
+    --pm-code-background-color: var(--tw-prose-pre-bg);
+    --pm-body-color: var(--tw-prose-body);
+    --pm-heading-color: var(--tw-prose-headings);
+    --pm-lead-color: var(--tw-prose-lead);
+    --pm-bold-color: var(--tw-prose-bold);
+    --pm-blockquote-color: var(--tw-prose-quotes);
+    --pm-code-color: var(--tw-prose-code);
+    --pm-code-block-color: var(--tw-prose-pre-code);
+    --pm-hr-color: var(--tw-prose-hr);
+    --pm-kbd-color: var(--tw-prose-kbd);
+    --pm-kbd-shadow-color: var(--tw-prose-kbd-shadows);
+    --pm-table-th-border-color: var(--tw-prose-th-borders);
+    --pm-table-td-border-color: var(--tw-prose-td-borders);
+    --pm-cursor-color: unset;
+  }
 }
 
 @theme {

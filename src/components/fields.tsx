@@ -1,4 +1,5 @@
 import { ComboboxMultiple } from "@/components/combobox-multiple";
+import { MarkdownEditor } from "@/components/markdown-editor";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -202,6 +203,30 @@ export function SelectField({ items, label, placeholder }: SelectFieldProps) {
                     <SelectGroup>{selectItems}</SelectGroup>
                 </SelectContent>
             </Select>
+            {invalid && <FieldError errors={field.state.meta.errors} />}
+        </Field>
+    );
+}
+
+interface MarkdownEditorFieldProps {
+    label?: string;
+    placeholder?: string;
+}
+
+export function MarkdownEditorField({ label, placeholder }: MarkdownEditorFieldProps) {
+    const field = useFieldContext<string>();
+    const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
+
+    return (
+        <Field>
+            {label && <FieldLabel htmlFor={field.name}>{label}</FieldLabel>}
+            <MarkdownEditor
+                id={field.name}
+                value={field.state.value}
+                placeholder={placeholder}
+                onBlur={field.handleBlur}
+                onChange={field.handleChange}
+            />
             {invalid && <FieldError errors={field.state.meta.errors} />}
         </Field>
     );

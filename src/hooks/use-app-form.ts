@@ -1,6 +1,7 @@
 import {
     ComboboxField,
     InputField,
+    MarkdownEditorField,
     SelectField,
     SwitchField,
     TextareaField
@@ -16,7 +17,8 @@ export const { useAppForm, withForm } = createFormHook({
         TextareaField,
         SwitchField,
         ComboboxField,
-        SelectField
+        SelectField,
+        MarkdownEditorField
     },
     formComponents: {}
 });

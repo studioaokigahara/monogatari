@@ -97,46 +97,46 @@ export const DescriptionFields = withForm({
                 <CardContent className="space-y-4">
                     <form.AppField name="description">
                         {(field) => (
-                            <field.TextareaField
+                            <field.MarkdownEditorField
                                 label="Description"
                                 placeholder="main"
-                                className="font-mono text-sm"
+                                // className="font-mono text-sm"
                             />
                         )}
                     </form.AppField>
                     <form.AppField name="personality">
                         {(field) => (
-                            <field.TextareaField
+                            <field.MarkdownEditorField
                                 label="Personality"
                                 placeholder="personality"
-                                className="font-mono text-sm"
+                                // className="font-mono text-sm"
                             />
                         )}
                     </form.AppField>
                     <form.AppField name="scenario">
                         {(field) => (
-                            <field.TextareaField
+                            <field.MarkdownEditorField
                                 label="Scenario"
                                 placeholder="scenario"
-                                className="font-mono text-sm"
+                                // className="font-mono text-sm"
                             />
                         )}
                     </form.AppField>
                     <form.AppField name="system_prompt">
                         {(field) => (
-                            <field.TextareaField
+                            <field.MarkdownEditorField
                                 label="System Prompt"
                                 placeholder="sys"
-                                className="font-mono text-sm"
+                                // className="font-mono text-sm"
                             />
                         )}
                     </form.AppField>
                     <form.AppField name="post_history_instructions">
                         {(field) => (
-                            <field.TextareaField
+                            <field.MarkdownEditorField
                                 label="Post-History Instructions"
                                 placeholder="post"
-                                className="font-mono text-sm"
+                                // className="font-mono text-sm"
                             />
                         )}
                     </form.AppField>
@@ -225,9 +225,9 @@ export const GreetingsField = withForm({
                             }
                         >
                             {(field) => (
-                                <field.TextareaField
+                                <field.MarkdownEditorField
                                     placeholder="Write a message..."
-                                    className="font-mono text-sm"
+                                    // className="font-mono text-sm"
                                 />
                             )}
                         </form.AppField>
@@ -246,10 +246,10 @@ export const ExampleDialogueField = withForm({
                 <CardContent>
                     <form.AppField name="mes_example">
                         {(field) => (
-                            <field.TextareaField
+                            <field.MarkdownEditorField
                                 label="Example Dialogue"
                                 placeholder={`<START>\n{{char}}: Hello!\n{{user}}: Hi!`}
-                                className="font-mono text-sm"
+                                // className="font-mono text-sm"
                             />
                         )}
                     </form.AppField>

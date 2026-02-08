@@ -164,7 +164,7 @@ export function PromptEditor({ selectedPreset, promptIndex }: PromptEditorProps)
                     </form.Subscribe>
                 </div>
                 <form.AppField name={`prompts[${promptIndex}].content`}>
-                    {(field) => <field.TextareaField label="Content" />}
+                    {(field) => <field.MarkdownEditorField label="Content" />}
                 </form.AppField>
             </FieldGroup>
         </form>

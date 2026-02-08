@@ -268,7 +268,7 @@ export function LorebookEditor({ lorebook, entryIndex: index }: LorebookEditorPr
                     </form.AppField>
                 </div>
                 <form.AppField name={`data.entries[${index}].content`}>
-                    {(field) => <field.TextareaField label="Content" />}
+                    {(field) => <field.MarkdownEditorField label="Content" />}
                 </form.AppField>
             </FieldGroup>
         </form>
