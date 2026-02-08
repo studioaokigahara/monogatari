@@ -24,7 +24,8 @@ import {
     useElementScrollRestoration,
     useLoaderData,
     useNavigate,
-    useSearch
+    useSearch,
+    SearchSchemaInput
 } from "@tanstack/react-router";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -207,10 +208,9 @@ function Characters() {
 
 export const Route = createFileRoute("/characters/")({
     component: Characters,
-    validateSearch: (search) => {
-        const defaults = searchSettingsCollection.get(searchCollectionKey)!;
+    validateSearch: (search: Partial<CharacterSearch> & SearchSchemaInput) => {
         return CharacterSearch.parse({
-            ...defaults,
+            ...searchSettingsCollection.get(searchCollectionKey)!,
             ...search
         });
     },
