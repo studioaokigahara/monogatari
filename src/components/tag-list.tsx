@@ -3,7 +3,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn, FNV1a } from "@/lib/utils";
 import { MoreHorizontal } from "lucide-react";
-import { useLayoutEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 
 const TAG_CACHE = new Map<string, number>();
 
@@ -34,8 +34,6 @@ export function TagList({
         const container = containerRef.current;
         if (!container) return;
 
-        let raf = 0;
-
         const updateWidth = () => {
             const next = container.clientWidth;
             if (next <= 0) return;
@@ -44,20 +42,13 @@ export function TagList({
 
         updateWidth();
 
-        const observer = new ResizeObserver(() => {
-            cancelAnimationFrame(raf);
-            raf = requestAnimationFrame(updateWidth);
-        });
-
+        const observer = new ResizeObserver(updateWidth);
         observer.observe(container);
 
-        return () => {
-            cancelAnimationFrame(raf);
-            observer.disconnect();
-        };
+        return () => observer.disconnect();
     }, []);
 
-    useLayoutEffect(() => {
+    useEffect(() => {
         const container = containerRef.current;
         if (!container || containerWidth <= 0) return;
 
