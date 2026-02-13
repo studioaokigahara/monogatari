@@ -63,7 +63,7 @@ export const GoogleRegistry: ModelRegistry["google"] = [
         ]
     },
     {
-        id: "gemini-3-pro-preview",
+        id: "gemini-3",
         name: "Gemini 3",
         releaseDate: new Date("11/18/25"),
         knowledgeCutoff: new Date("January 2025"),
@@ -74,6 +74,27 @@ export const GoogleRegistry: ModelRegistry["google"] = [
             structuredOutputs: true,
             tools: true,
             reasoning: true
-        }
+        },
+        checkpoints: [
+            {
+                id: "gemini-3-pro-preview",
+                name: "Gemini 3 Pro",
+                price: {
+                    input: 2,
+                    output: 12,
+                    cacheRead: 0.2
+                }
+            },
+            {
+                id: "gemini-3-flash-preview",
+                name: "Gemini 3 Flash",
+                releaseDate: new Date("12/17/25"),
+                price: {
+                    input: 0.5,
+                    output: 3,
+                    cacheRead: 0.05
+                }
+            }
+        ]
     }
 ];
