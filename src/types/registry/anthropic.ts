@@ -155,5 +155,20 @@ export const AnthropicRegistry: ModelRegistry["anthropic"] = [
                 }
             }
         ]
+    },
+    {
+        id: "claude-opus-4-6",
+        name: "Claude Opus 4.6",
+        releaseDate: new Date("02/05/2026"),
+        knowledgeCutoff: new Date("May 2025"),
+        contextLength: 1_000_000,
+        maxOutputTokens: 128_000,
+        supports: {
+            streaming: true,
+            reasoning: true,
+            structuredOutputs: true,
+            tools: true
+        },
+        price: prices.newOpus
     }
 ];
