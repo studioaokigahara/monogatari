@@ -43,7 +43,7 @@ export function Markdown({
         img: ({ alt, node: _node, ...props }) => (
             <img
                 {...props}
-                alt={alt ?? ""}
+                alt={alt}
                 loading="eager"
                 fetchPriority="high"
                 onLoad={() => {
