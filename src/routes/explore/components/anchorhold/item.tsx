@@ -1,6 +1,6 @@
 import { Markdown } from "@/components/markdown";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@/components/ui/item";
+import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
 import { AnchorholdPost } from "@/lib/explore/anchorhold/api";
 import { cn } from "@/lib/utils";
 import { DownloadButton } from "@/routes/explore/components/download-button";
@@ -15,19 +15,18 @@ export function AnchorholdItem({ post, isDownloaded, onClick: handleClick }: Pro
     const buttonState = isDownloaded ? "ready_update" : "ready_download";
     return (
         <Item
-            variant="muted"
+            variant="outline"
             className={cn(
-                "flex h-64 flex-row items-start overflow-hidden sm:h-96",
+                "flex h-64 flex-row items-start sm:h-96",
                 isDownloaded && "mx-0.5 ring-2 ring-green-500/50"
             )}
         >
             <ItemMedia className="h-full">
-                <Avatar className="aspect-2/3 size-[unset] max-h-full overflow-visible rounded-xl after:rounded-xl">
-                    <AvatarImage src={post.imageURL} className="absolute z-0 blur-xl" />
+                <Avatar className="aspect-2/3 size-[unset] max-h-full rounded-xl after:rounded-xl">
                     <AvatarImage
                         src={post.imageURL}
                         alt={post.postID}
-                        className="z-1 rounded-xl object-cover"
+                        className="rounded-xl object-cover"
                     />
                     <AvatarFallback className="animate-pulse rounded-xl" />
                     <DownloadButton
@@ -35,11 +34,11 @@ export function AnchorholdItem({ post, isDownloaded, onClick: handleClick }: Pro
                         onClick={handleClick}
                         variant="outline"
                         size="sm"
-                        className="absolute right-2 bottom-2 z-2 backdrop-blur backdrop-brightness-80"
+                        className="absolute right-2 bottom-2 z-2 backdrop-blur backdrop-brightness-50"
                     />
                 </Avatar>
             </ItemMedia>
-            <ItemContent className="z-1 h-full overflow-y-scroll">
+            <ItemContent className="h-full overflow-y-scroll">
                 <ItemTitle>
                     <a href={post.postURL} target="_blank" rel="noopener noreferrer">
                         {">>>"}
@@ -47,9 +46,9 @@ export function AnchorholdItem({ post, isDownloaded, onClick: handleClick }: Pro
                         {post.postID ?? ""}
                     </a>
                 </ItemTitle>
-                <ItemDescription className="line-clamp-none">
+                <div className="line-clamp-none">
                     <Markdown className="prose-greentext">{post.content}</Markdown>
-                </ItemDescription>
+                </div>
             </ItemContent>
         </Item>
     );

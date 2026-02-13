@@ -14,18 +14,16 @@ import { useFileDialog } from "@/hooks/use-file-dialog";
 import { useImageURL } from "@/hooks/use-image-url";
 import { importCharacterFile } from "@/lib/character/io";
 import { CharacterSearch, listCharacters } from "@/lib/character/search";
-import { cn } from "@/lib/utils";
 import CharacterItem from "@/routes/characters/components/item";
 import { Search } from "@/routes/characters/components/search";
 import {
     createFileRoute,
     Link,
+    SearchSchemaInput,
     stripSearchParams,
-    useElementScrollRestoration,
     useLoaderData,
     useNavigate,
-    useSearch,
-    SearchSchemaInput
+    useSearch
 } from "@tanstack/react-router";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -64,46 +62,37 @@ function Favorites({ favorites }: { favorites: Character[] }) {
 }
 
 function CharacterList({ characters }: { characters: Character[] }) {
-    const gridRef = useRef<HTMLDivElement>(null);
-    const [gridWidth, setGridWidth] = useState(0);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [containerWidth, setContainerWidth] = useState(0);
 
     useLayoutEffect(() => {
-        const grid = gridRef.current;
-        if (!grid) return;
+        const container = containerRef.current;
+        if (!container) return;
 
         const observer = new ResizeObserver((entries) => {
             const entry = entries[0];
             if (!entry) return;
-            setGridWidth(entry.contentRect.width);
+            setContainerWidth(entry.contentRect.width);
         });
 
-        observer.observe(grid);
+        observer.observe(container);
+
         return () => observer.disconnect();
     }, []);
 
-    const columns = Math.max(1, Math.floor(gridWidth / 384));
-    const rows = Math.ceil(characters.length / columns);
-
-    const scrollEntry = useElementScrollRestoration({
-        getElement: () => window
-    });
-
     const virtualizer = useWindowVirtualizer({
-        count: rows,
+        count: characters.length,
         estimateSize: () => 192,
         overscan: 4,
-        scrollMargin: gridRef.current?.offsetTop ?? 0,
+        scrollMargin: containerRef.current?.offsetTop ?? 0,
         gap: 8,
-        initialOffset: scrollEntry?.scrollY
+        lanes: Math.max(1, Math.floor(containerWidth / 384))
+        // useFlushSync: false
     });
-
-    const characterItems = characters.map((character) => (
-        <CharacterItem key={character.id} character={character} />
-    ));
 
     if (!characters?.length) {
         return (
-            <div ref={gridRef} className="relative mb-2 w-full">
+            <div ref={containerRef} className="relative mb-2 w-full">
                 <p>Ain't nobody here but us chickens.</p>
             </div>
         );
@@ -111,31 +100,28 @@ function CharacterList({ characters }: { characters: Character[] }) {
 
     return (
         <ItemGroup
-            ref={gridRef}
+            ref={containerRef}
             className="relative mb-2 w-full"
             style={{ height: virtualizer.getTotalSize() }}
         >
-            {virtualizer.getVirtualItems().map((row) => (
-                <ItemGroup
-                    key={row.key}
-                    ref={virtualizer.measureElement}
-                    data-index={row.index}
-                    className={cn(
-                        "absolute top-0 left-0 w-full",
-                        "grid grid-flow-row grid-cols-[repeat(auto-fill,minmax(min(24rem,100%),1fr))] gap-2"
-                    )}
-                    style={{
-                        transform: `translateY(${row.start - virtualizer.options.scrollMargin}px)`
-                    }}
-                >
-                    {Array.from({ length: columns }).map((_, index) => {
-                        const itemIndex = row.index * columns + index;
-                        const characterItem = characterItems[itemIndex];
-                        if (!characterItem) return null;
-                        return characterItem;
-                    })}
-                </ItemGroup>
-            ))}
+            {virtualizer.getVirtualItems().map((item) => {
+                const character = characters[item.index];
+                const { scrollMargin, gap, lanes } = virtualizer.options;
+                return (
+                    <CharacterItem
+                        key={character.id}
+                        data-index={item.index}
+                        character={character}
+                        style={{
+                            position: "absolute",
+                            left: `calc(${item.lane} * (100% + ${gap}px) / ${lanes})`,
+                            width: `calc((100% - ${(lanes - 1) * gap}px) / ${lanes})`,
+                            height: `${item.size}px`,
+                            transform: `translateY(${item.start - scrollMargin}px)`
+                        }}
+                    />
+                );
+            })}
         </ItemGroup>
     );
 }

@@ -14,16 +14,15 @@ import { db } from "@/database/monogatari-db";
 import { importCharacter } from "@/lib/character/io";
 import { scanGallery } from "@/lib/character/scanner";
 import { fetchCharacterImage, fetchCharacterJSON } from "@/lib/explore/chub/api";
-import { cn } from "@/lib/utils";
 import { ChubCharacterItem } from "@/routes/explore/components/chub/item";
 import { CharacterModal } from "@/routes/explore/components/chub/modal";
 import { type ChubCharacter } from "@/types/explore/chub";
 import { useMutation } from "@tanstack/react-query";
-import { useElementScrollRestoration, useLoaderData, useNavigate } from "@tanstack/react-router";
+import { useLoaderData, useNavigate } from "@tanstack/react-router";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useLiveQuery } from "dexie-react-hooks";
 import { AlertTriangle } from "lucide-react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 interface CharacterListProps {
@@ -50,23 +49,11 @@ export default function CharacterList({
     const preload = useLoaderData({ from: "/explore/chub" });
     const downloadedCharacters = useLiveQuery(() => db.characters.toArray(), [], preload);
 
-    const characterPaths = useMemo(() => {
-        const paths = new Set<string>();
-
-        if (downloadedCharacters.length === 0) return paths;
-
+    const characterPaths = new Set<string>(
         downloadedCharacters
             .filter((character) => character.data.extensions.chub?.full_path)
-            .forEach((character) => paths.add(character.data.extensions.chub?.full_path));
-
-        if (paths.size === 0) {
-            toast.warning(
-                "No chub info found in database. Character download button states will be broken."
-            );
-        }
-
-        return paths;
-    }, [downloadedCharacters]);
+            .map((character) => character.data.extensions.chub?.full_path)
+    );
 
     const navigate = useNavigate({ from: "/explore/chub" });
 
@@ -145,62 +132,52 @@ export default function CharacterList({
         }
     };
 
-    const gridRef = useRef<HTMLDivElement>(null);
-    const [gridWidth, setGridWidth] = useState(0);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [containerWidth, setContainerWidth] = useState(0);
 
     useLayoutEffect(() => {
-        const grid = gridRef.current;
-        if (!grid) return;
+        const container = containerRef.current;
+        if (!container) return;
 
-        setGridWidth(grid.clientWidth);
+        setContainerWidth(container.clientWidth);
 
         const observer = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                setGridWidth(entry.contentRect.width);
-            }
+            const entry = entries[0];
+            if (!entry) return;
+            setContainerWidth(entry.contentRect.width);
         });
 
-        observer.observe(grid);
+        observer.observe(container);
 
         return () => observer.disconnect();
     }, []);
 
-    const columnCount = Math.max(1, Math.floor(gridWidth / 256));
-    const rowCount = Math.max(0, Math.ceil(characters.length / columnCount));
-
-    const scrollEntry = useElementScrollRestoration({
-        getElement: () => window
-    });
-
     const virtualizer = useWindowVirtualizer({
-        count: hasNextPage ? rowCount + 1 : rowCount,
-        estimateSize: () => 448,
+        count: hasNextPage ? characters.length + 1 : characters.length,
+        estimateSize: () => 222,
         overscan: 4,
-        scrollMargin: gridRef.current?.offsetTop ?? 0,
+        scrollMargin: containerRef.current?.offsetTop ?? 0,
         gap: 8,
-        initialOffset: scrollEntry?.scrollY
+        lanes: Math.max(1, Math.floor(containerWidth / 384))
     });
 
     const virtualItems = virtualizer.getVirtualItems();
 
     useEffect(() => {
-        const [lastRow] = [...virtualItems].reverse();
-        const isLastRow = lastRow?.index >= rowCount;
+        const [lastItem] = [...virtualItems].reverse();
+        const isLastItem = lastItem?.index >= characters.length - 1;
 
-        if (isLastRow && hasNextPage && !isFetchingNextPage) {
+        if (isLastItem && hasNextPage && !isFetchingNextPage) {
             fetchNextPage();
         }
-    }, [virtualItems, rowCount, hasNextPage, isFetchingNextPage, fetchNextPage]);
+    }, [virtualItems, characters.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
     if (isFetching && !isFetchingNextPage) {
         return (
-            <div ref={gridRef} className="relative my-2 w-full pt-2 pb-4">
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-[repeat(auto-fit,minmax(256px,1fr))]">
-                    {[...Array(columnCount * 4)].map((_, index) => (
-                        <Skeleton
-                            key={`skeleton-${index}`}
-                            className="h-44 w-auto rounded-xl md:h-96"
-                        />
+            <div ref={containerRef} className="relative my-2 w-full">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-[repeat(auto-fit,minmax(384px,1fr))]">
+                    {Array.from({ length: virtualizer.options.lanes * 4 }).map((_, index) => (
+                        <Skeleton key={`skeleton-${index}`} className="h-55 w-auto rounded-xl" />
                     ))}
                 </div>
             </div>
@@ -209,7 +186,7 @@ export default function CharacterList({
 
     if (characters.length === 0 && !isFetching) {
         return (
-            <div ref={gridRef} className="relative my-2 w-full pt-2 pb-4">
+            <div ref={containerRef} className="relative my-2 w-full">
                 <div className="col-span-full flex h-64 flex-col items-center justify-center">
                     <AlertTriangle className="mb-4 h-12 w-12 text-muted-foreground" />
                     <p className="text-lg text-muted-foreground">No characters found</p>
@@ -220,46 +197,34 @@ export default function CharacterList({
 
     return (
         <>
-            <div
-                ref={gridRef}
-                className="relative my-2 w-full pt-2 pb-4"
+            <ItemGroup
+                ref={containerRef}
+                className="my-2"
                 style={{ height: virtualizer.getTotalSize() }}
             >
-                {virtualItems.map((row) => (
-                    <ItemGroup
-                        key={row.key}
-                        data-index={row.index}
-                        ref={virtualizer.measureElement}
-                        className={cn(
-                            "absolute top-0 left-0 w-full",
-                            "grid grid-cols-1 gap-2 sm:grid-cols-[repeat(auto-fit,minmax(256px,1fr))]"
-                        )}
-                        style={{
-                            transform: `translateY(${row.start - virtualizer.options.scrollMargin}px)`
-                        }}
-                    >
-                        {[...Array(columnCount)].map((_, index) => {
-                            const idx = row.index * columnCount + index;
-                            const character = characters[idx];
-
-                            if (!character) return null;
-
-                            const isDownloaded = characterPaths.has(character.fullPath);
-
-                            return (
-                                <ChubCharacterItem
-                                    key={character.id}
-                                    character={character}
-                                    isDownloaded={isDownloaded}
-                                    onCardClick={handleCharacterClick}
-                                    onDownloadClick={handleDownloadClick}
-                                    onTagClick={onTagClick}
-                                />
-                            );
-                        })}
-                    </ItemGroup>
-                ))}
-            </div>
+                {virtualItems.map((item) => {
+                    const character = characters[item.index];
+                    const { scrollMargin, gap, lanes } = virtualizer.options;
+                    return character ? (
+                        <ChubCharacterItem
+                            key={character.id}
+                            data-index={item.index}
+                            character={character}
+                            isDownloaded={characterPaths.has(character.fullPath)}
+                            onCharacterClick={() => handleCharacterClick(character)}
+                            onDownloadClick={() => handleDownloadClick(character)}
+                            onTagClick={onTagClick}
+                            style={{
+                                position: "absolute",
+                                left: `calc(${item.lane} * (100% + ${gap}px) / ${lanes})`,
+                                width: `calc((100% - ${(lanes - 1) * gap}px) / ${lanes})`,
+                                height: `${item.size}px`,
+                                transform: `translateY(${item.start - scrollMargin}px)`
+                            }}
+                        />
+                    ) : null;
+                })}
+            </ItemGroup>
 
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent>

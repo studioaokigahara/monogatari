@@ -123,7 +123,7 @@ export default function Search({
     };
 
     const selectNamespace = NAMESPACE_OPTIONS.map((option) => (
-        <SelectItem key={option.value} value={option}>
+        <SelectItem key={option.value} value={option.value}>
             {option.icon}
             {option.label}
         </SelectItem>
@@ -136,7 +136,7 @@ export default function Search({
     ));
 
     const selectSort = SORT_OPTIONS.map((option) => (
-        <SelectItem key={option.value} value={option}>
+        <SelectItem key={option.value} value={option.value}>
             {option.icon}
             {option.label}
         </SelectItem>
