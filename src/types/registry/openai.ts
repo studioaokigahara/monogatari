@@ -1,6 +1,6 @@
-import { Model } from "../models";
+import { ModelRegistry } from "@/types/models";
 
-export const OpenAIRegistry: Model<"openai">[] = [
+export const OpenAIRegistry: ModelRegistry["openai"] = [
     {
         id: "gpt-3.5-turbo",
         name: "GPT‑3.5 Turbo",
@@ -98,8 +98,7 @@ export const OpenAIRegistry: Model<"openai">[] = [
             {
                 id: "chatgpt-4o-latest",
                 name: "ChatGPT-4o",
-                description:
-                    "ChatGPT-4o points to the GPT-4o snapshot currently used in ChatGPT.",
+                description: "ChatGPT-4o points to the GPT-4o snapshot currently used in ChatGPT.",
                 price: {
                     input: 5,
                     output: 15
@@ -188,8 +187,7 @@ export const OpenAIRegistry: Model<"openai">[] = [
             {
                 id: "gpt-5-chat-latest",
                 name: "GPT-5 Chat",
-                description:
-                    "GPT-5 Chat points to the GPT-5 snapshot currently used in ChatGPT.",
+                description: "GPT-5 Chat points to the GPT-5 snapshot currently used in ChatGPT.",
                 price: {
                     input: 1.25,
                     output: 10,

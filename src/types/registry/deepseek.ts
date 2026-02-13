@@ -1,6 +1,6 @@
-import { Model } from "../models";
+import { ModelRegistry } from "@/types/models";
 
-export const DeepSeekRegistry: Model<"deepseek">[] = [
+export const DeepSeekRegistry: ModelRegistry["deepseek"] = [
     {
         id: "deepseek-v3.2",
         name: "DeepSeek-V3.2",

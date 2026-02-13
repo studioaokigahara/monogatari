@@ -1,10 +1,10 @@
-import { Model } from "../models";
+import { ModelRegistry } from "@/types/models";
 
-export const GoogleRegistry: Model<"google">[] = [
+export const GoogleRegistry: ModelRegistry["google"] = [
     {
         id: "gemini-2.0",
         name: "Gemini 2.0",
-        contextLength: 1048576,
+        contextLength: 1_048_576,
         maxOutputTokens: 8192,
         supports: {
             streaming: true,
@@ -35,8 +35,8 @@ export const GoogleRegistry: Model<"google">[] = [
         name: "Gemini 2.5",
         releaseDate: new Date("June 2025"),
         knowledgeCutoff: new Date("January 2025"),
-        contextLength: 1048576,
-        maxOutputTokens: 65536,
+        contextLength: 1_048_576,
+        maxOutputTokens: 65_536,
         supports: {
             streaming: true,
             tools: true,
@@ -67,10 +67,11 @@ export const GoogleRegistry: Model<"google">[] = [
         name: "Gemini 3",
         releaseDate: new Date("11/18/25"),
         knowledgeCutoff: new Date("January 2025"),
-        contextLength: 1048576,
-        maxOutputTokens: 65536,
+        contextLength: 1_048_576,
+        maxOutputTokens: 65_536,
         supports: {
             streaming: true,
+            structuredOutputs: true,
             tools: true,
             reasoning: true
         }

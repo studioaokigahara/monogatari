@@ -1,9 +1,4 @@
-export type Providers =
-    | "openai"
-    | "anthropic"
-    | "google"
-    | "deepseek"
-    | "openrouter";
+export type Providers = "openai" | "anthropic" | "google" | "deepseek" | "openrouter";
 
 export type Modality = "text" | "image" | "audio" | "video" | "pdf";
 
@@ -28,7 +23,7 @@ export type Capabilities =
     | "reasoning";
 
 export type Supports = {
-    [C in Capabilities]?: boolean;
+    [Capability in Capabilities]?: boolean;
 };
 
 export interface BaseModel {
@@ -47,12 +42,12 @@ export interface BaseModel {
     supports?: Supports;
 }
 
-export type Model<_Provider extends Providers> = BaseModel & {
+export type Model = BaseModel & {
     checkpoints?: Partial<BaseModel>[];
 };
 
 export type ModelRegistry = {
-    [Provider in Providers]: Model<Provider>[];
+    [Provider in Providers]: Model[];
 };
 
 export type Sampler =
