@@ -10,7 +10,7 @@ const TAG_CACHE = new Map<string, number>();
 interface TagListProps extends React.ComponentProps<typeof Badge> {
     tags: string[];
     maxRows?: number;
-    onTagClick?: (event: React.MouseEvent<HTMLSpanElement>, tag: string) => void;
+    onTagClick?: (tag: string) => void;
 }
 
 export function TagList({
@@ -105,7 +105,7 @@ export function TagList({
     const handleTagClick = (event: React.MouseEvent<HTMLSpanElement>) => {
         event.stopPropagation();
         const tagValue = event.currentTarget.dataset.tag!;
-        onTagClick?.(event, tagValue);
+        onTagClick?.(tagValue);
     };
 
     const tagList = tags.map((tag, index) => (
