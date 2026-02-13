@@ -7,13 +7,11 @@ import { Toaster } from "@/components/ui/sonner";
 import { db } from "@/database/monogatari-db";
 import { Context } from "@/router";
 import { HeadContent, Outlet, createRootRouteWithContext, redirect } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
 function RootLayout() {
     return (
         <>
             <HeadContent />
-            <TanStackRouterDevtools />
             <BackupStatus />
             <CharacterProvider>
                 <ThemeProvider>
