@@ -8,7 +8,7 @@ import { createFileRoute, stripSearchParams, useSearch } from "@tanstack/react-r
 import z from "zod";
 
 const configQuery = queryOptions({
-    queryKey: ["anchorhold", "config"],
+    queryKey: ["explore", "anchorhold", "config"],
     queryFn: fetchAnchorholdConfig
 });
 
@@ -16,7 +16,7 @@ function Anchorhold() {
     const { data: config, isFetching: isFetchingConfig } = useQuery(configQuery);
 
     const { data, fetchNextPage, hasNextPage, isFetching, isFetchingNextPage } = useInfiniteQuery({
-        queryKey: ["anchorhold", "feed"],
+        queryKey: ["explore", "anchorhold", "feed"],
         queryFn: ({ pageParam }) => fetchAnchorholdPage(pageParam),
         initialPageParam: config?.total_pages ?? 1,
         getNextPageParam: (_lastPage, _allPages, lastPageParam) => lastPageParam - 1,
