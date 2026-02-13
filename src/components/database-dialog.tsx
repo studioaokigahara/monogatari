@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { backupSettingsCollection } from "@/database/collections/backup-settings";
 import { useFileDialog } from "@/hooks/use-file-dialog";
 import { downloadFile } from "@/lib/utils";
+import { WorkerResponse } from "@/lib/workers/database-io.worker";
 import { format } from "date-fns";
 import { ExportProgress } from "dexie-export-import";
 import { ImportProgress } from "dexie-export-import/dist/import";
@@ -44,12 +45,6 @@ function getOverallPercent(progress?: ExportProgress | ImportProgress) {
     return clamp(Math.round(overall * 100), 0, 100);
 }
 
-type WorkerMessage =
-    | { type: "progress"; payload: ExportProgress }
-    | { type: "exportDone"; payload: Blob | undefined }
-    | { type: "importDone"; payload: null }
-    | { type: "error"; payload: string };
-
 export function ExportDatabase() {
     const workerRef = useRef<Worker | null>(null);
     const [open, setOpen] = useState(false);
@@ -74,7 +69,7 @@ export function ExportDatabase() {
 
         const worker = workerRef.current;
 
-        worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
+        worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
             const { type, payload } = event.data;
 
             if (type === "progress") setProgress(payload);
@@ -198,7 +193,7 @@ export function ImportDatabase() {
 
         const worker = workerRef.current;
 
-        worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
+        worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
             const { type, payload } = event.data;
 
             if (type === "progress") setProgress(payload);

@@ -1,11 +1,8 @@
 import { db } from "@/database/monogatari-db";
 import { Dexie } from "dexie";
-import {
-    exportDB,
-    ExportOptions,
-    ExportProgress,
-    ImportOptions
-} from "dexie-export-import";
+import { exportDB, ExportOptions, ExportProgress, ImportOptions } from "dexie-export-import";
+
+declare const self: Worker;
 
 type WorkerRequest =
     | {
@@ -23,13 +20,13 @@ type WorkerRequest =
           };
       };
 
-type WorkerResponse =
+export type WorkerResponse =
     | { type: "progress"; payload: ExportProgress }
     | { type: "exportDone"; payload: Blob }
     | { type: "importDone"; payload: null }
     | { type: "error"; payload: string };
 
-self.addEventListener("message", async (event) => {
+self.onmessage = async (event) => {
     const { type, payload }: WorkerRequest = event.data;
 
     if (type === "export") {
@@ -44,24 +41,19 @@ self.addEventListener("message", async (event) => {
             }
         };
 
-        let blob;
         try {
-            blob = await exportDB(db, exportOptions);
+            const blob = await exportDB(db, exportOptions);
+            self.postMessage({
+                type: "exportDone",
+                payload: blob
+            } satisfies WorkerResponse);
         } catch (error) {
             self.postMessage({
                 type: "error",
-                payload:
-                    error instanceof Error
-                        ? error.message
-                        : "Unknown import error"
+                payload: error instanceof Error ? error.message : "Unknown import error"
             } satisfies WorkerResponse);
             return;
         }
-
-        self.postMessage({
-            type: "exportDone",
-            payload: blob
-        } satisfies WorkerResponse);
     } else if (type === "import") {
         const importOptions: ImportOptions = {
             ...payload?.options,
@@ -83,10 +75,7 @@ self.addEventListener("message", async (event) => {
         } catch (error) {
             self.postMessage({
                 type: "error",
-                payload:
-                    error instanceof Error
-                        ? error.message
-                        : "Unknown import error"
+                payload: error instanceof Error ? error.message : "Unknown import error"
             } satisfies WorkerResponse);
         }
 
@@ -95,4 +84,4 @@ self.addEventListener("message", async (event) => {
             payload: null
         } satisfies WorkerResponse);
     }
-});
+};
