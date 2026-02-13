@@ -10,7 +10,6 @@ import {
     prosemarkMarkdownSyntaxExtensions
 } from "@prosemark/core";
 import { pastePlainTextExtension, pasteRichTextExtension } from "@prosemark/paste-rich-text";
-import { htmlBlockExtension } from "@prosemark/render-html";
 import { createTheme } from "@uiw/codemirror-themes";
 import CodeMirror, { Extension, ReactCodeMirrorProps } from "@uiw/react-codemirror";
 
@@ -125,7 +124,7 @@ export function MarkdownEditor({
         // slice to get rid of default mark hiding extension at index 0
         (prosemarkBasicSetup() as Extension[]).slice(1),
         prosemarkBaseThemeSetup(),
-        htmlBlockExtension,
+        // htmlBlockExtension,
         pasteRichTextExtension(),
         pastePlainTextExtension(),
         editorTheme
@@ -138,7 +137,7 @@ export function MarkdownEditor({
             placeholder={placeholder}
             theme={theme}
             onChange={onChange}
-            className="prose dark:prose-invert"
+            className="prose max-w-[unset] dark:prose-invert"
             {...props}
         />
     );
