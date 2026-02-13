@@ -1,9 +1,9 @@
-import { Modality, Model } from "@/types/models";
+import { Modality, Model, ModelRegistry } from "@/types/models";
 import { OpenRouterModel } from "@/types/registry/openrouter";
 import { DefaultOptions, QueryClient, queryOptions } from "@tanstack/react-query";
 import { experimental_createQueryPersister as createQueryPersister } from "@tanstack/react-query-persist-client";
 
-function transformModel(model: OpenRouterModel): Model<"openrouter"> | null {
+function transformModel(model: OpenRouterModel): Model | null {
     if (!model.context_length || model.context_length <= 0) {
         return null;
     }
@@ -12,9 +12,11 @@ function transformModel(model: OpenRouterModel): Model<"openrouter"> | null {
         model.supported_parameters?.includes("tools") ||
         model.supported_parameters?.includes("tool_choice") ||
         false;
+
     const supportsReasoning =
         model.supported_parameters?.includes("reasoning") ||
         model.supported_parameters?.includes("include_reasoning");
+
     const supportsStructuredOutputs =
         model.supported_parameters?.includes("structured_outputs") ||
         model.supported_parameters?.includes("response_format");
@@ -77,7 +79,7 @@ const openrouterQuery = queryOptions({
         return data.data
             .map(transformModel)
             .filter(Boolean)
-            .sort((a: Model<"openrouter">, b: Model<"openrouter">) => a.name.localeCompare(b.name));
+            .sort((a: Model, b: Model) => a.name.localeCompare(b.name));
     }
 });
 
@@ -95,7 +97,7 @@ class OpenRouterRegistryManager {
         return OpenRouterRegistryManager.instance;
     }
 
-    async getModels(): Promise<Model<"openrouter">[]> {
+    async getModels(): Promise<ModelRegistry["openrouter"]> {
         return await queryClient.ensureQueryData(openrouterQuery);
     }
 
