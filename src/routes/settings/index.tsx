@@ -4,7 +4,6 @@ import Header from "@/components/header";
 import Password from "@/components/password-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { db } from "@/database/monogatari-db";
 import { useSettings } from "@/hooks/use-settings";
 import { SelectExploreRepo } from "@/routes/settings/components/api/select-provider";
 import { createFileRoute } from "@tanstack/react-router";
@@ -21,7 +20,7 @@ import {
     Turtle,
     Worm
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
     Label as ChartLabel,
     Pie,
@@ -78,88 +77,23 @@ function StorageDisplay() {
     };
 
     const [dbSize, setDBSize] = useState<Record<string, number>>();
+    const workerRef = useRef<Worker>(null);
 
     useEffect(() => {
         let cancelled = false;
 
-        const encoder = new TextEncoder();
-
-        const sizeOfValue = (value: any, seen: WeakSet<object>): number => {
-            if (value === null || value === undefined) return 0;
-
-            const type = typeof value;
-
-            if (type === "string") {
-                return encoder.encode(value).length;
+        workerRef.current = new Worker(
+            new URL("@/lib/workers/database-size.worker.ts", import.meta.url),
+            {
+                type: "module"
             }
+        );
 
-            if (type === "number") return 8;
-            if (type === "boolean") return 1;
-            if (value instanceof Date) return 8;
-
-            if (value instanceof Blob) return value.size;
-            if (value instanceof File) return value.size;
-            if (value instanceof ArrayBuffer) return value.byteLength;
-
-            if (ArrayBuffer.isView(value)) {
-                return (value as ArrayBufferView).byteLength;
-            }
-
-            if (Array.isArray(value)) {
-                let sum = 0;
-                for (const v of value) sum += sizeOfValue(v, seen);
-                return sum;
-            }
-
-            if (type === "object") {
-                if (seen.has(value)) return 0;
-                seen.add(value);
-
-                if (value instanceof Map) {
-                    let sum = 0;
-                    for (const [k, v] of value.entries()) {
-                        sum += sizeOfValue(k, seen) + sizeOfValue(v, seen);
-                    }
-                    return sum;
-                }
-
-                if (value instanceof Set) {
-                    let sum = 0;
-                    for (const v of value.values()) {
-                        sum += sizeOfValue(v, seen);
-                    }
-                    return sum;
-                }
-
-                let sum = 0;
-                for (const [k, v] of Object.entries(value)) {
-                    sum += encoder.encode(k).length + sizeOfValue(v, seen);
-                }
-                return sum;
-            }
-
-            return 0;
+        workerRef.current.onmessage = (event: MessageEvent<Record<string, number>>) => {
+            if (!cancelled) setDBSize(event.data);
         };
 
-        const estimateDbSize = async () => {
-            const tables = db.tables;
-            const sizes: Record<string, number> = {};
-
-            await Promise.all(
-                tables.map(async (table) => {
-                    const records = await table.toArray();
-                    let total = 0;
-                    for (const record of records) {
-                        total += sizeOfValue(record, new WeakSet());
-                    }
-                    sizes[table.name] = total;
-                })
-            );
-
-            if (!cancelled) setDBSize(sizes);
-        };
-
-        void estimateDbSize();
+        workerRef.current.postMessage({});
 
         return () => {
             cancelled = true;
