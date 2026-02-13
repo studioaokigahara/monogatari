@@ -1,27 +1,27 @@
-import { handleChatCompletion, handleChatStream } from "@/lib/workers/handlers/chat";
-import { handleImage } from "@/lib/workers/handlers/image";
+import { handleChatCompletionRequest, handleChatRequest } from "@/lib/workers/handlers/chat";
+import { handleImageRequest } from "@/lib/workers/handlers/image";
 import { clientsClaim } from "workbox-core";
 
-declare let self: ServiceWorkerGlobalScope;
+declare const self: ServiceWorkerGlobalScope;
 
 void self.skipWaiting();
 clientsClaim();
 
-self.addEventListener("fetch", (event: FetchEvent) => {
+self.onfetch = (event: FetchEvent) => {
     const url = new URL(event.request.url);
 
     if (event.request.method === "GET" && url.pathname.startsWith("/images/")) {
-        event.respondWith(handleImage(event.request));
+        event.respondWith(handleImageRequest(event.request));
         return;
     }
 
     if (event.request.method === "POST") {
         switch (url.pathname) {
             case "/api/chat":
-                event.respondWith(handleChatStream(event.request));
+                event.respondWith(handleChatRequest(event.request));
                 return;
             case "/api/chat/completions":
-                event.respondWith(handleChatCompletion(event.request));
+                event.respondWith(handleChatCompletionRequest(event.request));
                 return;
             // case "/api/generate/image":
             //     return image(event.request);
@@ -33,4 +33,6 @@ self.addEventListener("fetch", (event: FetchEvent) => {
                 });
         }
     }
-});
+};
+
+self.onnotificationclick

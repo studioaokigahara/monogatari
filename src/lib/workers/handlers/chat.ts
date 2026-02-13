@@ -2,12 +2,24 @@ import { generateCuid2 } from "@/lib/utils";
 import { applyCacheControl, createRegistry } from "@/lib/workers/utils/ai";
 import { Message } from "@/types/message";
 import { Settings } from "@/types/settings";
+import { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
+import { OpenAIResponsesProviderOptions } from "@ai-sdk/openai";
 import { convertToModelMessages, generateText, smoothStream, streamText } from "ai";
 
-const providerOptions = {
+const PROVIDER_OPTIONS = {
     openai: {
         store: false
-    }
+    } satisfies OpenAIResponsesProviderOptions,
+    google: {
+        safetySettings: [
+            { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "OFF" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "OFF" },
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "OFF" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "OFF" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "OFF" },
+            { category: "HARM_CATEGORY_UNSPECIFIED", threshold: "OFF" }
+        ]
+    } satisfies GoogleGenerativeAIProviderOptions
 };
 
 interface ChatRequest {
@@ -15,7 +27,7 @@ interface ChatRequest {
     settings: Settings;
 }
 
-export async function handleChatStream(request: Request) {
+export async function handleChatRequest(request: Request) {
     const { messages, settings }: ChatRequest = await request.json();
     const { registry, modelID } = createRegistry(settings);
 
@@ -32,7 +44,7 @@ export async function handleChatStream(request: Request) {
     const result = streamText({
         model: registry.languageModel(modelID),
         messages: modelMessages,
-        providerOptions,
+        providerOptions: PROVIDER_OPTIONS,
         maxOutputTokens: settings.maxOutputTokens,
         temperature: settings.samplers.temperature,
         frequencyPenalty: settings.samplers.frequencyPenalty,
@@ -78,7 +90,7 @@ export async function handleChatStream(request: Request) {
     });
 }
 
-export async function handleChatCompletion(request: Request) {
+export async function handleChatCompletionRequest(request: Request) {
     const { messages, settings }: ChatRequest = await request.json();
     const { registry, modelID } = createRegistry(settings);
 
@@ -93,7 +105,7 @@ export async function handleChatCompletion(request: Request) {
     const { text } = await generateText({
         model: registry.languageModel(modelID),
         messages: modelMessages,
-        providerOptions,
+        providerOptions: PROVIDER_OPTIONS,
         maxOutputTokens: settings.maxOutputTokens,
         temperature: settings.samplers.temperature,
         frequencyPenalty: settings.samplers.frequencyPenalty,

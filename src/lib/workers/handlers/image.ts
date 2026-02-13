@@ -3,7 +3,7 @@ import { db } from "@/database/monogatari-db";
 const MAX_AGE = 60 * 10;
 const CACHE_CONTROL = `public, max-age=${MAX_AGE}, stale-while-revalidate=31536000`;
 
-export async function handleImage(request: Request) {
+export async function handleImageRequest(request: Request) {
     const url = new URL(request.url);
     const parts = url.pathname.split("/");
     if (parts.length < 4) return new Response("Bad Request", { status: 400 });
@@ -14,35 +14,36 @@ export async function handleImage(request: Request) {
 
     let file: File | undefined;
 
-    if (namespace === "characters") {
-        const filename = decodeURIComponent(rest.join("/"));
-        if (!id || !filename) {
-            return new Response("Bad Request: Missing ID or file name", {
-                status: 400
+    switch (namespace) {
+        case "characters": {
+            const filename = decodeURIComponent(rest.join("/"));
+            if (!id || !filename) {
+                return new Response("Bad Request: Missing ID or file name", {
+                    status: 400
+                });
+            }
+
+            const asset = await db.assets.get({
+                "[parentID+file.name]": [id, filename]
             });
-        }
 
-        const asset = await db.assets.get({
-            "[parentID+file.name]": [id, filename]
-        });
-
-        if (asset) {
-            file = asset.file;
+            file = asset?.file;
+            break;
         }
-    } else if (namespace === "personas") {
-        if (!id) {
-            return new Response("Bad Request: Missing ID", { status: 400 });
-        }
+        case "personas": {
+            if (!id) {
+                return new Response("Bad Request: Missing ID", { status: 400 });
+            }
 
-        const asset = await db.assets.get({
-            "[category+parentID]": ["persona", id.split(".")[0]]
-        });
+            const asset = await db.assets.get({
+                "[category+parentID]": ["persona", id.split(".")[0]]
+            });
 
-        if (asset) {
-            file = asset.file;
+            file = asset?.file;
+            break;
         }
-    } else {
-        return new Response("Bad Request: Invalid Namespace", { status: 400 });
+        default:
+            return new Response("Bad Request: Invalid Namespace", { status: 400 });
     }
 
     if (!file) return new Response("Asset not found", { status: 404 });
